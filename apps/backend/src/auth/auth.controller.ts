@@ -13,6 +13,8 @@ import { FirebaseLoginDto } from './dto/firebase-login.dto';
 
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
+import { CompletePhoneVerificationDto } from './dto/complete-phone-verification.dto';
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -24,6 +26,16 @@ export class AuthController {
     @Body() dto: FirebaseLoginDto,
   ) {
     return this.authService.loginWithFirebase(dto);
+  }
+
+  @Post('complete-phone-verification')
+  async completePhoneVerification(
+    @Body()
+    dto: CompletePhoneVerificationDto,
+  ) {
+    return this.authService.completePhoneVerification(
+      dto,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

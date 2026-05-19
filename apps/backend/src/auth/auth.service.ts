@@ -13,6 +13,8 @@ import { FirebaseService } from '../firebase/firebase.service';
 
 import { FirebaseLoginDto } from './dto/firebase-login.dto';
 
+import { CompletePhoneVerificationDto } from './dto/complete-phone-verification.dto';
+
 import { AuthResponseType } from './types/auth-response.type';
 
 import { mapFirebaseProvider } from './utils/map-firebase-provider';
@@ -51,6 +53,10 @@ export class AuthService {
       const email =
         decodedToken.email ?? null;
 
+      /**
+       * GOOGLE / APPLE FLOW
+       * Require phone verification first
+       */
       if (!isPhoneProvider) {
         return {
           requiresPhoneVerification: true,
@@ -63,6 +69,10 @@ export class AuthService {
         };
       }
 
+      /**
+       * PHONE OTP FLOW
+       * Fully trusted account
+       */
       let user = await this.prismaService.user.findUnique({
         where: {
           phoneNumber: phoneNumber!,
@@ -128,6 +138,143 @@ export class AuthService {
 
       throw new UnauthorizedException(
         'Invalid Firebase Token',
+      );
+    }
+  }
+
+  async completePhoneVerification(
+    dto: CompletePhoneVerificationDto,
+  ): Promise<AuthResponseType> {
+    try {
+      /**
+       * Verify Google token
+       */
+      const googleToken =
+        await this.firebaseService.verifyIdToken(
+          dto.googleIdToken,
+        );
+
+      /**
+       * Verify Phone token
+       */
+      const phoneToken =
+        await this.firebaseService.verifyIdToken(
+          dto.phoneIdToken,
+        );
+
+      const email =
+        googleToken.email ?? null;
+
+      const phoneNumber =
+        phoneToken.phone_number ?? null;
+
+      if (!phoneNumber) {
+        throw new UnauthorizedException(
+          'Phone number verification failed',
+        );
+      }
+
+      /**
+       * Check if phone account already exists
+       */
+      let user =
+        await this.prismaService.user.findUnique({
+          where: {
+            phoneNumber,
+          },
+        });
+
+      /**
+       * Existing account found
+       */
+      if (user) {
+        /**
+         * Link Google email if missing
+         */
+        if (!user.email && email) {
+          user = await this.prismaService.user.update({
+            where: {
+              id: user.id,
+            },
+
+            data: {
+              email,
+
+              authProvider: 'GOOGLE',
+            },
+          });
+        }
+      } else {
+        /**
+         * Create fully trusted account
+         */
+        user = await this.prismaService.user.create({
+          data: {
+            phoneNumber,
+
+            email,
+
+            authProvider: 'GOOGLE',
+
+            phoneVerified: true,
+          },
+        });
+      }
+
+      /**
+       * Generate JWT
+       */
+      const accessToken =
+        await this.jwtService.signAsync({
+          sub: user.id,
+
+          phoneNumber: user.phoneNumber,
+        });
+
+      /**
+       * Generate Refresh Token
+       */
+      const refreshToken = randomUUID();
+
+      const expiresAt = new Date();
+
+      expiresAt.setDate(expiresAt.getDate() + 30);
+
+      /**
+       * Persist Session
+       */
+      await this.prismaService.session.create({
+        data: {
+          userId: user.id,
+
+          refreshToken,
+
+          expiresAt,
+        },
+      });
+
+      return {
+        accessToken,
+
+        refreshToken,
+
+        requiresPhoneVerification: false,
+
+        user: {
+          id: user.id,
+
+          phoneNumber: user.phoneNumber,
+
+          email: user.email,
+
+          authProvider: user.authProvider,
+        },
+      };
+    } catch (error) {
+      console.error(error);
+
+      throw new UnauthorizedException(
+        'Phone verification completion failed',
       );
     }
   }
