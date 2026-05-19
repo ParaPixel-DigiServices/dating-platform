@@ -48,6 +48,7 @@ model User {
 
   isActive  Boolean @default(true)
   isBlocked Boolean @default(false)
+  phoneVerified Boolean @default(false)
 
   onboardingStatus OnboardingStatus @default(NOT_STARTED)
 
