@@ -1,10 +1,17 @@
 export type AuthResponseType = {
-    accessToken: string;
-    refreshToken: string;
+  accessToken?: string;
 
-    user:{
-        id: string;
-        phoneNumber?: string | null;
-        email?: string | null;
-    };
+  refreshToken?: string;
+
+  requiresPhoneVerification: boolean;
+
+  user: {
+    id?: string;
+
+    phoneNumber?: string | null;
+
+    email?: string | null;
+
+    authProvider?: string;
+  };
 };
