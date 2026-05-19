@@ -1,13 +1,211 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  PHONE
+  GOOGLE
+  APPLE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+}
+
+enum RelationshipIntentType {
+  CASUAL
+  SERIOUS
+  MARRIAGE
+}
+
+enum OnboardingStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum VerificationStatusType {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id String @id @default(uuid())
+
+  phoneNumber String? @unique
+  email       String? @unique
+
+  authProvider AuthProvider
+
+  isActive  Boolean @default(true)
+  isBlocked Boolean @default(false)
+
+  onboardingStatus OnboardingStatus @default(NOT_STARTED)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  profile            Profile?
+  sessions           Session[]
+  onboardingProgress OnboardingProgress?
+  verificationStatus VerificationStatus?
+  interests          UserInterest[]
+
+  @@index([phoneNumber])
+  @@index([email])
+  @@index([onboardingStatus])
+}
+
+model Session {
+  id String @id @default(uuid())
+
+  userId       String
+  refreshToken String
+
+  ipAddress String?
+  userAgent String?
+
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Profile {
+  id String @id @default(uuid())
+
+  userId String @unique
+
+  firstName String
+  lastName  String?
+
+  dateOfBirth DateTime
+
+  gender Gender
+
+  bio String?
+
+  city    String?
+  state   String?
+  country String?
+
+  profileCompleted Boolean @default(false)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  photos              ProfilePhoto[]
+  relationshipIntents RelationshipIntent[]
+
+  @@index([gender])
+  @@index([city])
+  @@index([country])
+}
+
+model ProfilePhoto {
+  id String @id @default(uuid())
+
+  profileId String
+
+  url   String
+  order Int
+
+  isPrimary Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model RelationshipIntent {
+  id String @id @default(uuid())
+
+  profileId String
+
+  intentType RelationshipIntentType
+
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Interest {
+  id String @id @default(uuid())
+
+  name String @unique
+
+  createdAt DateTime @default(now())
+
+  users UserInterest[]
+}
+
+model UserInterest {
+  id String @id @default(uuid())
+
+  userId     String
+  interestId String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  interest Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, interestId])
+  @@index([userId])
+  @@index([interestId])
+}
+
+model OnboardingProgress {
+  id String @id @default(uuid())
+
+  userId String @unique
+
+  currentStep Int @default(0)
+
+  completedSteps Json?
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationStatus {
+  id String @id @default(uuid())
+
+  userId String @unique
+
+  status VerificationStatusType @default(UNVERIFIED)
+
+  reviewedAt DateTime?
+
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
