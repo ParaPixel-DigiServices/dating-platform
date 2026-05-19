@@ -5,10 +5,12 @@ import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './redis/redis.module';
+import { FirebaseService } from './firebase/firebase.service';
+import { FirebaseModule } from './firebase/firebase.module';
 
 @Module({
-  imports: [HealthModule, PrismaModule, AuthModule, RedisModule],
+  imports: [HealthModule, PrismaModule, AuthModule, RedisModule, FirebaseModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, FirebaseService],
 })
 export class AppModule {}
