@@ -5,6 +5,14 @@ build
 .env.*
 !.env.example
 
+./apps/frontend/.env
+./apps/frontend/.env.*
+./apps/frontend/node_modules
+./apps/frontend/dist
+./apps/frontend/build
+./apps/backend/.env
+
+
 coverage
 .nyc_output
 
