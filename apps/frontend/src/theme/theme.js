@@ -174,7 +174,21 @@ const theme = {
       "#9C897D",
       "#8A8C8B"
     ]
-  }
+  },
+  // ── Onboarding theme ─────────────────────────────────────────────────────────
+  // Warm dark champagne-gold palette, inspired by the reference landing screens.
+  // Colours can be adjusted by the client later without touching any layout code.
+  onboarding: {
+    themeName:      "Onboarding",
+    primary:        "#C9956A",   // warm champagne-gold (CTA button, accents)
+    primaryLight:   "#E8C49A",   // lighter gold (hover / pressed state)
+    secondary:      "#1E1410",   // very dark warm brown (surface / card bg)
+    background:     "#0D0A07",   // near-black with warm undertone
+    textPrimary:    "#F0E6D6",   // warm off-white (headings)
+    textSecondary:  "#9A8A78",   // muted warm grey (sub-text, captions)
+    border:         "#3A2E24",   // subtle warm border
+    divider:        "#2A2018",   // section dividers
+  },
 };
 
 
