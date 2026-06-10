@@ -1,186 +1,195 @@
-import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, Platform, Dimensions, ScrollView } from "react-native";
+import React, { useMemo } from "react";
+import { View, Image, StyleSheet, Dimensions, StatusBar, ScrollView, TouchableOpacity, Text, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { BlurView } from "expo-blur";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useOnboardingStore } from "@/hooks/useOnboardingStore";
+import { Feather } from "@expo/vector-icons";
+import theme from "@/theme/theme";
+import { ProfileHeaderButtons } from "@/components/profile/ProfileHeaderButtons";
+import { ProfileInfoCard } from "@/components/profile/ProfileInfoCard";
 
-const { width, height } = Dimensions.get("window");
+const { height } = Dimensions.get("window");
+const IMAGE_HEIGHT = height * 0.70; // 70% of screen height
+
+const DUMMY_IMG = require("../../../assets/images/dummy_img1.png");
+
+// Mock function to simulate fetching a user by ID
+const getMockUser = (id: string) => {
+  return {
+    id,
+    name: "Priya",
+    age: 24,
+    distance: "2 km away",
+    match: 92,
+    photo: DUMMY_IMG,
+    about: "Book lover 📚, coffee enthusiast ☕️\nand always up for a good conversation.",
+    interests: ["Travel", "Books", "Photography", "Music", "Fitness", "Art"],
+    religion: "Hindu",
+    hobbies: ["Painting", "Yoga", "Baking", "Dancing"],
+    quote: "Life is what happens when you're busy making other plans.",
+  };
+};
 
 export default function UserProfileScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  
+  const category = useOnboardingStore((s) => s.category) ?? "Casual";
+  const t = theme[category];
+
+  const profile = useMemo(() => getMockUser(id), [id]);
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(tabs)/explore");
+    }
+  };
+
+  const handleMenu = () => {
+    console.log("Menu pressed");
+  };
+
+  const handleSayHello = () => {
+    console.log("Say Hello pressed");
+  };
+
+  const handleReport = () => {
+    console.log("Report pressed");
+  };
 
   return (
-    <View style={s.master}>
-      <Image 
-        source={{ uri: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=800&q=80" }} 
-        style={StyleSheet.absoluteFillObject} 
-      />
-      
-      <LinearGradient 
-        colors={["rgba(0,0,0,0.4)", "transparent", "rgba(0,0,0,0.8)", "#0A0A0A"]} 
-        locations={[0, 0.3, 0.6, 1]} 
-        style={StyleSheet.absoluteFillObject} 
-      />
+    <View style={[styles.container, { backgroundColor: t.background }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      {/* Top Image & Gradient Fade (Fixed Background) */}
+      <View style={styles.imageContainer}>
+        <Image source={profile.photo} style={styles.image} resizeMode="cover" />
+        <LinearGradient
+          colors={["transparent", t.background]}
+          locations={[0.5, 1]}
+          style={styles.imageGradient}
+          pointerEvents="none"
+        />
+      </View>
 
-      <SafeAreaView style={s.safeArea}>
-        {/* HEADER */}
-        <View style={s.header}>
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-            <Feather name="chevron-left" size={24} color="#FFF" />
-            <Text style={s.headerTitle}>Home</Text>
-          </TouchableOpacity>
-          <View style={s.dateBadge}>
-            <Text style={s.dateText}>22 Nov</Text>
-            <Image source={{ uri: "https://i.pravatar.cc/150?img=47" }} style={s.smallAvatar} />
-          </View>
-        </View>
+      {/* Overlay Header Buttons */}
+      <ProfileHeaderButtons primaryColor={t.primary} onBack={handleBack} onMenu={handleMenu} />
 
-        <ScrollView contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* USER INFO */}
-          <View style={s.infoSection}>
-            <View style={s.locationRow}>
-              <Ionicons name="location-sharp" size={16} color="rgba(255,255,255,0.8)" />
-              <Text style={s.locationText}>London</Text>
-            </View>
-            
-            <View style={s.nameRow}>
-              <Text style={s.name}>Ivan Ellanpark <Text style={s.heartIcon}>💖</Text></Text>
-              <View style={s.ageCircle}>
-                <Text style={s.ageText}>29</Text>
-              </View>
-            </View>
+      {/* Scrollable Content overlaying the image */}
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        style={styles.scrollView}
+      >
+        {/* Transparent spacer to push the card down and reveal the image initially */}
+        <View style={{ height: IMAGE_HEIGHT * 0.55 }} />
 
-            <View style={s.statsRow}>
-              <View style={s.statPill}>
-                <Ionicons name="person" size={14} color="#FFF" />
-                <Text style={s.statText}>Single</Text>
-              </View>
-              <View style={s.statPill}>
-                <MaterialCommunityIcons name="weight" size={14} color="#FFF" />
-                <Text style={s.statText}>50KG</Text>
-              </View>
-              <View style={s.statPill}>
-                <MaterialCommunityIcons name="human-male-height" size={14} color="#FFF" />
-                <Text style={s.statText}>180cm</Text>
-              </View>
-            </View>
+        {/* Floating Info Card */}
+        <ProfileInfoCard
+          profile={profile}
+          textPrimary={t.textPrimary}
+          textSecondary={t.textSecondary}
+          background={t.background}
+          secondary={t.secondary}
+        />
 
-            {/* ACTION BUTTONS */}
-            <View style={s.actionsRow}>
-              <TouchableOpacity style={s.actionBtn}>
-                <Ionicons name="heart" size={24} color="#FFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.actionBtn}>
-                <Ionicons name="chatbubble" size={24} color="#FFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.actionBtn}>
-                <Feather name="video" size={24} color="#FFF" />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.meetingBtn}>
-                <Ionicons name="calendar" size={20} color="#FFF" style={{ marginRight: 8 }} />
-                <Text style={s.meetingText}>Set Meeting</Text>
-                <Feather name="x" size={16} color="#FFF" style={{ marginLeft: 8 }} />
-              </TouchableOpacity>
-            </View>
-          </View>
+        {/* Bottom spacer so scroll doesn't get hidden behind fixed buttons */}
+        <View style={{ height: 120 }} />
+      </ScrollView>
 
-          {/* CALENDAR COMPONENT (Dummy layout) */}
-          <BlurView intensity={40} tint="dark" style={s.calendarCard}>
-            <View style={s.calHeader}>
-              <Text style={s.calMonth}>OCT, 2024</Text>
-              <View style={s.calControls}>
-                <TouchableOpacity style={s.calArrow}><Feather name="chevron-left" size={16} color="#FFF" /></TouchableOpacity>
-                <TouchableOpacity style={s.calArrow}><Feather name="chevron-right" size={16} color="#FFF" /></TouchableOpacity>
-              </View>
-            </View>
-            
-            <View style={s.calGrid}>
-              {["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"].map(day => (
-                <Text key={day} style={s.calDayName}>{day}</Text>
-              ))}
-              {/* Dummy days */}
-              {[...Array(31)].map((_, i) => (
-                <View key={i} style={s.calDayCell}>
-                  {i === 9 || i === 19 ? (
-                    <Image source={{ uri: "https://i.pravatar.cc/150?img=47" }} style={s.calDayAvatar} />
-                  ) : (
-                    <Text style={s.calDayNumber}>{i + 1}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
+      {/* Fixed Bottom Buttons Overlay (visually solid bottom part of the card) */}
+      <View style={[styles.fixedBottomContainer, { backgroundColor: t.background }]}>
+        {/* Say Hello Button */}
+        <TouchableOpacity style={styles.helloBtnWrapper} activeOpacity={0.8} onPress={handleSayHello}>
+          <LinearGradient
+            colors={[`${t.primary}dd`, t.primary]}
+            style={styles.helloBtn}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Feather name="send" size={18} color="#000" style={styles.helloIcon} />
+            <Text style={styles.helloText}>Say Hello</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-            <View style={s.calFooter}>
-              <TouchableOpacity style={s.calFooterBtn}>
-                <Ionicons name="calendar-outline" size={16} color="#FFF" />
-                <Text style={s.calFooterBtnText}>Move to Google calendar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[s.calFooterBtn, { width: undefined, paddingHorizontal: 20 }]}>
-                <Feather name="headphones" size={16} color="#FFF" />
-                <Text style={s.calFooterBtnText}>Questions?</Text>
-              </TouchableOpacity>
-            </View>
-          </BlurView>
-          
-          <Text style={s.bioText}>
-            Passionate profiles, our detailed format allows you to add short bios, helping users easily express themselves and see what others are looking for. Through our intelligent matching algorithm...
-          </Text>
+        {/* Report Button */}
+        <TouchableOpacity style={styles.reportBtn} activeOpacity={0.6} onPress={handleReport}>
+          <Feather name="flag" size={14} color={t.textSecondary} />
+          <Text style={[styles.reportText, { color: t.textSecondary }]}>Report</Text>
+        </TouchableOpacity>
+      </View>
 
-        </ScrollView>
-      </SafeAreaView>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  master: { flex: 1, backgroundColor: "#0A0A0A" },
-  safeArea: { flex: 1 },
-  
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: Platform.OS === "android" ? 40 : 10, paddingBottom: 10 },
-  backBtn: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.15)", paddingRight: 16, paddingLeft: 8, paddingVertical: 8, borderRadius: 24 },
-  headerTitle: { fontSize: 16, fontFamily: "Outfit_600SemiBold", color: "#FFF", marginLeft: 4 },
-  dateBadge: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.15)", paddingRight: 4, paddingLeft: 12, paddingVertical: 4, borderRadius: 24 },
-  dateText: { fontSize: 13, fontFamily: "Outfit_500Medium", color: "#FFF", marginRight: 8 },
-  smallAvatar: { width: 28, height: 28, borderRadius: 14 },
-
-  scrollContent: { paddingTop: height * 0.35, paddingHorizontal: 20, paddingBottom: 40 },
-  
-  infoSection: { marginBottom: 24 },
-  locationRow: { flexDirection: "row", alignItems: "center", marginBottom: 8 },
-  locationText: { fontSize: 16, fontFamily: "Outfit_500Medium", color: "rgba(255,255,255,0.9)", marginLeft: 6 },
-  
-  nameRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
-  name: { fontSize: 40, fontFamily: "Outfit_700Bold", color: "#FFF", lineHeight: 46 },
-  heartIcon: { fontSize: 32 },
-  ageCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center", marginLeft: 16 },
-  ageText: { fontSize: 18, fontFamily: "Outfit_600SemiBold", color: "#FFF" },
-
-  statsRow: { flexDirection: "row", gap: 10, marginBottom: 24 },
-  statPill: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(255,255,255,0.12)", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  statText: { fontSize: 14, fontFamily: "Outfit_500Medium", color: "#FFF", marginLeft: 6 },
-
-  actionsRow: { flexDirection: "row", gap: 12 },
-  actionBtn: { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(255,255,255,0.15)", justifyContent: "center", alignItems: "center" },
-  meetingBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 28 },
-  meetingText: { fontSize: 15, fontFamily: "Outfit_600SemiBold", color: "#FFF" },
-
-  calendarCard: { borderRadius: 32, padding: 24, overflow: "hidden", marginBottom: 24 },
-  calHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 },
-  calMonth: { fontSize: 18, fontFamily: "Outfit_600SemiBold", color: "#FFF", letterSpacing: 1 },
-  calControls: { flexDirection: "row", gap: 8 },
-  calArrow: { width: 32, height: 32, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.1)", justifyContent: "center", alignItems: "center" },
-  
-  calGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
-  calDayName: { width: "14%", textAlign: "center", fontSize: 12, fontFamily: "Outfit_600SemiBold", color: "rgba(255,255,255,0.6)", marginBottom: 16 },
-  calDayCell: { width: "14%", aspectRatio: 1, justifyContent: "center", alignItems: "center", marginBottom: 8 },
-  calDayNumber: { fontSize: 14, fontFamily: "Outfit_500Medium", color: "#FFF" },
-  calDayAvatar: { width: 32, height: 32, borderRadius: 16, borderWidth: 2, borderColor: "#FFF" },
-
-  calFooter: { flexDirection: "row", justifyContent: "space-between", gap: 12, marginTop: 16 },
-  calFooterBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.1)", paddingVertical: 14, borderRadius: 24 },
-  calFooterBtnText: { fontSize: 13, fontFamily: "Outfit_500Medium", color: "#FFF", marginLeft: 8 },
-
-  bioText: { fontSize: 14, fontFamily: "Outfit_400Regular", color: "rgba(255,255,255,0.5)", lineHeight: 22 },
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  imageContainer: {
+    width: "100%",
+    height: IMAGE_HEIGHT,
+    position: "absolute",
+    top: 0,
+    left: 0,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+  imageGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  fixedBottomContainer: {
+    position: "absolute",
+    bottom: 0,
+    alignSelf: "center",
+    width: "95%", // Matches ProfileInfoCard width
+    borderBottomLeftRadius: 35, // Matches the top corners of the info card
+    borderBottomRightRadius: 35,
+    paddingTop: 20, 
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === "ios" ? 30 : 20,
+    // Add shadow pointing upwards slightly to separate from the blur above if needed
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -5 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  helloBtnWrapper: {
+    marginBottom: 16,
+    width: "100%", // Take full width of the padded container
+  },
+  helloBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    borderRadius: 16,
+  },
+  helloIcon: {
+    marginRight: 8,
+  },
+  helloText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+    letterSpacing: 0.5,
+  },
+  reportBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  reportText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
 });

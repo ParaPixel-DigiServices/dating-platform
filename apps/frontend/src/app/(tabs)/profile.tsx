@@ -1,182 +1,501 @@
 import React from "react";
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, Image, ScrollView, Platform, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+  Platform,
+  StatusBar,
+  SafeAreaView,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { useAuthStore } from "@/hooks/useAuthStore";
+import theme from "@/theme/theme";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+const HERO_HEIGHT = height * 0.48;
 
-const interests = ["Travel ✈️", "Coffee ☕", "Photography 📷", "Hiking 🏔️", "Music 🎵", "Art 🎨"];
+const DUMMY_PHOTO = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80";
 
-const stats = [
-  { label: "Matches", value: "128" },
-  { label: "Likes", value: "340" },
-  { label: "Visitors", value: "1.2K" },
+const DUMMY_INTERESTS = ["Travel", "Photography", "Music", "Coffee", "Books"];
+
+const COMPLETE_PROFILE_STEPS = [
+  { label: "Add profile photo",  done: false, icon: "camera"   },
+  { label: "Write a bio",        done: false, icon: "edit-2"   },
+  { label: "Add interests",      done: false, icon: "star"     },
+  { label: "Basic info",         done: true,  icon: "user"     },
 ];
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const firstName = useOnboardingStore((s) => s.firstName);
-  const lastName = useOnboardingStore((s) => s.lastName);
-  const category = useOnboardingStore((s) => s.category);
 
-  const displayName = firstName ? `${firstName} ${lastName}`.trim() : "Your Name";
-  const categoryLabel = category ? category.charAt(0).toUpperCase() + category.slice(1) : "Love";
+  const category    = useOnboardingStore((s) => s.category) ?? "Casual";
+  const firstName   = useOnboardingStore((s) => s.firstName);
+  const lastName    = useOnboardingStore((s) => s.lastName);
+  const gender      = useOnboardingStore((s) => s.gender);
+  const dateOfBirth = useOnboardingStore((s) => s.dateOfBirth);
+  const user        = useAuthStore((s) => s.user);
+
+  const t = theme[category];
+
+  // Calculate age from DOB
+  const age = dateOfBirth
+    ? new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
+    : null;
+
+  const displayName = firstName
+    ? `${firstName}${lastName ? ` ${lastName}` : ""}`
+    : "Your Name";
+
+  const completedSteps = COMPLETE_PROFILE_STEPS.filter((s) => s.done).length;
+  const totalSteps     = COMPLETE_PROFILE_STEPS.length;
+  const progressPct    = Math.round((completedSteps / totalSteps) * 100);
 
   return (
-    <View style={s.masterContainer}>
-      <LinearGradient colors={["#1A1A1C", "#0A0A0A"]} style={StyleSheet.absoluteFillObject} />
+    <View style={[styles.master, { backgroundColor: t.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      <SafeAreaView style={s.safeArea}>
-        {/* HEADER */}
-        <View style={s.header}>
-          <Text style={s.headerTitle}>Profile</Text>
-          <TouchableOpacity style={s.iconBtn} activeOpacity={0.8} onPress={() => router.push("/profile/settings")}>
-            <Feather name="settings" size={20} color="#FFF" />
-          </TouchableOpacity>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 100 }}
+      >
+        {/* ── HERO IMAGE ──────────────────────────────────────── */}
+        <View style={styles.heroContainer}>
+          <Image source={{ uri: DUMMY_PHOTO }} style={styles.heroImage} />
+
+          {/* Top gradient for status bar readability */}
+          <LinearGradient
+            colors={["rgba(0,0,0,0.55)", "transparent"]}
+            style={styles.topGradient}
+          />
+
+          {/* Bottom gradient fade into background */}
+          <LinearGradient
+            colors={["transparent", t.background]}
+            locations={[0.5, 1]}
+            style={styles.bottomGradient}
+          />
+
+          {/* Top bar overlay */}
+          <SafeAreaView style={styles.topBarOverlay}>
+            <View style={styles.topBar}>
+              <Text style={[styles.appName, { color: t.primary }]}>amora</Text>
+              <TouchableOpacity
+                style={[styles.settingsBtn, { backgroundColor: "rgba(0,0,0,0.35)" }]}
+                onPress={() => router.push("/settings" as any)}
+                activeOpacity={0.8}
+              >
+                <Feather name="settings" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+
+          {/* Profile badge on photo */}
+          <View style={styles.verifiedBadge}>
+            <Feather name="check" size={10} color="#fff" />
+          </View>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
-          {/* PROFILE CARD */}
-          <View style={s.profileCard}>
-            <View style={s.avatarWrapper}>
-              <Image source={{ uri: "https://i.pravatar.cc/300?img=47" }} style={s.avatar} />
-              <TouchableOpacity style={s.editAvatarBtn} activeOpacity={0.8}>
-                <Feather name="camera" size={16} color="#FFF" />
-              </TouchableOpacity>
+        {/* ── IDENTITY ROW ────────────────────────────────────── */}
+        <View style={styles.identitySection}>
+          <View style={styles.nameRow}>
+            <Text style={[styles.nameText, { color: t.textPrimary }]}>
+              {displayName}{age ? `, ${age}` : ""}
+            </Text>
+            <View style={[styles.checkBadge, { backgroundColor: t.primary }]}>
+              <Feather name="check" size={12} color="#fff" />
             </View>
+          </View>
 
-            <Text style={s.profileName}>{displayName}</Text>
-            <View style={s.categoryBadge}>
-              <Ionicons name="heart" size={12} color="#FF4B2B" />
-              <Text style={s.categoryText}>Looking for {categoryLabel}</Text>
+          <View style={styles.metaRow}>
+            {gender ? (
+              <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
+                <Ionicons name="person-outline" size={12} color={t.textSecondary} />
+                <Text style={[styles.metaText, { color: t.textSecondary }]}>{gender}</Text>
+              </View>
+            ) : null}
+            <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
+              <Ionicons name="heart-outline" size={12} color={t.textSecondary} />
+              <Text style={[styles.metaText, { color: t.textSecondary }]}>{category.replace("_", " ")}</Text>
             </View>
+            {user?.email ? (
+              <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
+                <Feather name="mail" size={12} color={t.textSecondary} />
+                <Text style={[styles.metaText, { color: t.textSecondary }]} numberOfLines={1}>
+                  Verified
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
 
-            {/* STATS ROW */}
-            <View style={s.statsRow}>
-              {stats.map((stat, i) => (
-                <React.Fragment key={stat.label}>
-                  <View style={s.statItem}>
-                    <Text style={s.statValue}>{stat.value}</Text>
-                    <Text style={s.statLabel}>{stat.label}</Text>
+        {/* ── COMPLETE YOUR PROFILE BANNER ─────────────────────── */}
+        <View style={[styles.completeCard, { backgroundColor: t.secondary, borderColor: t.primary }]}>
+          {/* Header */}
+          <View style={styles.completeHeader}>
+            <View>
+              <Text style={[styles.completeTitle, { color: t.textPrimary }]}>
+                Complete your profile
+              </Text>
+              <Text style={[styles.completeSubtitle, { color: t.textSecondary }]}>
+                Get 3× more matches by finishing your profile
+              </Text>
+            </View>
+            <View style={[styles.progressCircle, { borderColor: t.primary }]}>
+              <Text style={[styles.progressPct, { color: t.primary }]}>{progressPct}%</Text>
+            </View>
+          </View>
+
+          {/* Progress bar */}
+          <View style={[styles.progressTrack, { backgroundColor: t.background }]}>
+            <View
+              style={[
+                styles.progressFill,
+                { backgroundColor: t.primary, width: `${progressPct}%` },
+              ]}
+            />
+          </View>
+
+          {/* Steps */}
+          <View style={styles.stepsContainer}>
+            {COMPLETE_PROFILE_STEPS.map((step) => (
+              <View key={step.label} style={styles.stepRow}>
+                <View
+                  style={[
+                    styles.stepIcon,
+                    {
+                      backgroundColor: step.done ? t.primary : "transparent",
+                      borderColor: step.done ? t.primary : t.textSecondary,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name={step.done ? "check" : (step.icon as any)}
+                    size={12}
+                    color={step.done ? "#fff" : t.textSecondary}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.stepLabel,
+                    { color: step.done ? t.textSecondary : t.textPrimary },
+                    step.done && styles.stepLabelDone,
+                  ]}
+                >
+                  {step.label}
+                </Text>
+                {!step.done && (
+                  <View style={[styles.stepAddBtn, { backgroundColor: t.primary }]}>
+                    <Text style={styles.stepAddText}>Add</Text>
                   </View>
-                  {i < stats.length - 1 && <View style={s.statDivider} />}
-                </React.Fragment>
-              ))}
-            </View>
-          </View>
-
-          {/* COMPLETION NUDGE */}
-          <View style={s.completionCard}>
-            <View style={s.completionLeft}>
-              <Text style={s.completionTitle}>Complete your profile</Text>
-              <Text style={s.completionSub}>Add a bio & more photos to get 3× more matches</Text>
-            </View>
-            <View style={s.completionCircle}>
-              <Text style={s.completionPct}>65%</Text>
-            </View>
-          </View>
-
-          {/* QUICK ACTIONS */}
-          <View style={s.actionsGrid}>
-            {[
-              { icon: "image", label: "Add Photos" },
-              { icon: "file-text", label: "Edit Bio" },
-              { icon: "map-pin", label: "Location" },
-              { icon: "sliders", label: "Preferences" },
-            ].map((action) => (
-              <TouchableOpacity key={action.label} style={s.actionCard} activeOpacity={0.85}>
-                <View style={s.actionIconWrap}>
-                  <Feather name={action.icon as any} size={22} color="#FF4B2B" />
-                </View>
-                <Text style={s.actionLabel}>{action.label}</Text>
-              </TouchableOpacity>
+                )}
+              </View>
             ))}
           </View>
+        </View>
 
-          {/* INTERESTS */}
-          <View style={s.section}>
-            <View style={s.sectionHeader}>
-              <Text style={s.sectionTitle}>Interests</Text>
-              <TouchableOpacity><Text style={s.sectionEdit}>Edit</Text></TouchableOpacity>
-            </View>
-            <View style={s.interestsWrap}>
-              {interests.map((tag) => (
-                <View key={tag} style={s.interestTag}>
-                  <Text style={s.interestText}>{tag}</Text>
-                </View>
-              ))}
-            </View>
+        {/* ── ABOUT ME ────────────────────────────────────────── */}
+        <View style={[styles.section, { backgroundColor: t.secondary }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>About me</Text>
+            <TouchableOpacity>
+              <Feather name="edit-2" size={16} color={t.primary} />
+            </TouchableOpacity>
           </View>
+          <Text style={[styles.sectionBodyEmpty, { color: t.textSecondary }]}>
+            Write something about yourself to attract better matches...
+          </Text>
+        </View>
 
-          {/* ACCOUNT - REMOVED SETTINGS/LOGOUT AS IT'S IN SETTINGS PAGE NOW */}
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>Account</Text>
-            {[
-              { icon: "star", label: "Go Premium" },
-              { icon: "shield", label: "Privacy Center" },
-            ].map((item) => (
-              <TouchableOpacity key={item.label} style={s.menuRow} activeOpacity={0.8}>
-                <View style={s.menuIconWrap}>
-                  <Feather name={item.icon as any} size={18} color="#FFF" />
-                </View>
-                <Text style={s.menuLabel}>{item.label}</Text>
-                <Feather name="chevron-right" size={16} color="rgba(255,255,255,0.4)" />
-              </TouchableOpacity>
+        {/* ── INTERESTS ───────────────────────────────────────── */}
+        <View style={[styles.section, { backgroundColor: t.secondary }]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>Interests</Text>
+            <TouchableOpacity>
+              <Feather name="plus" size={18} color={t.primary} />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.tagsRow}>
+            {DUMMY_INTERESTS.map((tag) => (
+              <View key={tag} style={[styles.tag, { borderColor: t.primary, backgroundColor: `${t.primary}18` }]}>
+                <Text style={[styles.tagText, { color: t.primary }]}>{tag}</Text>
+              </View>
             ))}
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        </View>
 
-      <BottomNav />
+        {/* ── SAY HELLO BUTTON ─────────────────────────────────── */}
+        <View style={styles.helloSection}>
+          <TouchableOpacity
+            style={[styles.helloBtn, { backgroundColor: t.primary }]}
+            activeOpacity={0.85}
+          >
+            <Feather name="send" size={18} color="#fff" style={{ marginRight: 10 }} />
+            <Text style={styles.helloBtnText}>Preview Profile</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  masterContainer: { flex: 1, backgroundColor: "#0A0A0A" },
-  safeArea: { flex: 1 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: Platform.OS === "android" ? 40 : 10, paddingBottom: 16 },
-  headerTitle: { fontSize: 32, fontFamily: "Outfit_600SemiBold", color: "#FFF" },
-  iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.08)", justifyContent: "center", alignItems: "center" },
-  
-  profileCard: { marginHorizontal: 20, marginBottom: 16, backgroundColor: "#1C1C1E", borderRadius: 28, padding: 24, alignItems: "center" },
-  avatarWrapper: { position: "relative", marginBottom: 14 },
-  avatar: { width: 100, height: 100, borderRadius: 50, borderWidth: 3, borderColor: "#1C1C1E" },
-  editAvatarBtn: { position: "absolute", bottom: 2, right: 2, width: 30, height: 30, borderRadius: 15, backgroundColor: "#FF4B2B", justifyContent: "center", alignItems: "center" },
-  profileName: { fontSize: 24, fontFamily: "Outfit_700Bold", color: "#FFF", marginBottom: 6 },
-  categoryBadge: { flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "rgba(255, 75, 43, 0.15)", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, marginBottom: 20 },
-  categoryText: { fontSize: 13, color: "#FF4B2B", fontFamily: "Outfit_600SemiBold" },
-  
-  statsRow: { flexDirection: "row", width: "100%", justifyContent: "space-around" },
-  statItem: { alignItems: "center" },
-  statValue: { fontSize: 20, fontFamily: "Outfit_700Bold", color: "#FFF" },
-  statLabel: { fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "Outfit_400Regular", marginTop: 2 },
-  statDivider: { width: 1, backgroundColor: "rgba(255,255,255,0.1)", marginVertical: 4 },
-  
-  completionCard: { marginHorizontal: 20, marginBottom: 16, backgroundColor: "#1C1C1E", borderRadius: 20, padding: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  completionLeft: { flex: 1, marginRight: 12 },
-  completionTitle: { fontSize: 15, fontFamily: "Outfit_600SemiBold", color: "#FFF", marginBottom: 4 },
-  completionSub: { fontSize: 12, color: "rgba(255,255,255,0.5)", fontFamily: "Outfit_400Regular", lineHeight: 18 },
-  completionCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#FF4B2B", justifyContent: "center", alignItems: "center" },
-  completionPct: { fontSize: 14, fontFamily: "Outfit_700Bold", color: "#FFF" },
-  
-  actionsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12, paddingHorizontal: 20, marginBottom: 24 },
-  actionCard: { width: (width - 40 - 12) / 2, backgroundColor: "#1C1C1E", borderRadius: 20, padding: 18, alignItems: "center" },
-  actionIconWrap: { width: 48, height: 48, borderRadius: 24, backgroundColor: "rgba(255, 75, 43, 0.1)", justifyContent: "center", alignItems: "center", marginBottom: 10 },
-  actionLabel: { fontSize: 14, fontFamily: "Outfit_500Medium", color: "#FFF" },
-  
-  section: { marginHorizontal: 20, marginBottom: 24 },
-  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
-  sectionTitle: { fontSize: 18, fontFamily: "Outfit_600SemiBold", color: "#FFF", marginBottom: 14 },
-  sectionEdit: { fontSize: 14, color: "#FF4B2B", fontFamily: "Outfit_600SemiBold" },
-  interestsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  interestTag: { backgroundColor: "rgba(255,255,255,0.1)", paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  interestText: { fontSize: 13, color: "#FFF", fontFamily: "Outfit_500Medium" },
-  
-  menuRow: { flexDirection: "row", alignItems: "center", backgroundColor: "#1C1C1E", borderRadius: 16, padding: 16, marginBottom: 10 },
-  menuIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: "rgba(255,255,255,0.08)", justifyContent: "center", alignItems: "center", marginRight: 12 },
-  menuLabel: { flex: 1, fontSize: 16, fontFamily: "Outfit_500Medium", color: "#FFF" },
+const styles = StyleSheet.create({
+  master: { flex: 1 },
+
+  /* HERO */
+  heroContainer: {
+    width,
+    height: HERO_HEIGHT,
+    position: "relative",
+  },
+  heroImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  topGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  bottomGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: HERO_HEIGHT * 0.5,
+  },
+  topBarOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  topBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === "android" ? 40 : 10,
+    paddingBottom: 10,
+  },
+  appName: {
+    fontSize: 22,
+    fontFamily: "Outfit_700Bold",
+    letterSpacing: -0.5,
+  },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  verifiedBadge: {
+    position: "absolute",
+    bottom: 16,
+    right: 20,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#3B82F6",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+
+  /* IDENTITY */
+  identitySection: {
+    paddingHorizontal: 20,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  nameText: {
+    fontSize: 28,
+    fontFamily: "Outfit_700Bold",
+    letterSpacing: -0.5,
+  },
+  checkBadge: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  metaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  metaPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  metaText: {
+    fontSize: 12,
+    fontFamily: "Outfit_500Medium",
+  },
+
+  /* COMPLETE PROFILE CARD */
+  completeCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+  },
+  completeHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 14,
+  },
+  completeTitle: {
+    fontSize: 17,
+    fontFamily: "Outfit_700Bold",
+    marginBottom: 4,
+  },
+  completeSubtitle: {
+    fontSize: 12,
+    fontFamily: "Outfit_400Regular",
+    maxWidth: "80%",
+    lineHeight: 16,
+  },
+  progressCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  progressPct: {
+    fontSize: 13,
+    fontFamily: "Outfit_700Bold",
+  },
+  progressTrack: {
+    width: "100%",
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 18,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  stepsContainer: {
+    gap: 14,
+  },
+  stepRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  stepIcon: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepLabel: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "Outfit_500Medium",
+  },
+  stepLabelDone: {
+    textDecorationLine: "line-through",
+    opacity: 0.5,
+  },
+  stepAddBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  stepAddText: {
+    fontSize: 12,
+    fontFamily: "Outfit_600SemiBold",
+    color: "#fff",
+  },
+
+  /* SECTIONS */
+  section: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 20,
+    padding: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontFamily: "Outfit_600SemiBold",
+  },
+  sectionBodyEmpty: {
+    fontSize: 14,
+    fontFamily: "Outfit_400Regular",
+    lineHeight: 20,
+    fontStyle: "italic",
+  },
+
+  /* INTERESTS */
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  tag: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  tagText: {
+    fontSize: 13,
+    fontFamily: "Outfit_500Medium",
+  },
+
+  /* HELLO BUTTON */
+  helloSection: {
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  helloBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    height: 56,
+    borderRadius: 16,
+  },
+  helloBtnText: {
+    fontSize: 16,
+    fontFamily: "Outfit_700Bold",
+    color: "#fff",
+    letterSpacing: 0.3,
+  },
 });

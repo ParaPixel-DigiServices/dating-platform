@@ -15,19 +15,20 @@ const apiClient = create({
 });
 
 // Interceptor to add Firebase ID token to requests
-apiClient.interceptors.request.use(async (config) => {
-  try {
-    // Lazy load Firebase token getter
-    const { getFirebaseIdToken } = await import('./firebaseAuthService');
-    const token = await getFirebaseIdToken();
-    if (token) {
+import { useAuthStore } from '@/hooks/useAuthStore';
+import { string } from 'zod';
+
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = useAuthStore.getState().accessToken;
+
+    if(token){
       config.headers.Authorization = `Bearer ${token}`;
     }
-  } catch (error) {
-    console.error('Failed to get Firebase token:', error);
-  }
-  return config;
-});
+
+    return config;
+  },
+);
 
 /**
  * Send onboarding data to backend
@@ -78,4 +79,80 @@ export const getUserProfile = async (firebaseUid: string) => {
   }
 };
 
+export const firebaseLogin = async(
+  idToken: string,
+) => {
+  try {
+    const response = await apiClient.post(
+      '/auth/firebase-login',
+      {
+        idToken,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${idToken}`
+        }
+      }
+    );
+
+    console.log(response);
+
+    return response.data;
+  } catch (error : any) {
+    const errorMessage = error.response?.data?.message || error.message;
+
+    throw new Error(
+      `Firebase Login Failed: ${errorMessage}`,
+    );
+  }
+};
+
+export const completePhoneVerification = async (
+  googleIdToken : string,
+  phoneIdToken : string,
+) => {
+  try {
+    const response = await apiClient.post(
+      '/auth/complete-phone-verification',
+      {
+        googleIdToken,
+        phoneIdToken,
+      },
+    );
+
+    return response.data;
+  } catch (error : any){
+    const errorMessage = error.response?.data?.message || error.message;
+
+    throw new Error(
+      `Phone Verification Failed: ${errorMessage}`,
+    );
+  }
+};
+
+export const saveOnboardingDetails = async (
+  data:{
+    firstName: string;
+    lastName: string;
+    dateOfBirth: string;
+    gender: 'MALE' | 'FEMALE' | 'NON-BINARY';
+  },
+) => {
+  try {
+    const response = await apiClient.post(
+      '/onboarding/details',
+      data,
+    );
+
+    return response.data;
+  } catch (error : any){
+    const errorMessage = error.response?.data?.message || error.message;
+
+    throw new Error(
+      `Save Details Failed: ${errorMessage}`,
+    );
+  }
+};
+
 export default apiClient;
+

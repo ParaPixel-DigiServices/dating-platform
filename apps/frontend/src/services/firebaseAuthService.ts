@@ -82,3 +82,4 @@ export const firebaseSignOut = async () => {
     throw new Error(`Sign Out Failed: ${error.message}`);
   }
 };
+

@@ -1,21 +1,50 @@
-import React from 'react';
-import { Redirect } from 'expo-router';
-import { useAuthStore } from '@/hooks/useAuthStore';
+import React from "react";
+import { Redirect } from "expo-router";
+
+import { useAuthStore } from "@/hooks/useAuthStore";
 
 export default function IndexScreen() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const onboardingCompleted = useAuthStore((s) => s.onboardingCompleted);
+  const accessToken =
+    useAuthStore(
+      (s) => s.accessToken,
+    );
 
-  // User completed full onboarding → go straight to home
-  if (onboardingCompleted) {
-    return <Redirect href="/(tabs)/home" />;
+  const onboardingStatus =
+    useAuthStore(
+      (s) => s.onboardingStatus,
+    );
+
+  if (!accessToken) {
+    return (
+      <Redirect
+        href="/(onboarding)/login"
+      />
+    );
   }
 
-  // User is authenticated but hasn't completed onboarding → resume from OTP/details
-  if (isAuthenticated) {
-    return <Redirect href="/otp" />;
-  }
+  switch (onboardingStatus) {
+    case "NOT_STARTED":
+      return (
+        <Redirect
+          href="/(onboarding)/details"
+        />
+      );
 
-  // Fresh user → login
-  return <Redirect href="/login" />;
+    case "IN_PROGRESS":
+      return (
+        <Redirect
+          href="/(onboarding)/details"
+        />
+      );
+
+    case "COMPLETED":
+      return (
+        <Redirect
+          href="/(tabs)/home"
+        />
+      );
+
+    default:
+      return null;
+  }
 }
