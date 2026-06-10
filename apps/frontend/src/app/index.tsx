@@ -17,7 +17,7 @@ export default function IndexScreen() {
   if (!accessToken) {
     return (
       <Redirect
-        href="/(onboarding)/login"
+        href="/(onboarding)/landing"
       />
     );
   }
