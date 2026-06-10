@@ -14,7 +14,7 @@ async function bootstrap(){
   app.use(cookieParser());
   app.enableCors({
     origin: true,
-    Credentials: true,
+    credentials: true,
   });
 
   app.useGlobalPipes(
@@ -24,6 +24,8 @@ async function bootstrap(){
       transform: true,
     }),
   );
+
+  app.setGlobalPrefix('api');
 
   await app.listen(process.env.PORT || 3000);
 }

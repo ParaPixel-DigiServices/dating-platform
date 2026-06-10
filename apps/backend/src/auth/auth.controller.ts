@@ -25,6 +25,7 @@ export class AuthController {
   async firebaseLogin(
     @Body() dto: FirebaseLoginDto,
   ) {
+    console.log('Received Firebase login request with DTO:', dto);
     return this.authService.loginWithFirebase(dto);
   }
 
@@ -33,6 +34,7 @@ export class AuthController {
     @Body()
     dto: CompletePhoneVerificationDto,
   ) {
+    console.log('Received complete phone verification request with DTO:', dto);
     return this.authService.completePhoneVerification(
       dto,
     );
@@ -40,9 +42,11 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  getProfile(@Req() req: any) {
-    return {
-      user: req.user,
-    };
+  async getProfile(
+    @Req() req: any,
+  ) {
+    return this.authService.getCurrentUser(
+      req.user.sub,
+    );
   }
 }
