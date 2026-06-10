@@ -8,6 +8,8 @@ build
 ./apps/frontend/.env
 ./apps/frontend/.env.*
 ./apps/frontend/node_modules
+./apps/frontend/android
+./apps/frontend/ios
 ./apps/frontend/dist
 ./apps/frontend/build
 ./apps/backend/.env
