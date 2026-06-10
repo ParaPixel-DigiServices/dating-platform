@@ -27,7 +27,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
 
     private readonly firebaseService: FirebaseService,
-  ) {}
+  ) { }
 
   async loginWithFirebase(
     dto: FirebaseLoginDto,
@@ -38,8 +38,12 @@ export class AuthService {
           dto.idToken,
         );
 
+        console.log('Decoded Firebase token:', decodedToken);
+
       const firebaseProvider =
         decodedToken.firebase.sign_in_provider;
+
+      console.log('Firebase sign-in provider:', firebaseProvider);
 
       const authProvider =
         mapFirebaseProvider(firebaseProvider);
@@ -52,6 +56,60 @@ export class AuthService {
 
       const email =
         decodedToken.email ?? null;
+
+      if (!isPhoneProvider && email) {
+        const existingUser =
+          await this.prismaService.user.findUnique({
+            where: {
+              email,
+            },
+          });
+
+        if (
+          existingUser &&
+          existingUser.phoneVerified
+        ) {
+          const accessToken =
+            await this.jwtService.signAsync({
+              sub: existingUser.id,
+              phoneNumber:
+                existingUser.phoneNumber,
+            });
+
+          const refreshToken =
+            randomUUID();
+
+          const expiresAt =
+            new Date();
+
+          expiresAt.setDate(
+            expiresAt.getDate() + 30,
+          );
+
+          await this.prismaService.session.create({
+            data: {
+              userId: existingUser.id,
+              refreshToken,
+              expiresAt,
+            },
+          });
+
+          return {
+            accessToken,
+            refreshToken,
+            requiresPhoneVerification: false,
+            user: {
+              id: existingUser.id,
+              phoneNumber:
+                existingUser.phoneNumber,
+              email:
+                existingUser.email,
+              authProvider:
+                existingUser.authProvider,
+            },
+          };
+        }
+      }
 
       /**
        * GOOGLE / APPLE FLOW
@@ -278,4 +336,26 @@ export class AuthService {
       );
     }
   }
+
+  async getCurrentUser(userId: string) {
+  const user =
+    await this.prismaService.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        profile: true,
+        onboardingProgress: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException(
+        'User not found',
+      );
+    }
+
+    return user;
+  }
 }
+
