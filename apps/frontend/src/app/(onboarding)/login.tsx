@@ -1,58 +1,43 @@
+import React, { useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+  StatusBar,
+  SafeAreaView,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+
 import {
   showErrorToast,
-  showSuccessToast,
   showInfoToast,
 } from "@/components/toast";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { firebaseGoogleSignInWithIdToken } from "@/services/firebaseAuthService";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  ImageBackground,
-  StatusBar,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
-import BgImg from "@/assets/images/main-bg.png";
-import * as BackendService from "@/services/backendService";
 
-// Import your centralized theme
 import theme from "@/theme/theme";
+
+const t = theme.onboarding;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const {
-    setUser,
-    setGoogleFirebaseToken,
-    setAccessToken,
-    setRefreshToken,
-    setLoading,
-    isLoading,
-  } = useAuthStore();
-  
-  // Destructure the Casual theme for easy access
-  const casualTheme = theme.Casual;
+  const { setUser, setAccessToken, setLoading, isLoading } = useAuthStore();
 
-  // Configure Google Sign-In on component mount
+  // Configure Google Sign-In on mount
   useEffect(() => {
-    console.log("Configuring Google Sign-In...");
     GoogleSignin.configure({
       webClientId:
         "1021629025840-1p1nm5k4ptqvea3lpfeup4tk0g1mlpo6.apps.googleusercontent.com",
     });
   }, []);
 
+  /* ── Auth handlers ──────────────────────────────────────── */
+
   const handleGoogleSignIn = async () => {
-    console.log("Initiating Google Sign-In...");
     setLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
@@ -62,323 +47,214 @@ export default function LoginScreen() {
         throw new Error("No user data received from Google Sign-In");
 
       const idToken = userInfo.data.idToken;
-
       if (!idToken) throw new Error("No idToken received from Google Sign-In");
 
-      console.log("Google Sign-In successful.", { idToken });
-
-      // Authenticate with Firebase using Google idToken
-      const firebaseResult = await firebaseGoogleSignInWithIdToken(
-        idToken,
-      );
-
-      const backendResponse = await BackendService.firebaseLogin(firebaseResult.idToken,);
-      console.log("Backend auth response:", backendResponse,);
-
-      setGoogleFirebaseToken(firebaseResult.idToken,);
+      const firebaseResult = await firebaseGoogleSignInWithIdToken(idToken);
 
       setUser({
-        uid: firebaseResult.uid,
-        email: firebaseResult.email ?? null,
+        uid:         firebaseResult.uid,
+        email:       firebaseResult.email ?? null,
         displayName: firebaseResult.displayName ?? null,
-        photoURL: firebaseResult.photoURL ?? null,
+        photoURL:    firebaseResult.photoURL ?? null,
         phoneNumber: firebaseResult.phoneNumber ?? null,
       });
 
-      if (backendResponse.requiresPhoneVerification) {
-        showSuccessToast(
-          "Google verification successful",
-        );
-
-        router.replace("/otp");
-        return;
-      }
-
-      setAccessToken(
-        backendResponse.accessToken,
-      );
-
-      setRefreshToken(
-        backendResponse.refreshToken,
-      );
-
-      showSuccessToast(
-        "Welcome back!",
-      );
-
-      router.replace("/");
+      setAccessToken(firebaseResult.idToken);
+      router.replace("/otp");
     } catch (error: any) {
-      showErrorToast(error.message || "Sign-in failed");
-      console.log(error.message);
+      showErrorToast(error.message || "Google sign-in failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePhoneSignIn = async () => {
-    // Optional: Route to your phone authentication screen
-    router.push("/otp");
-  };
+  const handlePhoneSignIn = () => router.push("/otp");
 
-  const handleXSignIn = async () => {
-    showInfoToast("Use Google or Phone sign in for now, pls");
-    // TODO: Implement X Sign-In
-  };
+  const handleAppleSignIn = () =>
+    showInfoToast("Apple Sign-In coming soon!");
+
+  const handleGuest = () =>
+    showInfoToast("Guest mode coming soon!");
+
+  /* ── UI ─────────────────────────────────────────────────── */
 
   return (
-    <View style={[styles.masterContainer, { backgroundColor: casualTheme.background }]}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+    <View style={[styles.root, { backgroundColor: t.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={t.background} />
 
-      <ImageBackground
-        source={BgImg}
-        style={styles.backgroundImage}
-      >
-        {/* Base dark overlay just for the top half to make the logo pop */}
-        <LinearGradient
-          colors={["rgba(0, 0, 0, 0.83)", "transparent"]}
-          locations={[0, 0.4]}
-          style={StyleSheet.absoluteFillObject}
-        />
+      <SafeAreaView style={styles.safe}>
 
-        <SafeAreaView style={styles.safeArea}>
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.keyboardView}
+        {/* ── Header text ─────────────────────────────── */}
+        <View style={styles.header}>
+          <Text style={[styles.welcomeLabel, { color: t.textSecondary }]}>
+            Welcome to
+          </Text>
+          <Text style={[styles.appName, { color: t.primary }]}>AMORA</Text>
+          <Text style={[styles.subtitle, { color: t.textSecondary }]}>
+            Where real connections{"\n"}turn into beautiful stories.
+          </Text>
+        </View>
+
+        {/* ── Provider buttons ────────────────────────── */}
+        <View style={styles.providers}>
+
+          {/* Google */}
+          <TouchableOpacity
+            style={[styles.providerBtn, { backgroundColor: t.secondary, borderColor: t.border }]}
+            onPress={handleGoogleSignIn}
+            disabled={isLoading}
+            activeOpacity={0.8}
           >
-            {/* --- TOP SECTION: Logo & Settings --- */}
-            <View style={styles.topSection}>
-              <Text style={styles.logoText}>AMORA</Text>
-              <TouchableOpacity style={styles.settingsButton} activeOpacity={0.7}>
-                <Ionicons name="settings-sharp" size={22} color="rgba(255,255,255,0.8)" />
-              </TouchableOpacity>
-            </View>
+            <Ionicons name="logo-google" size={20} color={t.textPrimary} style={styles.providerIcon} />
+            <Text style={[styles.providerText, { color: t.textPrimary }]}>
+              {isLoading ? "Signing in…" : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
 
-            {/* --- BOTTOM SHEET (Glassmorphism) --- */}
-            <View style={styles.bottomSheetWrapper}>
-              <BlurView intensity={90} tint="dark" style={styles.bottomSheetBlur}>
-                {/* Additional subtle gradient to mix the theme background into the blur */}
-                <LinearGradient
-                  colors={["rgba(5,5,5,0.4)", "rgba(5,5,5,0.85)"]}
-                  style={StyleSheet.absoluteFillObject}
-                />
-                
-                <View style={styles.sheetContent}>
-                  {/* Typography matching the dark theme */}
-                  <Text style={[styles.title, { color: casualTheme.textPrimary }]}>
-                    Find Your <Text style={{ color: casualTheme.primary }}>First Perfect</Text> Matches
-                  </Text>
-                  
-                  <Text style={[styles.subtitle, { color: casualTheme.textSecondary }]}>
-                    Join us and connect with millions of like-minded souls
-                  </Text>
+          {/* Phone */}
+          <TouchableOpacity
+            style={[styles.providerBtn, { backgroundColor: t.secondary, borderColor: t.border }]}
+            onPress={handlePhoneSignIn}
+            disabled={isLoading}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="call-outline" size={20} color={t.textPrimary} style={styles.providerIcon} />
+            <Text style={[styles.providerText, { color: t.textPrimary }]}>
+              Continue with Phone
+            </Text>
+          </TouchableOpacity>
 
-                  {/* --- AUTH SECTION --- */}
-                  <View style={styles.authContainer}>
-                    {/* Primary Google Button */}
-                    <TouchableOpacity
-                      style={[styles.primaryButton, { backgroundColor: casualTheme.primary }]}
-                      onPress={handleGoogleSignIn}
-                      disabled={isLoading}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="logo-google" size={20} color={casualTheme.textPrimary} />
-                      <Text style={[styles.primaryBtnText, { color: casualTheme.textPrimary }]}>
-                        {isLoading ? "Signing in..." : "Continue with Google"}
-                      </Text>
-                    </TouchableOpacity>
+          {/* Apple */}
+          <TouchableOpacity
+            style={[styles.providerBtn, { backgroundColor: t.secondary, borderColor: t.border }]}
+            onPress={handleAppleSignIn}
+            disabled={isLoading}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="logo-apple" size={22} color={t.textPrimary} style={styles.providerIcon} />
+            <Text style={[styles.providerText, { color: t.textPrimary }]}>
+              Continue with Apple
+            </Text>
+          </TouchableOpacity>
 
-                    {/* Secondary Auth Options (Glassmorphism matched) */}
-                    <View style={styles.secondaryButtonsRow}>
-                      <TouchableOpacity
-                        style={styles.secondaryButton}
-                        onPress={handlePhoneSignIn}
-                        disabled={isLoading}
-                        activeOpacity={0.8}
-                      >
-                        <Ionicons name="call-outline" size={18} color={casualTheme.textPrimary} />
-                        <Text style={[styles.secondaryBtnText, { color: casualTheme.textPrimary }]}>Phone</Text>
-                      </TouchableOpacity>
+          {/* Divider */}
+          <View style={styles.orRow}>
+            <View style={[styles.orLine, { backgroundColor: t.border }]} />
+            <Text style={[styles.orText, { color: t.textSecondary }]}>or</Text>
+            <View style={[styles.orLine, { backgroundColor: t.border }]} />
+          </View>
 
-                      <TouchableOpacity
-                        style={styles.secondaryButton}
-                        onPress={handleXSignIn}
-                        disabled={isLoading}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={[styles.xIconTextSecondary, { color: casualTheme.textPrimary }]}>𝕏</Text>
-                        <Text style={[styles.secondaryBtnText, { color: casualTheme.textPrimary }]}>Twitter</Text>
-                      </TouchableOpacity>
-                    </View>
+          {/* Guest */}
+          <TouchableOpacity onPress={handleGuest} activeOpacity={0.7}>
+            <Text style={[styles.guestText, { color: t.primary }]}>
+              Continue as Guest
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-                    {/* Footer */}
-                    <View style={styles.footerSection}>
-                      <Ionicons name="lock-closed-outline" size={12} color={casualTheme.textSecondary} />
-                      <Text style={[styles.footerText, { color: casualTheme.textSecondary }]}>
-                        Your profile is private and secure.
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-              </BlurView>
-            </View>
-          </KeyboardAvoidingView>
-        </SafeAreaView>
-      </ImageBackground>
+        {/* ── Footer ──────────────────────────────────── */}
+        <View style={styles.footer}>
+          <Text style={[styles.footerText, { color: t.textSecondary }]}>
+            By continuing, you agree to our{" "}
+            <Text style={{ color: t.primary }}>Terms of Service</Text>
+            {" "}and{" "}
+            <Text style={{ color: t.primary }}>Privacy Policy</Text>
+          </Text>
+        </View>
+
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  masterContainer: {
+  root: {
     flex: 1,
   },
-  backgroundImage: {
+  safe: {
     flex: 1,
-    width: "100%",
-    height: "100%",
-    justifyContent: 'space-between',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-    justifyContent: 'space-between',
+    paddingHorizontal: 28,
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "android" ? 40 : 20,
+    paddingBottom: Platform.OS === "android" ? 36 : 24,
   },
 
-  /* TOP SECTION */
-  topSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-    paddingHorizontal: 24,
-    paddingTop: Platform.OS === 'android' ? 50 : 20,
-    position: 'relative',
+  /* ── Header ── */
+  header: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
-  logoText: {
-    fontSize: 28,
-    letterSpacing: 8,
-    fontWeight: "bold",
-    color: "#FFFFFF",
-    textAlign: 'center',
-    fontFamily: Platform.OS === 'ios' ? 'Didot' : 'serif',
+  welcomeLabel: {
+    fontSize: 18,
+    fontWeight: "400",
+    letterSpacing: 0.5,
   },
-  settingsButton: {
-    position: 'absolute',
-    right: 24,
-    top: Platform.OS === 'android' ? 50 : 20,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  /* BOTTOM SHEET (GLASSMORPHISM) */
-  bottomSheetWrapper: {
-    width: "100%",
-    borderTopLeftRadius: 40,
-    borderTopRightRadius: 40,
-    overflow: "hidden", // Crucial for BlurView to respect border radius
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)", // Subtle glass edge highlight
-    borderBottomWidth: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 24,
-  },
-  bottomSheetBlur: {
-    width: "100%",
-  },
-  sheetContent: {
-    paddingHorizontal: 32,
-    paddingTop: 40,
-    paddingBottom: Platform.OS === "ios" ? 50 : 40,
-    alignItems: 'center',
-  },
-
-  /* TYPOGRAPHY */
-  title: {
-    fontSize: 36,
-    fontWeight: "800",
-    textAlign: "center",
-    lineHeight: 46,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+  appName: {
+    fontSize: 46,
+    fontWeight: "300",
+    letterSpacing: 12,
+    fontFamily: Platform.OS === "ios" ? "TimesNewRomanPSMT" : "serif",
   },
   subtitle: {
     fontSize: 15,
     textAlign: "center",
-    marginTop: 16,
     lineHeight: 24,
-    paddingHorizontal: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Avenir' : 'sans-serif',
+    marginTop: 4,
   },
 
-  /* AUTH CONTAINER */
-  authContainer: {
+  /* ── Providers ── */
+  providers: {
+    gap: 14,
+    alignItems: "center",
+  },
+  providerBtn: {
     width: "100%",
-    marginTop: 36,
-  },
-  primaryButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     height: 58,
-    borderRadius: 29, 
-    marginBottom: 16,
-    shadowColor: "#B81D33",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 20,
   },
-  primaryBtnText: {
+  providerIcon: {
+    marginRight: 14,
+  },
+  providerText: {
     fontSize: 16,
-    fontWeight: "600",
-    marginLeft: 10,
-    letterSpacing: 0.5,
+    fontWeight: "500",
+    letterSpacing: 0.3,
   },
-  secondaryButtonsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 16,
-  },
-  secondaryButton: {
-    flex: 1,
+  orRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "rgba(255, 255, 255, 0.08)", // Transparent white for glass look
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    width: "100%",
+    gap: 12,
+    marginVertical: 4,
   },
-  secondaryBtnText: {
+  orLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth * 2,
+  },
+  orText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  guestText: {
     fontSize: 15,
     fontWeight: "600",
-    marginLeft: 8,
-  },
-  xIconTextSecondary: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: -2,
+    letterSpacing: 0.3,
   },
 
-  /* FOOTER */
-  footerSection: {
-    flexDirection: "row",
+  /* ── Footer ── */
+  footer: {
     alignItems: "center",
-    justifyContent: "center",
-    marginTop: 32,
+    paddingTop: 20,
   },
   footerText: {
     fontSize: 13,
-    marginLeft: 6,
-    fontWeight: '500',
+    textAlign: "center",
+    lineHeight: 20,
   },
 });
