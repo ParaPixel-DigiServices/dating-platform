@@ -7,17 +7,16 @@ import {
   StatusBar,
   TouchableOpacity,
   Platform,
-  Dimensions,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import theme from "@/theme/theme";
 
-const { width, height } = Dimensions.get("window");
-const t = theme.onboarding;
+// ── No auth logic on this screen ────────────────────────────────────────────
+// This is a pure branding/entry screen. All auth logic lives in login.tsx.
 
-// Use the same background image that was already in the project
+const t = theme.onboarding;
 const BG_IMG = require("@/assets/images/main-bg.png");
 
 export default function LandingScreen() {
@@ -27,49 +26,34 @@ export default function LandingScreen() {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* ── Full-screen background image ───────────────── */}
       <ImageBackground source={BG_IMG} style={styles.bg} resizeMode="cover">
 
-        {/* ── Gradient: transparent top → dark bottom ──── */}
+        {/* Gradient: transparent top → near-black bottom */}
         <LinearGradient
-          colors={["transparent", "rgba(13,10,7,0.55)", t.background]}
-          locations={[0, 0.45, 1]}
+          colors={["rgba(13,10,7,0.15)", "rgba(13,10,7,0.65)", t.background]}
+          locations={[0, 0.5, 1]}
           style={StyleSheet.absoluteFillObject}
           pointerEvents="none"
         />
 
-        {/* ── Centre branding ──────────────────────────── */}
+        {/* ── Centre Branding ── */}
         <View style={styles.brandingContainer}>
-          {/* Logo mark — simple geometric heart SVG-like shape using text/icon */}
+          {/* Logo mark — oval with heart + A */}
           <View style={styles.logoMark}>
-            <Ionicons name="heart-outline" size={52} color={t.primary} />
+            <Ionicons name="heart-outline" size={44} color={t.primary} />
           </View>
 
-          {/* App name */}
           <Text style={[styles.appName, { color: t.textPrimary }]}>AMORA</Text>
 
-          {/* Tagline */}
           <Text style={[styles.tagline, { color: t.textSecondary }]}>
             REAL PEOPLE. DEEP CONNECTIONS.{"\n"}ENDLESS POSSIBILITIES.
           </Text>
         </View>
 
-        {/* ── Bottom actions ───────────────────────────── */}
+        {/* ── Bottom Section ── */}
         <View style={styles.bottomContainer}>
 
-          {/* Divider row with "Sign In" text */}
-          <View style={styles.signInRow}>
-            <View style={[styles.line, { backgroundColor: t.border }]} />
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={() => router.push("/(onboarding)/login")}
-            >
-              <Text style={[styles.signInText, { color: t.textPrimary }]}>Sign In</Text>
-            </TouchableOpacity>
-            <View style={[styles.line, { backgroundColor: t.border }]} />
-          </View>
-
-          {/* Create Account button */}
+          {/* Create Account CTA */}
           <TouchableOpacity
             activeOpacity={0.85}
             style={styles.createBtnWrapper}
@@ -85,14 +69,40 @@ export default function LandingScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
+          {/* Sign In – flanked by lines */}
+          <View style={styles.signInRow}>
+            <View style={[styles.line, { backgroundColor: t.border }]} />
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => router.push("/(onboarding)/login")}
+            >
+              <Text style={[styles.signInText, { color: t.textPrimary }]}>Sign In</Text>
+            </TouchableOpacity>
+            <View style={[styles.line, { backgroundColor: t.border }]} />
+          </View>
+
+          {/* Trusted by section */}
+          <View style={styles.trustedSection}>
+            <Text style={[styles.trustedLabel, { color: t.textSecondary }]}>
+              TRUSTED BY MILLIONS WORLDWIDE
+            </Text>
+            <View style={styles.brandLogos}>
+              <Text style={[styles.brandLogo, { color: t.textSecondary, fontStyle: "italic" }]}>VOGUE</Text>
+              <Text style={[styles.brandSep, { color: t.border }]}>|</Text>
+              <Text style={[styles.brandLogo, { color: t.textSecondary, fontWeight: "700" }]}>GQ</Text>
+              <Text style={[styles.brandSep, { color: t.border }]}>|</Text>
+              <Text style={[styles.brandLogo, { color: t.textSecondary, fontStyle: "italic" }]}>Forbes</Text>
+              <Text style={[styles.brandSep, { color: t.border }]}>|</Text>
+              <Text style={[styles.brandLogo, { color: t.textSecondary, letterSpacing: 3 }]}>ELLE</Text>
+            </View>
+          </View>
+
           {/* Privacy note */}
           <View style={styles.privacyRow}>
             <Ionicons name="shield-checkmark-outline" size={14} color={t.textSecondary} />
             <Text style={[styles.privacyText, { color: t.textSecondary }]}>
               Privacy First. Always.
             </Text>
-            {/* Sparkle accent */}
-            <Ionicons name="sparkles" size={14} color={t.primary} />
           </View>
 
         </View>
@@ -113,7 +123,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
 
-  /* ── Branding ── */
+  /* Branding */
   brandingContainer: {
     flex: 1,
     alignItems: "center",
@@ -121,56 +131,42 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === "android" ? 60 : 80,
   },
   logoMark: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 86,
+    height: 100,
+    borderRadius: 43,
     borderWidth: 1.5,
     borderColor: "rgba(201,149,106,0.5)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   appName: {
-    fontSize: 46,
-    letterSpacing: 14,
+    fontSize: 44,
+    letterSpacing: 16,
     fontWeight: "300",
     fontFamily: Platform.OS === "ios" ? "TimesNewRomanPSMT" : "serif",
-    marginBottom: 18,
+    marginBottom: 16,
   },
   tagline: {
-    fontSize: 12,
-    letterSpacing: 2.5,
+    fontSize: 11,
+    letterSpacing: 2.2,
     textAlign: "center",
     lineHeight: 20,
     fontWeight: "500",
   },
 
-  /* ── Bottom ── */
+  /* Bottom */
   bottomContainer: {
-    paddingHorizontal: 32,
-    paddingBottom: Platform.OS === "ios" ? 50 : 36,
-    gap: 20,
-  },
-  signInRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  line: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth * 2,
-  },
-  signInText: {
-    fontSize: 15,
-    fontWeight: "500",
-    letterSpacing: 0.5,
+    paddingHorizontal: 28,
+    paddingBottom: Platform.OS === "ios" ? 44 : 30,
+    gap: 18,
   },
   createBtnWrapper: {
     borderRadius: 50,
     overflow: "hidden",
   },
   createBtn: {
-    height: 58,
+    height: 56,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 50,
@@ -179,8 +175,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#0D0A07",
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
+  signInRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  line: {
+    flex: 1,
+    height: 1,
+    opacity: 0.5,
+  },
+  signInText: {
+    fontSize: 15,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+  },
+
+  /* Trusted by */
+  trustedSection: {
+    alignItems: "center",
+    gap: 10,
+  },
+  trustedLabel: {
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: "500",
+  },
+  brandLogos: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  brandLogo: {
+    fontSize: 15,
+    fontWeight: "400",
+  },
+  brandSep: {
+    fontSize: 14,
+    opacity: 0.4,
+  },
+
+  /* Privacy */
   privacyRow: {
     flexDirection: "row",
     alignItems: "center",

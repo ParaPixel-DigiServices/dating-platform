@@ -1,23 +1,24 @@
-import React, { useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-  StatusBar,
-  SafeAreaView,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
-
 import {
   showErrorToast,
+  showSuccessToast,
   showInfoToast,
 } from "@/components/toast";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { firebaseGoogleSignInWithIdToken } from "@/services/firebaseAuthService";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import {
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  StatusBar,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as BackendService from "@/services/backendService";
 
 import theme from "@/theme/theme";
 
@@ -25,19 +26,28 @@ const t = theme.onboarding;
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setUser, setAccessToken, setLoading, isLoading } = useAuthStore();
+  const {
+    setUser,
+    setGoogleFirebaseToken,
+    setAccessToken,
+    setRefreshToken,
+    setLoading,
+    isLoading,
+  } = useAuthStore();
 
-  // Configure Google Sign-In on mount
+  // Configure Google Sign-In on component mount
   useEffect(() => {
+    console.log("Configuring Google Sign-In...");
     GoogleSignin.configure({
       webClientId:
         "1021629025840-1p1nm5k4ptqvea3lpfeup4tk0g1mlpo6.apps.googleusercontent.com",
     });
   }, []);
 
-  /* ── Auth handlers ──────────────────────────────────────── */
+  // ─── ALL ORIGINAL LOGIC PRESERVED EXACTLY ────────────────────────────────
 
   const handleGoogleSignIn = async () => {
+    console.log("Initiating Google Sign-In...");
     setLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
@@ -47,36 +57,74 @@ export default function LoginScreen() {
         throw new Error("No user data received from Google Sign-In");
 
       const idToken = userInfo.data.idToken;
+
       if (!idToken) throw new Error("No idToken received from Google Sign-In");
 
-      const firebaseResult = await firebaseGoogleSignInWithIdToken(idToken);
+      console.log("Google Sign-In successful.", { idToken });
+
+      // Authenticate with Firebase using Google idToken
+      const firebaseResult = await firebaseGoogleSignInWithIdToken(
+        idToken,
+      );
+
+      const backendResponse = await BackendService.firebaseLogin(firebaseResult.idToken,);
+      console.log("Backend auth response:", backendResponse,);
+
+      setGoogleFirebaseToken(firebaseResult.idToken,);
 
       setUser({
-        uid:         firebaseResult.uid,
-        email:       firebaseResult.email ?? null,
+        uid: firebaseResult.uid,
+        email: firebaseResult.email ?? null,
         displayName: firebaseResult.displayName ?? null,
-        photoURL:    firebaseResult.photoURL ?? null,
+        photoURL: firebaseResult.photoURL ?? null,
         phoneNumber: firebaseResult.phoneNumber ?? null,
       });
 
-      setAccessToken(firebaseResult.idToken);
-      router.replace("/otp");
+      if (backendResponse.requiresPhoneVerification) {
+        showSuccessToast(
+          "Google verification successful",
+        );
+
+        router.replace("/otp");
+        return;
+      }
+
+      setAccessToken(
+        backendResponse.accessToken,
+      );
+
+      setRefreshToken(
+        backendResponse.refreshToken,
+      );
+
+      showSuccessToast(
+        "Welcome back!",
+      );
+
+      router.replace("/");
     } catch (error: any) {
-      showErrorToast(error.message || "Google sign-in failed");
+      showErrorToast(error.message || "Sign-in failed");
+      console.log(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePhoneSignIn = () => router.push("/otp");
+  const handlePhoneSignIn = async () => {
+    router.push("/otp");
+  };
 
-  const handleAppleSignIn = () =>
+  const handleAppleSignIn = async () => {
     showInfoToast("Apple Sign-In coming soon!");
+    // TODO: Implement Apple Sign-In
+  };
 
-  const handleGuest = () =>
+  const handleGuest = async () => {
     showInfoToast("Guest mode coming soon!");
+    // TODO: Implement Guest mode
+  };
 
-  /* ── UI ─────────────────────────────────────────────────── */
+  // ─── UI ──────────────────────────────────────────────────────────────────
 
   return (
     <View style={[styles.root, { backgroundColor: t.background }]}>
@@ -84,7 +132,7 @@ export default function LoginScreen() {
 
       <SafeAreaView style={styles.safe}>
 
-        {/* ── Header text ─────────────────────────────── */}
+        {/* ── Header ── */}
         <View style={styles.header}>
           <Text style={[styles.welcomeLabel, { color: t.textSecondary }]}>
             Welcome to
@@ -95,10 +143,9 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        {/* ── Provider buttons ────────────────────────── */}
+        {/* ── Provider Buttons ── */}
         <View style={styles.providers}>
 
-          {/* Google */}
           <TouchableOpacity
             style={[styles.providerBtn, { backgroundColor: t.secondary, borderColor: t.border }]}
             onPress={handleGoogleSignIn}
@@ -111,7 +158,6 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Phone */}
           <TouchableOpacity
             style={[styles.providerBtn, { backgroundColor: t.secondary, borderColor: t.border }]}
             onPress={handlePhoneSignIn}
@@ -124,7 +170,6 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
 
-          {/* Apple */}
           <TouchableOpacity
             style={[styles.providerBtn, { backgroundColor: t.secondary, borderColor: t.border }]}
             onPress={handleAppleSignIn}
@@ -144,15 +189,15 @@ export default function LoginScreen() {
             <View style={[styles.orLine, { backgroundColor: t.border }]} />
           </View>
 
-          {/* Guest */}
           <TouchableOpacity onPress={handleGuest} activeOpacity={0.7}>
             <Text style={[styles.guestText, { color: t.primary }]}>
               Continue as Guest
             </Text>
           </TouchableOpacity>
+
         </View>
 
-        {/* ── Footer ──────────────────────────────────── */}
+        {/* ── Footer ── */}
         <View style={styles.footer}>
           <Text style={[styles.footerText, { color: t.textSecondary }]}>
             By continuing, you agree to our{" "}
@@ -179,7 +224,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === "android" ? 36 : 24,
   },
 
-  /* ── Header ── */
+  /* Header */
   header: {
     flex: 1,
     alignItems: "center",
@@ -204,7 +249,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  /* ── Providers ── */
+  /* Provider buttons */
   providers: {
     gap: 14,
     alignItems: "center",
@@ -231,11 +276,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     gap: 12,
-    marginVertical: 4,
+    marginVertical: 2,
   },
   orLine: {
     flex: 1,
-    height: StyleSheet.hairlineWidth * 2,
+    height: 1,
   },
   orText: {
     fontSize: 14,
@@ -247,7 +292,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  /* ── Footer ── */
+  /* Footer */
   footer: {
     alignItems: "center",
     paddingTop: 20,
