@@ -11,7 +11,5 @@ export type AuthResponseType = {
     phoneNumber?: string | null;
 
     email?: string | null;
-
-    authProvider?: string;
   };
 };

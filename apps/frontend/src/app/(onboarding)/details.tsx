@@ -117,12 +117,15 @@ export default function DetailsScreen() {
   ) => {
     try {
       setLoading(true);
+      console.log("Submitting details:", data);
 
       const dob = new Date(
         parseInt(data.year, 10),
         parseInt(data.month, 10) - 1,
         parseInt(data.day, 10),
       );
+
+      console.log("Constructed DOB:", dob);
 
       await BackendService.saveOnboardingDetails({
         firstName: data.firstName.trim(),
@@ -132,6 +135,8 @@ export default function DetailsScreen() {
           data.gender,
         ),
       });
+
+      console.log("Details saved successfully");
 
       // Local cache only
       setFirstName(

@@ -14,9 +14,8 @@ const apiClient = create({
   },
 });
 
-// Interceptor to add Firebase ID token to requests
+// Interceptor to add access token to authenticated requests
 import { useAuthStore } from '@/hooks/useAuthStore';
-import { string } from 'zod';
 
 apiClient.interceptors.request.use(
   (config) => {
@@ -88,14 +87,7 @@ export const firebaseLogin = async(
       {
         idToken,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${idToken}`
-        }
-      }
     );
-
-    console.log(response);
 
     return response.data;
   } catch (error : any) {
@@ -139,9 +131,21 @@ export const saveOnboardingDetails = async (
   },
 ) => {
   try {
+    const accessToken =
+      useAuthStore.getState().accessToken;
+
+      console.log("Saving onboarding details with access token:", accessToken);
+
     const response = await apiClient.post(
       '/onboarding/details',
       data,
+      {
+        headers: accessToken
+          ? {
+              Authorization: `Bearer ${accessToken}`,
+            }
+          : undefined,
+      },
     );
 
     return response.data;

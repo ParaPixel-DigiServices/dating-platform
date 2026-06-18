@@ -47,7 +47,6 @@ export default function LoginScreen() {
   // ─── ALL ORIGINAL LOGIC PRESERVED EXACTLY ────────────────────────────────
 
   const handleGoogleSignIn = async () => {
-    console.log("Initiating Google Sign-In...");
     setLoading(true);
     try {
       await GoogleSignin.hasPlayServices();
@@ -60,51 +59,37 @@ export default function LoginScreen() {
 
       if (!idToken) throw new Error("No idToken received from Google Sign-In");
 
-      console.log("Google Sign-In successful.", { idToken });
-
       // Authenticate with Firebase using Google idToken
       const firebaseResult = await firebaseGoogleSignInWithIdToken(
         idToken,
       );
 
-      const backendResponse = await BackendService.firebaseLogin(firebaseResult.idToken,);
-      console.log("Backend auth response:", backendResponse,);
-
-      setGoogleFirebaseToken(firebaseResult.idToken,);
-
-      setUser({
-        uid: firebaseResult.uid,
-        email: firebaseResult.email ?? null,
-        displayName: firebaseResult.displayName ?? null,
-        photoURL: firebaseResult.photoURL ?? null,
-        phoneNumber: firebaseResult.phoneNumber ?? null,
-      });
+      const backendResponse = await BackendService.firebaseLogin(firebaseResult.idToken);
 
       if (backendResponse.requiresPhoneVerification) {
-        showSuccessToast(
-          "Google verification successful",
-        );
-
+        // New user - store Firebase token and navigate to phone verification
+        setGoogleFirebaseToken(firebaseResult.idToken);
+        showSuccessToast("Google verification successful");
         router.replace("/otp");
         return;
       }
 
-      setAccessToken(
-        backendResponse.accessToken,
-      );
+      // Existing user - store backend tokens and user data
+      setAccessToken(backendResponse.accessToken);
+      setRefreshToken(backendResponse.refreshToken);
+      
+      setUser({
+        id: backendResponse.user.id,
+        email: backendResponse.user.email ?? null,
+        phoneNumber: backendResponse.user.phoneNumber ?? null,
+        displayName: firebaseResult.displayName ?? null,
+        photoURL: firebaseResult.photoURL ?? null,
+      });
 
-      setRefreshToken(
-        backendResponse.refreshToken,
-      );
-
-      showSuccessToast(
-        "Welcome back!",
-      );
-
+      showSuccessToast("Welcome back!");
       router.replace("/");
     } catch (error: any) {
       showErrorToast(error.message || "Sign-in failed");
-      console.log(error.message);
     } finally {
       setLoading(false);
     }

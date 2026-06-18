@@ -28,8 +28,6 @@ import { usePhoneAuthStore } from "@/hooks/usePhoneAuthStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { OnboardingTopBar } from "@/components/onboarding/OnboardingTopBar";
 import * as BackendService from "@/services/backendService"
-
-// Import centralized theme
 import theme from "@/theme/theme";
 
 // --- DEV MODE FLAG ---
@@ -71,7 +69,7 @@ export default function OtpScreen() {
   // Stores
   const phoneAuthStore = usePhoneAuthStore();
   const{
-    updateAuthUser,
+    setUser,
     googleFirebaseToken,
     setAccessToken,
     setRefreshToken,
@@ -150,8 +148,12 @@ export default function OtpScreen() {
         await new Promise((resolve) => setTimeout(resolve, 800)); // Artificial delay for UI testing
         
         if (data.otp === DEV_OTP) {
-          updateAuthUser({
+          setUser({
+            id: 'dev-user',
+            email: null,
             phoneNumber: phoneAuthStore.phoneNumber,
+            displayName: null,
+            photoURL: null,
           });
           phoneAuthStore.reset();
           showSuccessToast("Phone verified successfully! (DEV MODE)");
@@ -162,11 +164,16 @@ export default function OtpScreen() {
         }
       }
 
+      console.log("Verifying OTP...");
+
       if (!confirmationResult) {
         throw new Error("No confirmation result. Please resend OTP.");
       }
 
+      console.log("Confirming OTP with Firebase...");
       const userCredential = await confirmationResult.confirm(data.otp);
+
+      console.log("OTP verified with Firebase. User credential obtained.");
 
       if(!userCredential.user){
         throw new Error(
@@ -187,30 +194,28 @@ export default function OtpScreen() {
         phoneIdToken,
       );
 
-      console.log(backendResponse)
+      setAccessToken(backendResponse.accessToken);
+      setRefreshToken(backendResponse.refreshToken);
 
-      updateAuthUser({
-        phoneNumber:
-          userCredential.user.phoneNumber ??
-          phoneAuthStore.phoneNumber,
+      setUser({
+        id: backendResponse.user.id,
+        email: backendResponse.user.email ?? null,
+        phoneNumber: backendResponse.user.phoneNumber ?? null,
+        displayName: null,
+        photoURL: null,
       });
-
-      setAccessToken(
-        backendResponse.accessToken,
-      );
-
-      setRefreshToken(
-        backendResponse.refreshToken,
-      );
 
       phoneAuthStore.reset();
       showSuccessToast("Phone verified successfully!");
       router.replace("/details");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to verify OTP";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to verify OTP";
+
       showErrorToast(message);
       phoneAuthStore.setError(message);
-      console.log(message)
     } finally {
       phoneAuthStore.setVerifying(false);
     }

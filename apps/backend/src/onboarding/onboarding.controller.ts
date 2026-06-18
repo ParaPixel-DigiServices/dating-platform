@@ -24,6 +24,7 @@ export class OnboardingController {
     @Req() req: any,
     @Body() dto: OnboardingDetailsDto,
   ) {
+    console.log("Received onboarding details:", dto);
     return this.onboardingService.saveDetails(
       req.user.sub,
       dto,

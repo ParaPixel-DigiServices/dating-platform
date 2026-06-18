@@ -80,23 +80,7 @@ export default function LandingScreen() {
             </TouchableOpacity>
             <View style={[styles.line, { backgroundColor: t.border }]} />
           </View>
-
-          {/* Trusted by section */}
-          <View style={styles.trustedSection}>
-            <Text style={[styles.trustedLabel, { color: t.textSecondary }]}>
-              TRUSTED BY MILLIONS WORLDWIDE
-            </Text>
-            <View style={styles.brandLogos}>
-              <Text style={[styles.brandLogo, { color: t.textSecondary, fontStyle: "italic" }]}>VOGUE</Text>
-              <Text style={[styles.brandSep, { color: t.border }]}>|</Text>
-              <Text style={[styles.brandLogo, { color: t.textSecondary, fontWeight: "700" }]}>GQ</Text>
-              <Text style={[styles.brandSep, { color: t.border }]}>|</Text>
-              <Text style={[styles.brandLogo, { color: t.textSecondary, fontStyle: "italic" }]}>Forbes</Text>
-              <Text style={[styles.brandSep, { color: t.border }]}>|</Text>
-              <Text style={[styles.brandLogo, { color: t.textSecondary, letterSpacing: 3 }]}>ELLE</Text>
-            </View>
-          </View>
-
+          
           {/* Privacy note */}
           <View style={styles.privacyRow}>
             <Ionicons name="shield-checkmark-outline" size={14} color={t.textSecondary} />

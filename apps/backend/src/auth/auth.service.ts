@@ -5,6 +5,11 @@ import {
 
 import { JwtService } from '@nestjs/jwt';
 
+import {
+  AuthProvider,
+  Prisma,
+} from '@prisma/client';
+
 import { randomUUID } from 'crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,8 +22,6 @@ import { CompletePhoneVerificationDto } from './dto/complete-phone-verification.
 
 import { AuthResponseType } from './types/auth-response.type';
 
-import { mapFirebaseProvider } from './utils/map-firebase-provider';
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -29,6 +32,116 @@ export class AuthService {
     private readonly firebaseService: FirebaseService,
   ) { }
 
+  private async createAuthenticatedResponse(
+    user: {
+      id: string;
+
+      phoneNumber: string | null;
+
+      email: string | null;
+    },
+  ): Promise<AuthResponseType> {
+    const accessToken =
+      await this.jwtService.signAsync({
+        sub: user.id,
+
+        phoneNumber: user.phoneNumber,
+      });
+
+    const refreshToken = randomUUID();
+
+    const expiresAt = new Date();
+
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    await this.prismaService.session.create({
+      data: {
+        userId: user.id,
+
+        refreshToken,
+
+        expiresAt,
+      },
+    });
+
+    return {
+      accessToken,
+
+      refreshToken,
+
+      requiresPhoneVerification: false,
+
+      user: {
+        id: user.id,
+
+        phoneNumber: user.phoneNumber,
+
+        email: user.email,
+      },
+    };
+  }
+
+  private async findUserByAuthProvider(
+    provider: AuthProvider,
+    providerUserId: string,
+  ) {
+    const authProvider =
+      await this.prismaService.userAuthProvider.findUnique({
+        where: {
+          provider_providerUserId: {
+            provider,
+
+            providerUserId,
+          },
+        },
+
+        include: {
+          user: true,
+        },
+      });
+
+    return authProvider?.user ?? null;
+  }
+
+  private async ensureAuthProvider(
+    prisma: Prisma.TransactionClient,
+    userId: string,
+    provider: AuthProvider,
+    providerUserId: string,
+  ) {
+    const existingAuthProvider =
+      await prisma.userAuthProvider.findUnique({
+        where: {
+          provider_providerUserId: {
+            provider,
+
+            providerUserId,
+          },
+        },
+      });
+
+    if (
+      existingAuthProvider &&
+      existingAuthProvider.userId !== userId
+    ) {
+      throw new UnauthorizedException(
+        'Provider already linked to another account',
+      );
+    }
+
+    if (!existingAuthProvider) {
+      await prisma.userAuthProvider.create({
+        data: {
+          userId,
+
+          provider,
+
+          providerUserId,
+        },
+      });
+    }
+  }
+
   async loginWithFirebase(
     dto: FirebaseLoginDto,
   ): Promise<AuthResponseType> {
@@ -38,160 +151,81 @@ export class AuthService {
           dto.idToken,
         );
 
-        console.log('Decoded Firebase token:', decodedToken);
+      const firebaseUid =
+        decodedToken.uid;
+
+      if (!firebaseUid) {
+        throw new UnauthorizedException(
+          'Invalid Firebase Token',
+        );
+      }
 
       const firebaseProvider =
         decodedToken.firebase.sign_in_provider;
 
-      console.log('Firebase sign-in provider:', firebaseProvider);
-
-      const authProvider =
-        mapFirebaseProvider(firebaseProvider);
-
-      const isPhoneProvider =
-        firebaseProvider === 'phone';
-
-      const phoneNumber =
-        decodedToken.phone_number ?? null;
-
       const email =
         decodedToken.email ?? null;
 
-      if (!isPhoneProvider && email) {
+      if (firebaseProvider === 'phone') {
         const existingUser =
-          await this.prismaService.user.findUnique({
-            where: {
-              email,
-            },
-          });
-
-        if (
-          existingUser &&
-          existingUser.phoneVerified
-        ) {
-          const accessToken =
-            await this.jwtService.signAsync({
-              sub: existingUser.id,
-              phoneNumber:
-                existingUser.phoneNumber,
-            });
-
-          const refreshToken =
-            randomUUID();
-
-          const expiresAt =
-            new Date();
-
-          expiresAt.setDate(
-            expiresAt.getDate() + 30,
+          await this.findUserByAuthProvider(
+            AuthProvider.PHONE,
+            firebaseUid,
           );
 
-          await this.prismaService.session.create({
-            data: {
-              userId: existingUser.id,
-              refreshToken,
-              expiresAt,
-            },
-          });
-
-          return {
-            accessToken,
-            refreshToken,
-            requiresPhoneVerification: false,
-            user: {
-              id: existingUser.id,
-              phoneNumber:
-                existingUser.phoneNumber,
-              email:
-                existingUser.email,
-              authProvider:
-                existingUser.authProvider,
-            },
-          };
+        if (existingUser) {
+          return this.createAuthenticatedResponse(
+            existingUser,
+          );
         }
+
+        throw new UnauthorizedException(
+          'Account not found',
+        );
       }
 
-      /**
-       * GOOGLE / APPLE FLOW
-       * Require phone verification first
-       */
-      if (!isPhoneProvider) {
+      if (
+        firebaseProvider === 'google.com' ||
+        firebaseProvider === 'apple.com'
+      ) {
+        const provider =
+          firebaseProvider === 'google.com'
+            ? AuthProvider.GOOGLE
+            : AuthProvider.APPLE;
+
+        const existingUser =
+          await this.findUserByAuthProvider(
+            provider,
+            firebaseUid,
+          );
+
+        if (existingUser) {
+          return this.createAuthenticatedResponse(
+            existingUser,
+          );
+        }
+
         return {
           requiresPhoneVerification: true,
 
           user: {
             email,
-
-            authProvider,
           },
         };
       }
 
-      /**
-       * PHONE OTP FLOW
-       * Fully trusted account
-       */
-      let user = await this.prismaService.user.findUnique({
-        where: {
-          phoneNumber: phoneNumber!,
-        },
-      });
-
-      if (!user) {
-        user = await this.prismaService.user.create({
-          data: {
-            phoneNumber,
-
-            email,
-
-            authProvider,
-
-            phoneVerified: true,
-          },
-        });
-      }
-
-      const accessToken =
-        await this.jwtService.signAsync({
-          sub: user.id,
-
-          phoneNumber: user.phoneNumber,
-        });
-
-      const refreshToken = randomUUID();
-
-      const expiresAt = new Date();
-
-      expiresAt.setDate(expiresAt.getDate() + 30);
-
-      await this.prismaService.session.create({
-        data: {
-          userId: user.id,
-
-          refreshToken,
-
-          expiresAt,
-        },
-      });
-
       return {
-        accessToken,
-
-        refreshToken,
-
-        requiresPhoneVerification: false,
+        requiresPhoneVerification: true,
 
         user: {
-          id: user.id,
-
-          phoneNumber: user.phoneNumber,
-
-          email: user.email,
-
-          authProvider: user.authProvider,
+          email,
         },
       };
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       console.error(error);
 
       throw new UnauthorizedException(
@@ -223,112 +257,165 @@ export class AuthService {
       const email =
         googleToken.email ?? null;
 
+      const googleUid =
+        googleToken.uid;
+
       const phoneNumber =
         phoneToken.phone_number ?? null;
 
-      if (!phoneNumber) {
+      const phoneUid =
+        phoneToken.uid;
+
+      if (!phoneNumber || !googleUid || !phoneUid) {
         throw new UnauthorizedException(
           'Phone number verification failed',
         );
       }
 
-      /**
-       * Check if phone account already exists
-       */
-      let user =
-        await this.prismaService.user.findUnique({
+      const googleAuthProvider =
+        await this.prismaService.userAuthProvider.findUnique({
           where: {
-            phoneNumber,
+            provider_providerUserId: {
+              provider: AuthProvider.GOOGLE,
+
+              providerUserId: googleUid,
+            },
+          },
+
+          include: {
+            user: true,
           },
         });
 
-      /**
-       * Existing account found
-       */
-      if (user) {
-        /**
-         * Link Google email if missing
-         */
-        if (!user.email && email) {
-          user = await this.prismaService.user.update({
-            where: {
-              id: user.id,
+      const phoneAuthProvider =
+        await this.prismaService.userAuthProvider.findUnique({
+          where: {
+            provider_providerUserId: {
+              provider: AuthProvider.PHONE,
+
+              providerUserId: phoneUid,
             },
+          },
 
-            data: {
-              email,
-
-              authProvider: 'GOOGLE',
-            },
-          });
-        }
-      } else {
-        /**
-         * Create fully trusted account
-         */
-        user = await this.prismaService.user.create({
-          data: {
-            phoneNumber,
-
-            email,
-
-            authProvider: 'GOOGLE',
-
-            phoneVerified: true,
+          include: {
+            user: true,
           },
         });
+
+      if (
+        googleAuthProvider?.user &&
+        phoneAuthProvider?.user &&
+        googleAuthProvider.user.id !== phoneAuthProvider.user.id
+      ) {
+        throw new UnauthorizedException(
+          'Phone verification failed',
+        );
       }
 
-      /**
-       * Generate JWT
-       */
-      const accessToken =
-        await this.jwtService.signAsync({
-          sub: user.id,
+      let user =
+        googleAuthProvider?.user ??
+        phoneAuthProvider?.user ??
+        null;
 
-          phoneNumber: user.phoneNumber,
-        });
+      if (user) {
+        const currentUser = user;
 
-      /**
-       * Generate Refresh Token
-       */
-      const refreshToken = randomUUID();
+        user = await this.prismaService.$transaction(
+          async (prisma) => {
+            const updatedUser =
+              (!currentUser.email && email) ||
+              (!currentUser.phoneNumber && phoneNumber) ||
+              !currentUser.phoneVerified
+                ? await prisma.user.update({
+                    where: {
+                      id: currentUser.id,
+                    },
 
-      const expiresAt = new Date();
+                    data: {
+                      email: currentUser.email ?? email,
 
-      expiresAt.setDate(expiresAt.getDate() + 30);
+                      phoneNumber:
+                        currentUser.phoneNumber ?? phoneNumber,
 
-      /**
-       * Persist Session
-       */
-      await this.prismaService.session.create({
-        data: {
-          userId: user.id,
+                      phoneVerified: true,
+                    },
+                  })
+                : currentUser;
 
-          refreshToken,
+            await this.ensureAuthProvider(
+              prisma,
 
-          expiresAt,
-        },
-      });
+              updatedUser.id,
 
-      return {
-        accessToken,
+              AuthProvider.GOOGLE,
 
-        refreshToken,
+              googleUid,
+            );
 
-        requiresPhoneVerification: false,
+            await this.ensureAuthProvider(
+              prisma,
 
-        user: {
-          id: user.id,
+              updatedUser.id,
 
-          phoneNumber: user.phoneNumber,
+              AuthProvider.PHONE,
 
-          email: user.email,
+              phoneUid,
+            );
 
-          authProvider: user.authProvider,
-        },
-      };
+            return updatedUser;
+          },
+        );
+      } else {
+        user = await this.prismaService.$transaction(
+          async (tx) => {
+            const createdUser =
+              await tx.user.create({
+                data: {
+                  phoneNumber,
+
+                  email,
+
+                  phoneVerified: true,
+                },
+              });
+
+            await tx.userAuthProvider.create({
+              data: {
+                userId: createdUser.id,
+
+                provider: AuthProvider.GOOGLE,
+
+                providerUserId: googleUid,
+              },
+            });
+
+            await tx.userAuthProvider.create({
+              data: {
+                userId: createdUser.id,
+
+                provider: AuthProvider.PHONE,
+
+                providerUserId: phoneUid,
+              },
+            });
+
+            return createdUser;
+          },
+        );
+      }
+
+      if (!user) {
+        throw new UnauthorizedException(
+          'Phone verification completion failed',
+        );
+      }
+
+      return this.createAuthenticatedResponse(user);
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+
       console.error(error);
 
       throw new UnauthorizedException(
@@ -346,6 +433,7 @@ export class AuthService {
       include: {
         profile: true,
         onboardingProgress: true,
+        authProviders: true,
       },
     });
 
