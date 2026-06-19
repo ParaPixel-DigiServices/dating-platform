@@ -16,21 +16,167 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
+import {
+  getProfileSections,
+  findQuestionById,
+  type ProfileSection,
+} from "@/utils/profileHelpers";
 import theme from "@/theme/theme";
 
 const { width, height } = Dimensions.get("window");
 const HERO_HEIGHT = height * 0.48;
 
-const DUMMY_PHOTO = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80";
+const DUMMY_PHOTO =
+  "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80";
 
-const DUMMY_INTERESTS = ["Travel", "Photography", "Music", "Coffee", "Books"];
+// ─── Basic Info Card ──────────────────────────────────────────────────────────
 
-const COMPLETE_PROFILE_STEPS = [
-  { label: "Add profile photo",  done: false, icon: "camera"   },
-  { label: "Write a bio",        done: false, icon: "edit-2"   },
-  { label: "Add interests",      done: false, icon: "star"     },
-  { label: "Basic info",         done: true,  icon: "user"     },
-];
+interface BasicInfoCardProps {
+  displayName: string;
+  age: number | null;
+  gender: string | null;
+  location: string | null;   // from go_4
+  height: string | null;     // from go_7
+  occupation: string | null; // from go_6
+  education: string | null;  // from go_5
+  t: any;
+  onSeeAll: () => void;
+  onEdit: () => void;
+}
+
+function BasicInfoCard({
+  displayName, age, gender, location, height, occupation, education, t, onSeeAll, onEdit
+}: BasicInfoCardProps) {
+  const NA = "NA";
+
+  const rows: { label: string; value: string | null; icon: string }[] = [
+    { label: "Name",       value: displayName !== "Your Name" ? displayName : null, icon: "user"    },
+    { label: "Age",        value: age ? `${age} years` : null,                      icon: "calendar" },
+    { label: "Gender",     value: gender,                                           icon: "users"    },
+    { label: "Location",   value: location,                                         icon: "map-pin"  },
+    { label: "Height",     value: height,                                           icon: "bar-chart-2" },
+    { label: "Occupation", value: occupation,                                       icon: "briefcase" },
+  ];
+
+  return (
+    <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
+      {/* Header */}
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionIcon}>👤</Text>
+          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>Basic Info</Text>
+        </View>
+        <TouchableOpacity style={styles.seeAllBtn} onPress={onSeeAll} activeOpacity={0.7}>
+          <Text style={[styles.seeAllText, { color: t.primary }]}>See all</Text>
+          <Feather name="chevron-right" size={14} color={t.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Info rows */}
+      <View style={styles.infoGrid}>
+        {rows.map((row) => (
+          <View key={row.label} style={styles.infoRow}>
+            <View style={[styles.infoIconBox, { backgroundColor: t.primary + "18" }]}>
+              <Feather name={row.icon as any} size={13} color={t.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.infoLabel, { color: t.textSecondary + "77" }]}>{row.label}</Text>
+              <Text style={[styles.infoValue, { color: row.value ? t.textSecondary : t.textSecondary + "44" }]}>
+                {row.value ?? NA}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Edit nudge */}
+      <TouchableOpacity
+        style={[styles.cardEditBtn, { borderColor: t.primary + "44" }]}
+        onPress={onEdit}
+        activeOpacity={0.75}
+      >
+        <Feather name="edit-2" size={12} color={t.primary} />
+        <Text style={[styles.cardEditText, { color: t.primary }]}>Edit basic info</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ─── Category Section Card ────────────────────────────────────────────────────
+
+interface CategoryCardProps {
+  section: ProfileSection;
+  answers: Record<string, any>;
+  t: any;
+  onSeeAll: () => void;
+}
+
+function CategoryCard({ section, answers, t, onSeeAll }: CategoryCardProps) {
+  // Show only first 4 answers as a preview
+  const previewIds = section.questionIds.slice(0, 4);
+  const answeredCount = section.questionIds.filter(
+    (id) => answers[id] !== null && answers[id] !== undefined && answers[id] !== ""
+  ).length;
+  const total = section.questionIds.length;
+
+  return (
+    <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionIcon}>{section.icon}</Text>
+          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>{section.title}</Text>
+        </View>
+        <TouchableOpacity style={styles.seeAllBtn} onPress={onSeeAll} activeOpacity={0.7}>
+          <Text style={[styles.seeAllText, { color: t.primary }]}>See all</Text>
+          <Feather name="chevron-right" size={14} color={t.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {answeredCount === 0 ? (
+        <Text style={[styles.emptyText, { color: t.textSecondary + "66" }]}>
+          No answers yet — tap See all to fill this in
+        </Text>
+      ) : (
+        <View style={styles.infoGrid}>
+          {previewIds.map((id) => {
+            const q = findQuestionById(id);
+            const ans = answers[id];
+            if (!q) return null;
+            const displayAns = Array.isArray(ans) ? ans.join(", ") : ans ?? null;
+            return (
+              <View key={id} style={styles.infoRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.infoLabel, { color: t.textSecondary + "77" }]}>{q.text}</Text>
+                  <Text style={[styles.infoValue, { color: displayAns ? t.textSecondary : t.textSecondary + "44" }]}>
+                    {displayAns ?? "Not answered"}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Mini progress */}
+      <View style={styles.completionRow}>
+        <View style={[styles.miniProgress, { backgroundColor: t.primary + "22" }]}>
+          <View
+            style={[
+              styles.miniProgressFill,
+              { backgroundColor: t.primary, width: `${Math.round((answeredCount / total) * 100)}%` },
+            ]}
+          />
+        </View>
+        <Text style={[styles.completionText, { color: t.textSecondary + "88" }]}>
+          {answeredCount}/{total} answered
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -42,9 +188,13 @@ export default function ProfileScreen() {
   const dateOfBirth = useOnboardingStore((s) => s.dateOfBirth);
   const user        = useAuthStore((s) => s.user);
 
-  const t = theme[category];
+  const answers    = useUserProfileStore((s) => s.answers);
+  const isComplete = useUserProfileStore((s) => s.isProfileComplete(category as any));
+  const pct        = useUserProfileStore((s) => s.getCompletionPercent(category as any));
 
-  // Calculate age from DOB
+  const t       = (theme as any)[category];
+  const sections = getProfileSections(category as any);
+
   const age = dateOfBirth
     ? new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
     : null;
@@ -53,9 +203,24 @@ export default function ProfileScreen() {
     ? `${firstName}${lastName ? ` ${lastName}` : ""}`
     : "Your Name";
 
-  const completedSteps = COMPLETE_PROFILE_STEPS.filter((s) => s.done).length;
-  const totalSteps     = COMPLETE_PROFILE_STEPS.length;
-  const progressPct    = Math.round((completedSteps / totalSteps) * 100);
+  // Pull extra fields from profile answers (with NA fallback handled in card)
+  const location   = (answers['go_4'] as string) || null;
+  const height     = (answers['go_7'] as string) || null;
+  const occupation = (answers['go_6'] as string) || null;
+  const education  = (answers['go_5'] as string) || null;
+
+  const categorySection = sections.find((s) => s.key === 'category') ?? null;
+
+  const navigateToFull = (sectionKey?: string) => {
+    router.push({
+      pathname: "/profile/full" as any,
+      params: { scrollTo: sectionKey ?? "top" },
+    });
+  };
+
+  const navigateToEdit = () => {
+    router.push("/profile/edit/0" as any);
+  };
 
   return (
     <View style={[styles.master, { backgroundColor: t.background }]}>
@@ -65,29 +230,28 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
       >
-        {/* ── HERO IMAGE ──────────────────────────────────────── */}
+        {/* ── HERO IMAGE ─────────────────────────────────────── */}
         <View style={styles.heroContainer}>
           <Image source={{ uri: DUMMY_PHOTO }} style={styles.heroImage} />
 
-          {/* Top gradient for status bar readability */}
           <LinearGradient
             colors={["rgba(0,0,0,0.55)", "transparent"]}
             style={styles.topGradient}
           />
-
-          {/* Bottom gradient fade into background */}
           <LinearGradient
             colors={["transparent", t.background]}
             locations={[0.5, 1]}
             style={styles.bottomGradient}
           />
 
-          {/* Top bar overlay */}
           <SafeAreaView style={styles.topBarOverlay}>
             <View style={styles.topBar}>
               <Text style={[styles.appName, { color: t.primary }]}>amora</Text>
               <TouchableOpacity
-                style={[styles.settingsBtn, { backgroundColor: "rgba(0,0,0,0.35)" }]}
+                style={[
+                  styles.settingsBtn,
+                  { backgroundColor: "rgba(0,0,0,0.35)" },
+                ]}
                 onPress={() => router.push("/settings" as any)}
                 activeOpacity={0.8}
               >
@@ -96,17 +260,17 @@ export default function ProfileScreen() {
             </View>
           </SafeAreaView>
 
-          {/* Profile badge on photo */}
           <View style={styles.verifiedBadge}>
             <Feather name="check" size={10} color="#fff" />
           </View>
         </View>
 
-        {/* ── IDENTITY ROW ────────────────────────────────────── */}
+        {/* ── IDENTITY ROW ──────────────────────────────────── */}
         <View style={styles.identitySection}>
           <View style={styles.nameRow}>
-            <Text style={[styles.nameText, { color: t.textPrimary }]}>
-              {displayName}{age ? `, ${age}` : ""}
+            <Text style={[styles.nameText, { color: t.textSecondary }]}>
+              {displayName}
+              {age ? `, ${age}` : ""}
             </Text>
             <View style={[styles.checkBadge, { backgroundColor: t.primary }]}>
               <Feather name="check" size={12} color="#fff" />
@@ -115,19 +279,38 @@ export default function ProfileScreen() {
 
           <View style={styles.metaRow}>
             {gender ? (
-              <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
-                <Ionicons name="person-outline" size={12} color={t.textSecondary} />
-                <Text style={[styles.metaText, { color: t.textSecondary }]}>{gender}</Text>
+              <View
+                style={[styles.metaPill, { backgroundColor: t.secondary }]}
+              >
+                <Ionicons
+                  name="person-outline"
+                  size={12}
+                  color={t.textSecondary}
+                />
+                <Text style={[styles.metaText, { color: t.textSecondary }]}>
+                  {gender}
+                </Text>
               </View>
             ) : null}
             <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
-              <Ionicons name="heart-outline" size={12} color={t.textSecondary} />
-              <Text style={[styles.metaText, { color: t.textSecondary }]}>{category.replace("_", " ")}</Text>
+              <Ionicons
+                name="heart-outline"
+                size={12}
+                color={t.textSecondary}
+              />
+              <Text style={[styles.metaText, { color: t.textSecondary }]}>
+                {category.replace("_", " ")}
+              </Text>
             </View>
             {user?.email ? (
-              <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
+              <View
+                style={[styles.metaPill, { backgroundColor: t.secondary }]}
+              >
                 <Feather name="mail" size={12} color={t.textSecondary} />
-                <Text style={[styles.metaText, { color: t.textSecondary }]} numberOfLines={1}>
+                <Text
+                  style={[styles.metaText, { color: t.textSecondary }]}
+                  numberOfLines={1}
+                >
                   Verified
                 </Text>
               </View>
@@ -135,115 +318,107 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* ── COMPLETE YOUR PROFILE BANNER ─────────────────────── */}
-        <View style={[styles.completeCard, { backgroundColor: t.secondary, borderColor: t.primary }]}>
-          {/* Header */}
-          <View style={styles.completeHeader}>
-            <View>
-              <Text style={[styles.completeTitle, { color: t.textPrimary }]}>
+        {/* ── COMPLETE PROFILE BANNER (only when incomplete) ─── */}
+        {!isComplete && (
+          <TouchableOpacity
+            activeOpacity={0.92}
+            onPress={navigateToEdit}
+            style={[
+              styles.completeBanner,
+              { backgroundColor: t.secondary, borderColor: t.primary },
+            ]}
+          >
+            <LinearGradient
+              colors={[t.primary + "22", "transparent"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFillObject}
+            />
+
+            <View style={styles.bannerLeft}>
+              <Text style={[styles.bannerTitle, { color: t.textSecondary }]}>
                 Complete your profile
               </Text>
-              <Text style={[styles.completeSubtitle, { color: t.textSecondary }]}>
-                Get 3× more matches by finishing your profile
+              <Text style={[styles.bannerSub, { color: t.textSecondary + "aa" }]}>
+                Get 3× more matches · {pct}% done
               </Text>
-            </View>
-            <View style={[styles.progressCircle, { borderColor: t.primary }]}>
-              <Text style={[styles.progressPct, { color: t.primary }]}>{progressPct}%</Text>
-            </View>
-          </View>
 
-          {/* Progress bar */}
-          <View style={[styles.progressTrack, { backgroundColor: t.background }]}>
-            <View
-              style={[
-                styles.progressFill,
-                { backgroundColor: t.primary, width: `${progressPct}%` },
-              ]}
-            />
-          </View>
-
-          {/* Steps */}
-          <View style={styles.stepsContainer}>
-            {COMPLETE_PROFILE_STEPS.map((step) => (
-              <View key={step.label} style={styles.stepRow}>
+              {/* Progress bar */}
+              <View
+                style={[
+                  styles.bannerTrack,
+                  { backgroundColor: t.primary + "33" },
+                ]}
+              >
                 <View
                   style={[
-                    styles.stepIcon,
-                    {
-                      backgroundColor: step.done ? t.primary : "transparent",
-                      borderColor: step.done ? t.primary : t.textSecondary,
-                    },
+                    styles.bannerFill,
+                    { backgroundColor: t.primary, width: `${pct}%` },
                   ]}
-                >
-                  <Feather
-                    name={step.done ? "check" : (step.icon as any)}
-                    size={12}
-                    color={step.done ? "#fff" : t.textSecondary}
-                  />
-                </View>
-                <Text
-                  style={[
-                    styles.stepLabel,
-                    { color: step.done ? t.textSecondary : t.textPrimary },
-                    step.done && styles.stepLabelDone,
-                  ]}
-                >
-                  {step.label}
-                </Text>
-                {!step.done && (
-                  <View style={[styles.stepAddBtn, { backgroundColor: t.primary }]}>
-                    <Text style={styles.stepAddText}>Add</Text>
-                  </View>
-                )}
+                />
               </View>
-            ))}
-          </View>
-        </View>
+            </View>
 
-        {/* ── ABOUT ME ────────────────────────────────────────── */}
-        <View style={[styles.section, { backgroundColor: t.secondary }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>About me</Text>
-            <TouchableOpacity>
-              <Feather name="edit-2" size={16} color={t.primary} />
-            </TouchableOpacity>
-          </View>
-          <Text style={[styles.sectionBodyEmpty, { color: t.textSecondary }]}>
-            Write something about yourself to attract better matches...
-          </Text>
-        </View>
+            <View
+              style={[
+                styles.bannerCTA,
+                { backgroundColor: t.primary },
+              ]}
+            >
+              <Text style={styles.bannerCTAText}>Start</Text>
+              <Feather name="arrow-right" size={14} color="#fff" />
+            </View>
+          </TouchableOpacity>
+        )}
 
-        {/* ── INTERESTS ───────────────────────────────────────── */}
-        <View style={[styles.section, { backgroundColor: t.secondary }]}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, { color: t.textPrimary }]}>Interests</Text>
-            <TouchableOpacity>
-              <Feather name="plus" size={18} color={t.primary} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.tagsRow}>
-            {DUMMY_INTERESTS.map((tag) => (
-              <View key={tag} style={[styles.tag, { borderColor: t.primary, backgroundColor: `${t.primary}18` }]}>
-                <Text style={[styles.tagText, { color: t.primary }]}>{tag}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
+        {/* ── BASIC INFO SECTION ─────────────────────────────── */}
+        <BasicInfoCard
+          displayName={displayName}
+          age={age}
+          gender={gender}
+          location={location}
+          height={height}
+          occupation={occupation}
+          education={education}
+          t={t}
+          onSeeAll={() => navigateToFull('basic')}
+          onEdit={navigateToEdit}
+        />
 
-        {/* ── SAY HELLO BUTTON ─────────────────────────────────── */}
-        <View style={styles.helloSection}>
+        {/* ── CATEGORY SECTION ──────────────────────────────── */}
+        {categorySection && (
+          <CategoryCard
+            section={categorySection}
+            answers={answers}
+            t={t}
+            onSeeAll={() => navigateToFull('category')}
+          />
+        )}
+
+        {/* ── EDIT PROFILE BUTTON (always at bottom) ────────── */}
+        <View style={styles.editSection}>
           <TouchableOpacity
-            style={[styles.helloBtn, { backgroundColor: t.primary }]}
+            style={[styles.editBtn, { borderColor: t.primary }]}
             activeOpacity={0.85}
+            onPress={navigateToEdit}
           >
-            <Feather name="send" size={18} color="#fff" style={{ marginRight: 10 }} />
-            <Text style={styles.helloBtnText}>Preview Profile</Text>
+            <Feather
+              name="edit-2"
+              size={16}
+              color={t.primary}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={[styles.editBtnText, { color: t.primary }]}>
+              {isComplete ? "Edit Profile" : "Complete Profile"}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
   );
 }
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   master: { flex: 1 },
@@ -355,147 +530,180 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_500Medium",
   },
 
-  /* COMPLETE PROFILE CARD */
-  completeCard: {
+  /* COMPLETE BANNER */
+  completeBanner: {
     marginHorizontal: 16,
     marginBottom: 16,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 18,
     borderWidth: 1,
-  },
-  completeHeader: {
+    padding: 18,
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 14,
-  },
-  completeTitle: {
-    fontSize: 17,
-    fontFamily: "Outfit_700Bold",
-    marginBottom: 4,
-  },
-  completeSubtitle: {
-    fontSize: 12,
-    fontFamily: "Outfit_400Regular",
-    maxWidth: "80%",
-    lineHeight: 16,
-  },
-  progressCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2.5,
-    justifyContent: "center",
     alignItems: "center",
-  },
-  progressPct: {
-    fontSize: 13,
-    fontFamily: "Outfit_700Bold",
-  },
-  progressTrack: {
-    width: "100%",
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 18,
     overflow: "hidden",
   },
-  progressFill: {
+  bannerLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  bannerTitle: {
+    fontSize: 15,
+    fontFamily: "Outfit_700Bold",
+    marginBottom: 3,
+  },
+  bannerSub: {
+    fontSize: 12,
+    fontFamily: "Outfit_400Regular",
+    marginBottom: 10,
+  },
+  bannerTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  bannerFill: {
     height: "100%",
     borderRadius: 2,
   },
-  stepsContainer: {
-    gap: 14,
-  },
-  stepRow: {
+  bannerCTA: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-  },
-  stepIcon: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  stepLabel: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: "Outfit_500Medium",
-  },
-  stepLabelDone: {
-    textDecorationLine: "line-through",
-    opacity: 0.5,
-  },
-  stepAddBtn: {
+    gap: 5,
     paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  stepAddText: {
-    fontSize: 12,
-    fontFamily: "Outfit_600SemiBold",
+  bannerCTAText: {
+    fontSize: 13,
+    fontFamily: "Outfit_700Bold",
     color: "#fff",
   },
 
-  /* SECTIONS */
-  section: {
+  /* SECTION CARD */
+  sectionCard: {
     marginHorizontal: 16,
-    marginBottom: 16,
+    marginBottom: 14,
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  sectionIcon: {
+    fontSize: 16,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "Outfit_600SemiBold",
   },
-  sectionBodyEmpty: {
-    fontSize: 14,
-    fontFamily: "Outfit_400Regular",
-    lineHeight: 20,
-    fontStyle: "italic",
-  },
-
-  /* INTERESTS */
-  tagsRow: {
+  seeAllBtn: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
+    alignItems: "center",
+    gap: 2,
   },
-  tag: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  tagText: {
+  seeAllText: {
     fontSize: 13,
     fontFamily: "Outfit_500Medium",
   },
 
-  /* HELLO BUTTON */
-  helloSection: {
-    paddingHorizontal: 16,
-    marginTop: 4,
+  /* INFO GRID inside section */
+  infoGrid: {
+    gap: 14,
   },
-  helloBtn: {
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  infoIconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  infoLabel: {
+    fontSize: 11,
+    fontFamily: "Outfit_400Regular",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 1,
+  },
+  infoValue: {
+    fontSize: 14,
+    fontFamily: "Outfit_500Medium",
+  },
+  infoEmpty: {
+    fontSize: 13,
+    fontFamily: "Outfit_400Regular",
+    fontStyle: "italic",
+  },
+  cardEditBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignSelf: "flex-start",
+  },
+  cardEditText: {
+    fontSize: 12,
+    fontFamily: "Outfit_500Medium",
+  },
+  emptyText: {
+    fontSize: 13,
+    fontFamily: "Outfit_400Regular",
+    fontStyle: "italic",
+    lineHeight: 20,
+  },
+
+  /* MINI PROGRESS */
+  completionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 14,
+  },
+  miniProgress: {
+    flex: 1,
+    height: 3,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  miniProgressFill: {
+    height: "100%",
+    borderRadius: 2,
+  },
+  completionText: {
+    fontSize: 11,
+    fontFamily: "Outfit_400Regular",
+  },
+
+  /* EDIT BUTTON */
+  editSection: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  editBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 56,
-    borderRadius: 16,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: 1.5,
   },
-  helloBtnText: {
-    fontSize: 16,
-    fontFamily: "Outfit_700Bold",
-    color: "#fff",
-    letterSpacing: 0.3,
+  editBtnText: {
+    fontSize: 15,
+    fontFamily: "Outfit_600SemiBold",
   },
 });
