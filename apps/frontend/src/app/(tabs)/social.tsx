@@ -15,5 +15,5 @@ export default function SocialScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: "center", alignItems: "center" },
-  text: { fontSize: 28, fontFamily: "Outfit_600SemiBold" },
+  text: { fontSize: 28, fontFamily: "Lato_700Bold" },
 });

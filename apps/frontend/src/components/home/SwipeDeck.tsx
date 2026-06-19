@@ -239,11 +239,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize:   22,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   emptySubtitle: {
     fontSize:   14,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     textAlign:  "center",
     paddingHorizontal: 32,
   },

@@ -186,14 +186,14 @@ function InsightsCard({ t }: { t: any }) {
       </View>
       <View style={{ alignItems: "center", paddingVertical: 20 }}>
         <Ionicons name="bar-chart" size={48} color={t.primary + "88"} style={{ marginBottom: 16 }} />
-        <Text style={{ fontSize: 16, fontFamily: "Outfit_600SemiBold", color: t.textPrimary, marginBottom: 8 }}>
+        <Text style={{ fontSize: 16, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary, marginBottom: 8 }}>
           Unlock Photo Insights
         </Text>
-        <Text style={{ fontSize: 13, fontFamily: "Outfit_400Regular", color: t.textSecondary, textAlign: "center", paddingHorizontal: 20 }}>
+        <Text style={{ fontSize: 13, fontFamily: "Lato_400Regular", color: t.textSecondary, textAlign: "center", paddingHorizontal: 20 }}>
           Find out which of your photos is getting the most attention and optimize your profile for more matches.
         </Text>
         <TouchableOpacity style={[styles.cardEditBtn, { backgroundColor: t.primary, borderWidth: 0, marginTop: 24, paddingHorizontal: 24, paddingVertical: 12 }]}>
-          <Text style={{ color: t.background, fontFamily: "Outfit_600SemiBold" }}>Get Insights</Text>
+          <Text style={{ color: t.background, fontFamily: "PlayfairDisplay_700Bold" }}>Get Insights</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -220,8 +220,8 @@ function PayPlanCard({ t }: { t: any }) {
             <Ionicons name="sparkles" size={20} color={t.background} />
           </View>
           <View>
-            <Text style={{ fontSize: 15, fontFamily: "Outfit_700Bold", color: t.textPrimary }}>Spotlight</Text>
-            <Text style={{ fontSize: 11, fontFamily: "Outfit_500Medium", color: t.textSecondary }}>Stand out</Text>
+            <Text style={{ fontSize: 15, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary }}>Spotlight</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Lato_400Regular", color: t.textSecondary }}>Stand out</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.sectionCard, { flex: 1, padding: 16, marginBottom: 0, flexDirection: "row", alignItems: "center", gap: 12 }]}>
@@ -229,29 +229,29 @@ function PayPlanCard({ t }: { t: any }) {
             <Ionicons name="star" size={20} color={t.background} />
           </View>
           <View>
-            <Text style={{ fontSize: 15, fontFamily: "Outfit_700Bold", color: t.textPrimary }}>SuperSwipe</Text>
-            <Text style={{ fontSize: 11, fontFamily: "Outfit_500Medium", color: t.textSecondary }}>Get noticed</Text>
+            <Text style={{ fontSize: 15, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary }}>SuperSwipe</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Lato_400Regular", color: t.textSecondary }}>Get noticed</Text>
           </View>
         </TouchableOpacity>
       </View>
 
       {/* Premium Banner */}
       <View style={[styles.sectionCard, { backgroundColor: "#FCD34D", marginHorizontal: 4 }]}>
-        <Text style={{ fontSize: 20, fontFamily: "Outfit_700Bold", color: "#1F2937", fontStyle: "italic", marginBottom: 8 }}>PREMIUM+</Text>
-        <Text style={{ fontSize: 14, fontFamily: "Outfit_500Medium", color: "#374151", marginBottom: 20, lineHeight: 20 }}>
+        <Text style={{ fontSize: 20, fontFamily: "PlayfairDisplay_700Bold", color: "#1F2937", fontStyle: "italic", marginBottom: 8 }}>PREMIUM+</Text>
+        <Text style={{ fontSize: 14, fontFamily: "Lato_400Regular", color: "#374151", marginBottom: 20, lineHeight: 20 }}>
           Get the VIP treatment, and enjoy better ways to connect with incredible people.
         </Text>
         <TouchableOpacity style={{ backgroundColor: "#1F2937", borderRadius: 20, paddingVertical: 14, alignItems: "center" }}>
-          <Text style={{ color: "#F9FAFB", fontSize: 15, fontFamily: "Outfit_700Bold" }}>Explore Premium+</Text>
+          <Text style={{ color: "#F9FAFB", fontSize: 15, fontFamily: "PlayfairDisplay_700Bold" }}>Explore Premium+</Text>
         </TouchableOpacity>
       </View>
 
       {/* Benefits List */}
       <View style={[styles.sectionCard, { marginHorizontal: 4 }]}>
-        <Text style={{ fontSize: 16, fontFamily: "Outfit_700Bold", color: t.textPrimary, marginBottom: 16 }}>What you get:</Text>
+        <Text style={{ fontSize: 16, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary, marginBottom: 16 }}>What you get:</Text>
         {benefits.map((b, i) => (
           <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: i === benefits.length - 1 ? 0 : 1, borderBottomColor: t.primary + "11" }}>
-            <Text style={{ fontSize: 14, fontFamily: "Outfit_400Regular", color: t.textSecondary, flex: 1 }}>{b}</Text>
+            <Text style={{ fontSize: 14, fontFamily: "Lato_400Regular", color: t.textSecondary, flex: 1 }}>{b}</Text>
             <Feather name="check" size={18} color={t.textPrimary} />
           </View>
         ))}
@@ -384,7 +384,7 @@ export default function ProfileScreen() {
               >
                 <Text style={[
                   styles.tabText,
-                  isActive ? { color: t.background, fontFamily: "Outfit_600SemiBold" } : { color: t.textSecondary, fontFamily: "Outfit_500Medium" }
+                  isActive ? { color: t.background, fontFamily: "PlayfairDisplay_700Bold" } : { color: t.textSecondary, fontFamily: "Lato_400Regular" }
                 ]}>
                   {tab.label}
                 </Text>
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 26,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   headerRight: {
     flexDirection: "row",
@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   },
   pctText: {
     fontSize: 11,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   userInfoContainer: {
     flex: 1,
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
   },
   nameAgeText: {
     fontSize: 22,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
     marginBottom: 8,
   },
   completeProfileBtn: {
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
   },
   completeProfileText: {
     fontSize: 13,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
   redDot: {
     width: 6,
@@ -581,7 +581,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 16,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   seeAllBtn: {
     flexDirection: "row",
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
   },
   seeAllText: {
     fontSize: 13,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
 
   /* INFO GRID inside section */
@@ -611,14 +611,14 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 11,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 1,
   },
   infoValue: {
     fontSize: 14,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
   cardEditBtn: {
     flexDirection: "row",
@@ -633,12 +633,11 @@ const styles = StyleSheet.create({
   },
   cardEditText: {
     fontSize: 12,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
   emptyText: {
     fontSize: 13,
-    fontFamily: "Outfit_400Regular",
-    fontStyle: "italic",
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     lineHeight: 20,
   },
 
@@ -661,6 +660,6 @@ const styles = StyleSheet.create({
   },
   completionText: {
     fontSize: 11,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
   },
 });

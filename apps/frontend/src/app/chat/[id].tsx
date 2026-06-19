@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   headerName: {
     flex: 1,
     fontSize: 18,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
   },
   moreBtn: {
     padding: 4,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 12,
     fontSize: 15,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
   },
   sendBtn: {
     width: 44,

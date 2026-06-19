@@ -107,12 +107,12 @@ const styles = StyleSheet.create({
   },
   nameText: {
     fontSize: 18,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "PlayfairDisplay_600SemiBold",
     marginBottom: 4,
   },
   statusText: {
     fontSize: 14,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
     opacity: 0.8,
   },
   indicatorContainer: {
@@ -140,6 +140,6 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     fontSize: 11,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
   },
 });

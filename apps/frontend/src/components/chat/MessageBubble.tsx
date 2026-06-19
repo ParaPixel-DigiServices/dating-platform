@@ -62,12 +62,12 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 15,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     lineHeight: 22,
   },
   timeText: {
     fontSize: 10,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     alignSelf: "flex-end",
     marginTop: 4,
   },

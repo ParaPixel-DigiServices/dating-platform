@@ -74,27 +74,33 @@ const categories: CategoryOption[] = [
 export default function CategoryScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
-  // Start with Casual selected by default
-  const [selectedKey, setSelectedKey] = useState<CategoryKey>("Casual");
+
+  const setCategoryStore = useOnboardingStore((state) => state.setCategory);
+  const persistedCategory = useOnboardingStore((state) => state.category);
+  const setOnboardingCompleted = useAuthStore((state) => state.setOnboardingCompleted);
+
+  // Initialize from persisted value so re-visiting the screen shows correct selection
+  const [selectedKey, setSelectedKey] = useState<CategoryKey>(
+    persistedCategory ?? "Casual"
+  );
 
   // Dynamic theme based on selected category
   const currentTheme = theme[selectedKey];
 
-  const setCategoryStore = useOnboardingStore((state) => state.setCategory);
-  const setOnboardingCompleted = useAuthStore((state) => state.setOnboardingCompleted);
-
   const handleSelectCategory = (categoryId: CategoryKey) => {
     setSelectedKey(categoryId);
-    setCategoryStore(categoryId);
+    setCategoryStore(categoryId);  // Persist immediately on tap
   };
 
   const handleContinue = async () => {
     try {
       setLoading(true);
-      
-      // Artificial delay to show loading state
-      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      // Safety net: ensure the current selection is always persisted,
+      // even if the user never re-tapped a card on this visit
+      setCategoryStore(selectedKey);
+
+      await new Promise((resolve) => setTimeout(resolve, 400));
 
       setOnboardingCompleted(true);
       showSuccessToast("Preferences saved!");

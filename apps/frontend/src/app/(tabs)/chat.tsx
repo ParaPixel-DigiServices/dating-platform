@@ -104,7 +104,7 @@ export default function ChatScreen() {
                   styles.filterText,
                   {
                     color: isActive ? activeTheme.textPrimary : activeTheme.textSecondary,
-                    fontFamily: isActive ? "Outfit_600SemiBold" : "Outfit_400Regular"
+                    fontFamily: isActive ? "PlayfairDisplay_700Bold" : "Lato_400Regular"
                   }
                 ]}
               >
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "PlayfairDisplay_700Bold",
     letterSpacing: -0.5,
   },
   filtersContainer: {

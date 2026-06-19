@@ -294,11 +294,11 @@ const styles = StyleSheet.create({
   },
   headerName: {
     fontSize: 17,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   headerSub: {
     fontSize: 12,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     marginTop: 1,
   },
   editHeaderBtn: {
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
   },
   editHeaderText: {
     fontSize: 13,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
     color: "#fff",
   },
   overallTrack: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lato_700Bold",
   },
 
   /* QA ROW */
@@ -371,22 +371,22 @@ const styles = StyleSheet.create({
   },
   qaLabel: {
     fontSize: 11,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
     textTransform: "uppercase",
     letterSpacing: 0.7,
   },
   qaDesc: {
     fontSize: 11,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
   },
   qaAnswer: {
     fontSize: 14,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
     lineHeight: 20,
   },
   qaEmpty: {
     fontSize: 13,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     fontStyle: "italic",
   },
   qaEditBtn: {
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   readOnlyText: {
     fontSize: 9,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     letterSpacing: 0.3,
   },
 });

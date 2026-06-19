@@ -87,9 +87,8 @@ export default function LoginScreen() {
         photoURL: firebaseResult.photoURL ?? null,
       });
 
-      if (backendResponse.user.onboardingStatus) {
-        setOnboardingStatus(backendResponse.user.onboardingStatus);
-      }
+      // Always set — even if null, so index.tsx gets a clean value to route on
+      setOnboardingStatus(backendResponse.user.onboardingStatus ?? null);
 
       showSuccessToast("Welcome back!");
       router.replace("/");

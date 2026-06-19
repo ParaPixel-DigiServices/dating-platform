@@ -39,11 +39,11 @@ export const useOnboardingStore = create<OnboardingStore>()(
         lastName: '',
         gender: null,
         dateOfBirth: null,
-        category: null,
+        category: null,  // Cleared on logout so sign-in re-asks for category selection
       }),
     }),
     {
-      name: 'onboarding-storage',
+      name: 'onboarding-storage-v2',  // Bumped to flush stale category:null data
       storage: createJSONStorage(() => AsyncStorage),
     }
   )

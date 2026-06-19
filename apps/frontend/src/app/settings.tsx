@@ -244,7 +244,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
     letterSpacing: 0.2,
   },
 
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   sectionBlock: { gap: 8 },
   sectionLabel: {
     fontSize: 11,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
     letterSpacing: 1.2,
     marginLeft: 4,
   },
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   rowLabel: {
     flex: 1,
     fontSize: 15,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
   rowRight: {
     flexDirection: "row",
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
   },
   rowValue: {
     fontSize: 13,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     maxWidth: 120,
   },
   divider: {
@@ -321,12 +321,12 @@ const styles = StyleSheet.create({
   },
   logoutText: {
     fontSize: 16,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
     color: "#E53E3E",
   },
   logoutHint: {
     fontSize: 12,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     textAlign: "center",
   },
 });

@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import {
   getStep,
   getTotalSteps,
@@ -285,7 +286,7 @@ function HeightSliderInput({ question, value, onChange, t }: InputProps) {
               <Text style={{ 
                 fontSize: selected ? 22 : 16, 
                 color: selected ? t.primary : t.textSecondary + "55",
-                fontFamily: selected ? "Outfit_600SemiBold" : "Outfit_400Regular"
+                fontFamily: selected ? "Lato_700Bold" : "Lato_400Regular"
               }}>
                 {h} cm
               </Text>
@@ -330,8 +331,8 @@ function SliderRangeInput({ question, value, onChange, t }: InputProps) {
         {/* Min Slider */}
         <View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, color: t.textSecondary, fontFamily: "Outfit_500Medium" }}>Min Budget</Text>
-            <Text style={{ fontSize: 13, color: t.primary, fontFamily: "Outfit_700Bold" }}>{formatAmount(parsed.min)}</Text>
+            <Text style={{ fontSize: 13, color: t.textSecondary, fontFamily: "Lato_400Regular" }}>Min Budget</Text>
+            <Text style={{ fontSize: 13, color: t.primary, fontFamily: "PlayfairDisplay_700Bold" }}>{formatAmount(parsed.min)}</Text>
           </View>
           <Slider
             style={{ width: '100%', height: 40 }}
@@ -355,8 +356,8 @@ function SliderRangeInput({ question, value, onChange, t }: InputProps) {
         {/* Max Slider */}
         <View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={{ fontSize: 13, color: t.textSecondary, fontFamily: "Outfit_500Medium" }}>Max Budget</Text>
-            <Text style={{ fontSize: 13, color: t.primary, fontFamily: "Outfit_700Bold" }}>{formatAmount(parsed.max)}</Text>
+            <Text style={{ fontSize: 13, color: t.textSecondary, fontFamily: "Lato_400Regular" }}>Max Budget</Text>
+            <Text style={{ fontSize: 13, color: t.primary, fontFamily: "PlayfairDisplay_700Bold" }}>{formatAmount(parsed.max)}</Text>
           </View>
           <Slider
             style={{ width: '100%', height: 40 }}
@@ -414,6 +415,7 @@ export default function EditProfileStep() {
 
   const category = useOnboardingStore((s) => s.category) ?? "Casual";
   const t = (theme as any)[category];
+  const setOnboardingStatus = useAuthStore((s) => s.setOnboardingStatus);
 
   // Read onboarding-collected values for bridging
   const ob_firstName   = useOnboardingStore((s) => s.firstName);
@@ -487,7 +489,7 @@ export default function EditProfileStep() {
 
     if (unanswered.length > 0) {
       setShowErrors(true);
-      return; // Block navigation
+      return;
     }
 
     setShowErrors(false);
@@ -498,6 +500,8 @@ export default function EditProfileStep() {
     });
 
     if (nextStep === "done") {
+      // Mark onboarding as complete — this is critical for correct routing on restart
+      setOnboardingStatus("COMPLETED");
       router.replace("/(tabs)/profile" as any);
     } else {
       router.push(`/profile/edit/${nextStep}` as any);
@@ -724,7 +728,7 @@ const styles = StyleSheet.create({
   },
   stepCountPremium: {
     fontSize: 11,
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
     letterSpacing: 1.2,
   },
   dotsContainer: {
@@ -771,29 +775,29 @@ const styles = StyleSheet.create({
   },
   qNumberText: {
     fontSize: 13,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   questionText: {
     fontSize: 18,
-    fontFamily: "PlayfairDisplay_600SemiBold",
+    fontFamily: "Lato_700Bold",
     lineHeight: 26,
   },
   questionDesc: {
     fontSize: 12,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     marginTop: 3,
     lineHeight: 17,
   },
   errorText: {
     fontSize: 12,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
     color: '#E53E3E',
     marginTop: 6,
   },
 
   charCount: {
     fontSize: 11,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     textAlign: "right",
     paddingRight: 4,
   },
@@ -804,7 +808,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     minHeight: 52,
     textAlignVertical: "top",
   },
@@ -821,7 +825,7 @@ const styles = StyleSheet.create({
   },
   cardOptionText: {
     fontSize: 15,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
   radioCircle: {
     width: 20,
@@ -867,7 +871,7 @@ const styles = StyleSheet.create({
   },
   photoAddText: {
     fontSize: 12,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
     marginTop: 8,
   },
   photoBadge: {
@@ -883,7 +887,7 @@ const styles = StyleSheet.create({
   photoBadgeText: {
     color: "#fff",
     fontSize: 11,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   photoPlus: {
     position: "absolute",
@@ -905,7 +909,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     fontSize: 12,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
   },
 
   /* SLIDER RANGE */
@@ -918,17 +922,17 @@ const styles = StyleSheet.create({
   },
   budgetLabel: {
     fontSize: 11,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
   budgetRange: {
     fontSize: 22,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   presetLabel: {
     fontSize: 11,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -945,7 +949,7 @@ const styles = StyleSheet.create({
   },
   optionText: {
     fontSize: 13,
-    fontFamily: "Outfit_500Medium",
+    fontFamily: "Lato_400Regular",
   },
 
   /* BOTTOM BAR */
@@ -969,7 +973,7 @@ const styles = StyleSheet.create({
   },
   nextBtnText: {
     fontSize: 16,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
     color: "#fff",
     letterSpacing: 0.3,
   },
@@ -987,12 +991,12 @@ const styles = StyleSheet.create({
   },
   doneTitle: {
     fontSize: 26,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
     textAlign: "center",
   },
   doneSub: {
     fontSize: 15,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_400Regular",
     textAlign: "center",
     lineHeight: 22,
   },
@@ -1004,7 +1008,7 @@ const styles = StyleSheet.create({
   },
   doneBtnText: {
     fontSize: 16,
-    fontFamily: "Outfit_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
     color: "#fff",
   },
 });

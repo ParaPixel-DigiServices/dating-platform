@@ -109,10 +109,10 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 11,
-    fontFamily: "Outfit_400Regular",
+    fontFamily: "Lato_700Bold",
     letterSpacing: 0.1,
   },
   labelActive: {
-    fontFamily: "Outfit_600SemiBold",
+    fontFamily: "Lato_700Bold",
   },
 });

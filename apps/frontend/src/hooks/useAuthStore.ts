@@ -82,12 +82,20 @@ export const useAuthStore = create<AuthStore>()(
         googleFirebaseToken: null,
         isAuthenticated: false,
         onboardingCompleted: false,
+        onboardingStatus: null,  // Reset so stale status never drives routing after logout
         error: null,
       }),
     }),
     {
-      name: 'auth-storage',
+      name: 'auth-storage-v2',  // Bumped from v1 to flush stale data (isBootstrapping, old onboardingStatus)
       storage: createJSONStorage(() => AsyncStorage),
+      // isBootstrapping must NOT be persisted — it must always start as `true`
+      // on every app launch so the router waits for getCurrentUser() to resolve
+      // before navigating.
+      partialize: (state) => {
+        const { isBootstrapping, ...rest } = state;
+        return rest;
+      },
     }
   )
 );
