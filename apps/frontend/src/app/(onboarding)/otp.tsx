@@ -73,6 +73,7 @@ export default function OtpScreen() {
     googleFirebaseToken,
     setAccessToken,
     setRefreshToken,
+    setOnboardingStatus,
   } = useAuthStore();
 
   // Destructure Theme
@@ -157,7 +158,7 @@ export default function OtpScreen() {
           });
           phoneAuthStore.reset();
           showSuccessToast("Phone verified successfully! (DEV MODE)");
-          router.replace("/details");
+          router.replace("/");
           return;
         } else {
           throw new Error(`Invalid DEV OTP. Please use ${DEV_OTP}`);
@@ -205,9 +206,13 @@ export default function OtpScreen() {
         photoURL: null,
       });
 
+      if (backendResponse.user.onboardingStatus) {
+        setOnboardingStatus(backendResponse.user.onboardingStatus);
+      }
+
       phoneAuthStore.reset();
       showSuccessToast("Phone verified successfully!");
-      router.replace("/details");
+      router.replace("/");
     } catch (error) {
       const message =
         error instanceof Error

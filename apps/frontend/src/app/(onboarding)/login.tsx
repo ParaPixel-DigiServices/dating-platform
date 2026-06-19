@@ -17,7 +17,7 @@ import {
   View,
   StatusBar,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import * as BackendService from "@/services/backendService";
 
 import theme from "@/theme/theme";
@@ -32,6 +32,7 @@ export default function LoginScreen() {
     setAccessToken,
     setRefreshToken,
     setLoading,
+    setOnboardingStatus,
     isLoading,
   } = useAuthStore();
 
@@ -70,7 +71,7 @@ export default function LoginScreen() {
         // New user - store Firebase token and navigate to phone verification
         setGoogleFirebaseToken(firebaseResult.idToken);
         showSuccessToast("Google verification successful");
-        router.replace("/otp");
+        router.push("/otp");
         return;
       }
 
@@ -85,6 +86,10 @@ export default function LoginScreen() {
         displayName: firebaseResult.displayName ?? null,
         photoURL: firebaseResult.photoURL ?? null,
       });
+
+      if (backendResponse.user.onboardingStatus) {
+        setOnboardingStatus(backendResponse.user.onboardingStatus);
+      }
 
       showSuccessToast("Welcome back!");
       router.replace("/");
@@ -116,6 +121,14 @@ export default function LoginScreen() {
       <StatusBar barStyle="light-content" backgroundColor={t.background} />
 
       <SafeAreaView style={styles.safe}>
+        {/* ── Back Button ── */}
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={24} color={t.textPrimary} />
+        </TouchableOpacity>
 
         {/* ── Header ── */}
         <View style={styles.header}>
@@ -205,8 +218,15 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 28,
     justifyContent: "space-between",
-    paddingTop: Platform.OS === "android" ? 40 : 20,
+    paddingTop: Platform.OS === "android" ? 60 : 40,
     paddingBottom: Platform.OS === "android" ? 36 : 24,
+  },
+  backBtn: {
+    position: "absolute",
+    top: Platform.OS === "android" ? 40 : 20,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
 
   /* Header */

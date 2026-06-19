@@ -26,15 +26,19 @@ export const demoQuestionnaire = {
          * All questions here are editable by the user.
          */
         questions: [
-            { id: "go_4",  text: "Current Location",     description: "City/Neighborhood", type: "text" },
+            { id: "go_4",  text: "Current Location",     description: "City/Neighborhood", type: "city_select" },
+            { id: "go_bio", text: "Bio / Description",    description: "Write a little bit about yourself", type: "text" },
             { id: "go_5",  text: "Education Level",       type: "select", options: ["High School", "Bachelors", "Masters", "PhD", "Other"] },
             { id: "go_6",  text: "Occupation / Profession", type: "text" },
-            { id: "go_7",  text: "Height",                type: "text" },
+            { id: "go_7",  text: "Height",                type: "height_slider" },
             { id: "go_8",  text: "Diet Preference",       type: "select", options: ["Veg", "Non-Veg", "Vegan", "Jain", "Eggetarian"] },
-            { id: "go_9",  text: "Lifestyle Habits",      description: "Smoking / Drinking / Greens", type: "multiselect", options: ["Never", "Occasionally", "Frequently"] },
+            { id: "go_9a", text: "Drinking",              type: "select", options: ["Never", "Occasionally", "Frequently"] },
+            { id: "go_9b", text: "Smoking",               type: "select", options: ["Never", "Occasionally", "Frequently"] },
+            { id: "go_9c", text: "Weed",                  type: "select", options: ["Never", "Occasionally", "Frequently"] },
             { id: "go_10", text: "Personality Type",      type: "select", options: ["Introvert", "Extrovert", "Ambivert"] },
             { id: "go_11", text: "Interests / Hobbies",   description: "Select up to 5", type: "multiselect", options: ["Travel", "Fitness", "Reading", "Gaming", "Music", "Art", "Food", "Sports"] },
-            { id: "go_12", text: "Profile Photos",        description: "Upload 3-5 photos for testing", type: "file_upload" }
+            { id: "go_kids", text: "Do you want children?", type: "select", options: ["Yes", "No", "Undecided"] },
+            { id: "go_12", text: "Profile Photos",        description: "Add 6 photos that show the real you.", type: "file_upload" }
         ]
     },
 
@@ -46,7 +50,6 @@ export const demoQuestionnaire = {
             questions: [
                 { id: "m_1", text: "Intention Timeline", type: "select", options: ["Immediate", "Within 1 year", "Exploring seriously"] },
                 { id: "m_2", text: "Marital Status", type: "select", options: ["Never Married", "Divorced", "Widowed"] },
-                { id: "m_3", text: "Do you want children?", type: "select", options: ["Yes", "No", "Undecided"] },
                 { id: "m_4", text: "Family Type Preference", type: "select", options: ["Nuclear", "Joint", "Open to both"] },
                 { id: "m_5", text: "Are you willing to relocate after marriage?", type: "select", options: ["Yes", "No", "Domestically only"] },
                 { id: "m_6", text: "Religion & Importance", description: "How important is religion to your daily life?", type: "select", options: ["Low", "Medium", "High"] },

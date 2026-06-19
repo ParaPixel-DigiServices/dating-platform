@@ -54,7 +54,7 @@ export default function SettingsScreen() {
           onPress: () => {
             logout();   // clears auth store (AsyncStorage)
             reset();    // clears onboarding store (AsyncStorage)
-            router.replace("/(onboarding)/login" as any);
+            router.replace("/(onboarding)/landing" as any);
           },
         },
       ]

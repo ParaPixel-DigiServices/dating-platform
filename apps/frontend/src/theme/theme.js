@@ -99,6 +99,8 @@ const theme = {
     background: "#050505",
     textPrimary: "#FFFFFF",
     textSecondary: "#7A7A7A",
+    border: "#3d1b1d",
+    divider: "#291315",
   },
   Love: {
     themeName: "Love",
@@ -109,6 +111,8 @@ const theme = {
     background: "#0f0f0f",
     textPrimary: "#e59498",
     textSecondary: "#F2E6E6",
+    border: "#2b2b2b",
+    divider: "#1c1c1c",
   },
   Marriage: {
     themeName: "Marriage",
@@ -117,6 +121,8 @@ const theme = {
     background: "#101318",
     textPrimary: "#edaa76",
     textSecondary: "#F5ECE6",
+    border: "#2a2d33",
+    divider: "#1a1d22",
   },
   Find_Your_Roommate: {
     themeName: "Find Your Roommate",
@@ -125,6 +131,8 @@ const theme = {
     background: "#051610",
     textPrimary: "#e2e3c3",
     textSecondary: "#FFFFFF",
+    border: "#122a21",
+    divider: "#021511",
     // textPrimary: "#FFFFFF",
     // textSecondary: "#e2e3c3",
   },

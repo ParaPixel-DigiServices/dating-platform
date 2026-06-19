@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
   type EditStep,
 } from "@/utils/profileHelpers";
 import theme from "@/theme/theme";
+import Slider from '@react-native-community/slider';
 
 const { width } = Dimensions.get("window");
 
@@ -44,23 +45,30 @@ interface InputProps {
 /** Single-line or multi-line text input */
 function TextInput_({ question, value, onChange, t }: InputProps) {
   return (
-    <TextInput
-      style={[
-        styles.textInput,
-        {
-          backgroundColor: t.background,
-          borderColor: t.primary + "55",
-          color: t.textSecondary,
-        },
-      ]}
-      value={value ?? ""}
-      onChangeText={onChange}
-      placeholder={question.description ?? `Enter ${question.text.toLowerCase()}…`}
-      placeholderTextColor={t.textSecondary + "55"}
-      multiline={question.type === "text" && question.text.startsWith("Prompt")}
-      numberOfLines={question.text.startsWith("Prompt") ? 3 : 1}
-      returnKeyType="done"
-    />
+    <View style={{ gap: 8 }}>
+      <TextInput
+        style={[
+          styles.textInput,
+          {
+            backgroundColor: t.background,
+            borderColor: t.primary + "55",
+            color: t.textPrimary,
+          },
+        ]}
+        value={value ?? ""}
+        onChangeText={onChange}
+        placeholder={question.description ?? `Type your answer...`}
+        placeholderTextColor={t.textSecondary + "55"}
+        multiline={question.text.startsWith("Prompt")}
+        numberOfLines={question.text.startsWith("Prompt") ? 3 : 1}
+        returnKeyType="done"
+      />
+      {question.text.startsWith("Prompt") && (
+        <Text style={[styles.charCount, { color: t.textSecondary + "55" }]}>
+          {(value ?? "").length}/150
+        </Text>
+      )}
+    </View>
   );
 }
 
@@ -89,38 +97,28 @@ function DateInput({ question, value, onChange, t }: InputProps) {
 /** Single-select option chips */
 function SelectInput({ question, value, onChange, t }: InputProps) {
   return (
-    <View style={styles.optionsWrap}>
+    <View style={{ gap: 12 }}>
       {(question.options ?? []).map((opt) => {
         const selected = value === opt;
         return (
           <TouchableOpacity
             key={opt}
             style={[
-              styles.optionChip,
+              styles.cardOption,
               {
-                backgroundColor: selected ? t.primary : t.background,
-                borderColor: selected ? t.primary : t.primary + "44",
+                backgroundColor: t.background,
+                borderColor: selected ? t.primary : t.primary + "33",
               },
             ]}
-            onPress={() => onChange(selected ? null : opt)}
-            activeOpacity={0.75}
+            onPress={() => onChange(opt)}
+            activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.optionText,
-                { color: selected ? "#fff" : t.textSecondary },
-              ]}
-            >
+            <Text style={[styles.cardOptionText, { color: t.textPrimary }]}>
               {opt}
             </Text>
-            {selected && (
-              <Feather
-                name="check"
-                size={12}
-                color="#fff"
-                style={{ marginLeft: 4 }}
-              />
-            )}
+            <View style={[styles.radioCircle, { borderColor: selected ? t.primary : t.textSecondary + "55" }]}>
+              {selected && <View style={[styles.radioFill, { backgroundColor: t.primary }]} />}
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -128,7 +126,7 @@ function SelectInput({ question, value, onChange, t }: InputProps) {
   );
 }
 
-/** Multi-select option chips */
+/** Multi-select option cards */
 function MultiSelectInput({ question, value, onChange, t }: InputProps) {
   const selected: string[] = Array.isArray(value) ? value : [];
 
@@ -141,38 +139,28 @@ function MultiSelectInput({ question, value, onChange, t }: InputProps) {
   };
 
   return (
-    <View style={styles.optionsWrap}>
+    <View style={{ gap: 12 }}>
       {(question.options ?? []).map((opt) => {
         const isSelected = selected.includes(opt);
         return (
           <TouchableOpacity
             key={opt}
             style={[
-              styles.optionChip,
+              styles.cardOption,
               {
-                backgroundColor: isSelected ? t.primary : t.background,
-                borderColor: isSelected ? t.primary : t.primary + "44",
+                backgroundColor: t.background,
+                borderColor: isSelected ? t.primary : t.primary + "33",
               },
             ]}
             onPress={() => toggle(opt)}
-            activeOpacity={0.75}
+            activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.optionText,
-                { color: isSelected ? "#fff" : t.textSecondary },
-              ]}
-            >
+            <Text style={[styles.cardOptionText, { color: t.textPrimary }]}>
               {opt}
             </Text>
-            {isSelected && (
-              <Feather
-                name="check"
-                size={12}
-                color="#fff"
-                style={{ marginLeft: 4 }}
-              />
-            )}
+            <View style={[styles.checkboxSquare, { borderColor: isSelected ? t.primary : t.textSecondary + "55" }]}>
+              {isSelected && <Feather name="check" size={14} color={t.primary} />}
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -180,34 +168,134 @@ function MultiSelectInput({ question, value, onChange, t }: InputProps) {
   );
 }
 
-/** Mock photo upload — shows placeholder, doesn't actually upload */
+/** 6-Photo Grid Upload Mock */
 function FileUploadMock({ question, value, onChange, t }: InputProps) {
+  const slots = [1, 2, 3, 4, 5, 6];
   return (
-    <View
-      style={[
-        styles.uploadBox,
-        { borderColor: t.primary + "55", backgroundColor: t.background },
-      ]}
-    >
-      <Feather name="camera" size={32} color={t.primary + "99"} />
-      <Text style={[styles.uploadTitle, { color: t.textSecondary }]}>
-        Upload Photos
-      </Text>
-      <Text style={[styles.uploadSub, { color: t.textSecondary + "77" }]}>
-        {question.description ?? "Upload 3-5 photos"}
-      </Text>
-      <TouchableOpacity
-        style={[styles.uploadBtn, { backgroundColor: t.primary + "22", borderColor: t.primary + "44" }]}
-        onPress={() => onChange("mock_uploaded")}
-        activeOpacity={0.75}
+    <View style={styles.photoGrid}>
+      {slots.map((slot) => (
+        <View key={slot} style={styles.photoSlotContainer}>
+          <TouchableOpacity
+            style={[
+              styles.photoUploadBox,
+              { borderColor: t.primary + "33", backgroundColor: t.background },
+            ]}
+            activeOpacity={0.8}
+            onPress={() => onChange(`mock_photo_${slot}`)}
+          >
+            <Feather name="image" size={24} color={t.primary + "55"} />
+            <Text style={[styles.photoAddText, { color: t.primary + "88" }]}>Add Photo</Text>
+            <View style={[styles.photoBadge, { backgroundColor: t.primary }]}>
+              <Text style={styles.photoBadgeText}>{slot}</Text>
+            </View>
+            <View style={[styles.photoPlus, { backgroundColor: t.primary }]}>
+              <Feather name="plus" size={12} color="#fff" />
+            </View>
+          </TouchableOpacity>
+          <TextInput
+            style={[
+              styles.photoCaptionInput,
+              { backgroundColor: t.background, borderColor: t.primary + "22", color: t.textPrimary },
+            ]}
+            placeholder="Write a caption..."
+            placeholderTextColor={t.textSecondary + "55"}
+          />
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** City Picker Mock */
+function CitySelectInput({ question, value, onChange, t }: InputProps) {
+  // A mock list for now
+  const mockCities = ["Mumbai", "Delhi", "Bangalore", "Hyderabad", "London", "New York"];
+  return (
+    <View style={{ gap: 12 }}>
+      {mockCities.map((city) => {
+        const selected = value === city;
+        return (
+          <TouchableOpacity
+            key={city}
+            style={[
+              styles.cardOption,
+              {
+                backgroundColor: t.background,
+                borderColor: selected ? t.primary : t.primary + "33",
+              },
+            ]}
+            onPress={() => onChange(city)}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.cardOptionText, { color: t.textPrimary }]}>{city}</Text>
+            <View style={[styles.radioCircle, { borderColor: selected ? t.primary : t.textSecondary + "55" }]}>
+              {selected && <View style={[styles.radioFill, { backgroundColor: t.primary }]} />}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
+      <TextInput
+        style={[
+          styles.textInput,
+          { backgroundColor: t.background, borderColor: t.primary + "55", color: t.textPrimary, marginTop: 8 },
+        ]}
+        placeholder="Or type a different city..."
+        placeholderTextColor={t.textSecondary + "55"}
+        value={!mockCities.includes(value) ? value : ""}
+        onChangeText={onChange}
+      />
+    </View>
+  );
+}
+
+/** Vertical Height Ruler Mock */
+function HeightSliderInput({ question, value, onChange, t }: InputProps) {
+  const heights = Array.from({ length: 111 }, (_, i) => 140 + i); // 140cm to 250cm
+  
+  const handleScroll = (event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    const index = Math.round(y / 40);
+    if (index >= 0 && index < heights.length) {
+      const h = heights[index];
+      const newValue = `${h} cm`;
+      if (value !== newValue) {
+        onChange(newValue);
+      }
+    }
+  };
+
+  return (
+    <View style={{ height: 200, backgroundColor: t.background, borderRadius: 12, borderColor: t.primary + "33", borderWidth: 1, overflow: 'hidden' }}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        snapToInterval={40} 
+        decelerationRate="fast"
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        <Text style={[styles.uploadBtnText, { color: t.primary }]}>
-          {value ? "✓ Photos selected (mock)" : "Select Photos"}
-        </Text>
-      </TouchableOpacity>
-      <Text style={[styles.uploadNote, { color: t.textSecondary + "55" }]}>
-        Photo upload will be enabled when backend is ready
-      </Text>
+        <View style={{ height: 80 }} /> {/* Padding top */}
+        {heights.map((h) => {
+          const selected = value === `${h} cm`;
+          return (
+            <TouchableOpacity 
+              key={h} 
+              style={{ height: 40, justifyContent: 'center', alignItems: 'center' }}
+              onPress={() => onChange(`${h} cm`)}
+            >
+              <Text style={{ 
+                fontSize: selected ? 22 : 16, 
+                color: selected ? t.primary : t.textSecondary + "55",
+                fontFamily: selected ? "Outfit_600SemiBold" : "Outfit_400Regular"
+              }}>
+                {h} cm
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+        <View style={{ height: 80 }} /> {/* Padding bottom */}
+      </ScrollView>
+      {/* Center highlight line */}
+      <View style={{ position: 'absolute', top: 100, left: 0, right: 0, height: 1, backgroundColor: t.primary + "44", zIndex: -1 }} />
     </View>
   );
 }
@@ -216,17 +304,8 @@ function FileUploadMock({ question, value, onChange, t }: InputProps) {
 function SliderRangeInput({ question, value, onChange, t }: InputProps) {
   const parsed = (() => {
     if (value && typeof value === "object") return value;
-    return { min: BUDGET_MIN, max: 30000 };
+    return { min: 2000, max: 30000 };
   })();
-
-  const steps = Array.from({ length: BUDGET_STEPS + 1 }, (_, i) => BUDGET_MIN + i * BUDGET_STEP_SIZE);
-  const commonPresets = [
-    { label: "₹2k–₹5k", min: 2000, max: 5000 },
-    { label: "₹5k–₹15k", min: 5000, max: 15000 },
-    { label: "₹15k–₹30k", min: 15000, max: 30000 },
-    { label: "₹30k–₹50k", min: 30000, max: 50000 },
-    { label: "₹50k–₹1L", min: 50000, max: 100000 },
-  ];
 
   const formatAmount = (n: number) =>
     n >= 100000 ? "₹1L" : n >= 1000 ? `₹${n / 1000}k` : `₹${n}`;
@@ -247,36 +326,56 @@ function SliderRangeInput({ question, value, onChange, t }: InputProps) {
         </Text>
       </View>
 
-      <Text style={[styles.presetLabel, { color: t.textSecondary + "77" }]}>
-        Quick select
-      </Text>
-      <View style={styles.optionsWrap}>
-        {commonPresets.map((p) => {
-          const selected = parsed.min === p.min && parsed.max === p.max;
-          return (
-            <TouchableOpacity
-              key={p.label}
-              style={[
-                styles.optionChip,
-                {
-                  backgroundColor: selected ? t.primary : t.background,
-                  borderColor: selected ? t.primary : t.primary + "44",
-                },
-              ]}
-              onPress={() => onChange({ min: p.min, max: p.max })}
-              activeOpacity={0.75}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  { color: selected ? "#fff" : t.textSecondary },
-                ]}
-              >
-                {p.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+      <View style={{ gap: 24, marginTop: 8 }}>
+        {/* Min Slider */}
+        <View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, color: t.textSecondary, fontFamily: "Outfit_500Medium" }}>Min Budget</Text>
+            <Text style={{ fontSize: 13, color: t.primary, fontFamily: "Outfit_700Bold" }}>{formatAmount(parsed.min)}</Text>
+          </View>
+          <Slider
+            style={{ width: '100%', height: 40 }}
+            minimumValue={2000}
+            maximumValue={100000}
+            step={1000}
+            value={parsed.min}
+            onValueChange={(val) => {
+              if (val > parsed.max) {
+                onChange({ min: val, max: val });
+              } else {
+                onChange({ min: val, max: parsed.max });
+              }
+            }}
+            minimumTrackTintColor={t.primary}
+            maximumTrackTintColor={t.primary + "33"}
+            thumbTintColor={t.primary}
+          />
+        </View>
+
+        {/* Max Slider */}
+        <View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontSize: 13, color: t.textSecondary, fontFamily: "Outfit_500Medium" }}>Max Budget</Text>
+            <Text style={{ fontSize: 13, color: t.primary, fontFamily: "Outfit_700Bold" }}>{formatAmount(parsed.max)}</Text>
+          </View>
+          <Slider
+            style={{ width: '100%', height: 40 }}
+            minimumValue={2000}
+            maximumValue={100000}
+            step={1000}
+            value={parsed.max}
+            onValueChange={(val) => {
+              if (val < parsed.min) {
+                onChange({ min: val, max: val });
+              } else {
+                onChange({ min: parsed.min, max: val });
+              }
+            }}
+            minimumTrackTintColor={t.primary}
+            maximumTrackTintColor={t.primary + "33"}
+            thumbTintColor={t.primary}
+          />
+        </View>
       </View>
     </View>
   );
@@ -296,6 +395,10 @@ function QuestionInput(props: InputProps) {
       return <FileUploadMock {...props} />;
     case "slider_range":
       return <SliderRangeInput {...props} />;
+    case "city_select":
+      return <CitySelectInput {...props} />;
+    case "height_slider":
+      return <HeightSliderInput {...props} />;
     case "text":
     default:
       return <TextInput_ {...props} />;
@@ -439,7 +542,7 @@ export default function EditProfileStep() {
     >
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
-      {/* ── Top Bar ──────────────────────────────────────────── */}
+      {/* ── Premium Top Bar ──────────────────────────────────── */}
       <SafeAreaView style={{ backgroundColor: t.background }}>
         <View
           style={[
@@ -452,43 +555,43 @@ export default function EditProfileStep() {
             style={styles.backBtn}
             activeOpacity={0.7}
           >
-            <Feather name="arrow-left" size={22} color={t.textSecondary} />
+            <Feather name="arrow-left" size={24} color={t.textPrimary} />
           </TouchableOpacity>
 
           <View style={styles.topCenter}>
-            <Text style={[styles.stepLabel, { color: t.textSecondary + "88" }]}>
-              {currentStep.label}
+            <Text style={[styles.stepCountPremium, { color: t.textSecondary }]}>
+              STEP {stepIndex + 1} OF {totalSteps}
             </Text>
-            <Text style={[styles.stepCount, { color: t.textSecondary + "66" }]}>
-              Step {stepIndex + 1} of {totalSteps}
-            </Text>
+            <View style={styles.dotsContainer}>
+              {Array.from({ length: totalSteps }).map((_, i) => {
+                const isCompleted = i < stepIndex;
+                const isCurrent = i === stepIndex;
+                return (
+                  <React.Fragment key={i}>
+                    <View
+                      style={[
+                        styles.dot,
+                        {
+                          backgroundColor: isCompleted || isCurrent ? t.primary : t.primary + "33",
+                          transform: [{ scale: isCurrent ? 1.2 : 1 }],
+                        },
+                      ]}
+                    />
+                    {i < totalSteps - 1 && (
+                      <View
+                        style={[
+                          styles.dotLine,
+                          { backgroundColor: isCompleted ? t.primary : t.primary + "33" },
+                        ]}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </View>
           </View>
 
-          <TouchableOpacity
-            onPress={() => commitAndNavigate(isLastStep ? "done" : stepIndex + 1)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.skipText, { color: t.primary + "aa" }]}>
-              Skip
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Progress bar */}
-        <View style={styles.progressContainer}>
-          <View
-            style={[styles.progressTrack, { backgroundColor: t.primary + "22" }]}
-          >
-            <View
-              style={[
-                styles.progressFill,
-                { backgroundColor: t.primary, width: `${progressPct}%` },
-              ]}
-            />
-          </View>
-          <Text style={[styles.progressPct, { color: t.primary }]}>
-            {progressPct}%
-          </Text>
+          <View style={styles.rightPlaceholder} />
         </View>
       </SafeAreaView>
 
@@ -601,57 +704,43 @@ const styles = StyleSheet.create({
   topBar: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingBottom: 12,
-    gap: 10,
+    paddingBottom: 20,
   },
   backBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 40,
+    height: 40,
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "flex-start",
+  },
+  rightPlaceholder: {
+    width: 40,
   },
   topCenter: {
     flex: 1,
-  },
-  stepLabel: {
-    fontSize: 14,
-    fontFamily: "Outfit_600SemiBold",
-  },
-  stepCount: {
-    fontSize: 12,
-    fontFamily: "Outfit_400Regular",
-    marginTop: 1,
-  },
-  skipText: {
-    fontSize: 14,
-    fontFamily: "Outfit_500Medium",
-  },
-
-  /* PROGRESS */
-  progressContainer: {
-    flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    paddingHorizontal: 16,
-    paddingBottom: 10,
   },
-  progressTrack: {
-    flex: 1,
-    height: 5,
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    borderRadius: 3,
-  },
-  progressPct: {
-    fontSize: 12,
+  stepCountPremium: {
+    fontSize: 11,
     fontFamily: "Outfit_600SemiBold",
-    minWidth: 36,
-    textAlign: "right",
+    letterSpacing: 1.2,
+  },
+  dotsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  dotLine: {
+    width: 24,
+    height: 2,
+    marginHorizontal: 4,
   },
 
   /* SCROLL */
@@ -685,9 +774,9 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_700Bold",
   },
   questionText: {
-    fontSize: 15,
-    fontFamily: "Outfit_600SemiBold",
-    lineHeight: 22,
+    fontSize: 18,
+    fontFamily: "PlayfairDisplay_600SemiBold",
+    lineHeight: 26,
   },
   questionDesc: {
     fontSize: 12,
@@ -702,71 +791,121 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
+  charCount: {
+    fontSize: 11,
+    fontFamily: "Outfit_400Regular",
+    textAlign: "right",
+    paddingRight: 4,
+  },
   /* TEXT INPUT */
   textInput: {
     borderWidth: 1.5,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 14,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
     fontFamily: "Outfit_400Regular",
-    minHeight: 46,
+    minHeight: 52,
     textAlignVertical: "top",
   },
 
   /* OPTIONS */
-  optionsWrap: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  optionChip: {
+  cardOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 25,
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 16,
     borderWidth: 1.5,
   },
-  optionText: {
-    fontSize: 13,
+  cardOptionText: {
+    fontSize: 15,
     fontFamily: "Outfit_500Medium",
   },
+  radioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radioFill: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  checkboxSquare: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 
-  /* FILE UPLOAD MOCK */
-  uploadBox: {
+  /* PHOTO GRID UPLOAD */
+  photoGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  photoSlotContainer: {
+    width: (width - 32 - 12 - 36) / 2, // Calculate width for 2 columns, accounting for padding
+    gap: 8,
+  },
+  photoUploadBox: {
+    height: 140,
     borderWidth: 1.5,
     borderStyle: "dashed",
     borderRadius: 16,
-    padding: 28,
+    justifyContent: "center",
     alignItems: "center",
-    gap: 10,
+    position: "relative",
   },
-  uploadTitle: {
-    fontSize: 16,
-    fontFamily: "Outfit_600SemiBold",
-  },
-  uploadSub: {
-    fontSize: 13,
-    fontFamily: "Outfit_400Regular",
-    textAlign: "center",
-  },
-  uploadBtn: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginTop: 4,
-  },
-  uploadBtnText: {
-    fontSize: 14,
+  photoAddText: {
+    fontSize: 12,
     fontFamily: "Outfit_500Medium",
+    marginTop: 8,
   },
-  uploadNote: {
+  photoBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  photoBadgeText: {
+    color: "#fff",
     fontSize: 11,
+    fontFamily: "Outfit_700Bold",
+  },
+  photoPlus: {
+    position: "absolute",
+    bottom: -8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  photoCaptionInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 12,
     fontFamily: "Outfit_400Regular",
-    textAlign: "center",
-    marginTop: 4,
   },
 
   /* SLIDER RANGE */
@@ -792,6 +931,21 @@ const styles = StyleSheet.create({
     fontFamily: "Outfit_500Medium",
     textTransform: "uppercase",
     letterSpacing: 0.6,
+  },
+  optionsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  optionChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1.5,
+  },
+  optionText: {
+    fontSize: 13,
+    fontFamily: "Outfit_500Medium",
   },
 
   /* BOTTOM BAR */

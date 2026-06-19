@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
   StatusBar,
   SafeAreaView,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
@@ -20,34 +19,35 @@ import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
 import {
   getProfileSections,
   findQuestionById,
+  formatAnswer,
   type ProfileSection,
 } from "@/utils/profileHelpers";
 import theme from "@/theme/theme";
 
-const { width, height } = Dimensions.get("window");
-const HERO_HEIGHT = height * 0.48;
+const { width } = Dimensions.get("window");
 
 const DUMMY_PHOTO =
   "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80";
 
-// ─── Basic Info Card ──────────────────────────────────────────────────────────
+// ─── Overview Card ────────────────────────────────────────────────────────────
 
-interface BasicInfoCardProps {
+interface OverviewCardProps {
   displayName: string;
   age: number | null;
   gender: string | null;
-  location: string | null;   // from go_4
-  height: string | null;     // from go_7
-  occupation: string | null; // from go_6
-  education: string | null;  // from go_5
+  location: string | null;
+  bio: string | null;
+  kids: string | null;
+  drinking: string | null;
+  interests: string | null;
   t: any;
   onSeeAll: () => void;
   onEdit: () => void;
 }
 
-function BasicInfoCard({
-  displayName, age, gender, location, height, occupation, education, t, onSeeAll, onEdit
-}: BasicInfoCardProps) {
+function OverviewCard({
+  displayName, age, gender, location, bio, kids, drinking, interests, t, onSeeAll, onEdit
+}: OverviewCardProps) {
   const NA = "NA";
 
   const rows: { label: string; value: string | null; icon: string }[] = [
@@ -55,17 +55,18 @@ function BasicInfoCard({
     { label: "Age",        value: age ? `${age} years` : null,                      icon: "calendar" },
     { label: "Gender",     value: gender,                                           icon: "users"    },
     { label: "Location",   value: location,                                         icon: "map-pin"  },
-    { label: "Height",     value: height,                                           icon: "bar-chart-2" },
-    { label: "Occupation", value: occupation,                                       icon: "briefcase" },
+    { label: "Bio",        value: bio,                                              icon: "align-left"},
+    { label: "Interests",  value: interests,                                        icon: "heart"    },
+    { label: "Drinking",   value: drinking,                                         icon: "coffee"   },
+    { label: "Kids",       value: kids,                                             icon: "smile"    },
   ];
 
   return (
     <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
-      {/* Header */}
       <View style={styles.sectionHeader}>
         <View style={styles.sectionTitleRow}>
           <Text style={styles.sectionIcon}>👤</Text>
-          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>Basic Info</Text>
+          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>Overview</Text>
         </View>
         <TouchableOpacity style={styles.seeAllBtn} onPress={onSeeAll} activeOpacity={0.7}>
           <Text style={[styles.seeAllText, { color: t.primary }]}>See all</Text>
@@ -73,7 +74,6 @@ function BasicInfoCard({
         </TouchableOpacity>
       </View>
 
-      {/* Info rows */}
       <View style={styles.infoGrid}>
         {rows.map((row) => (
           <View key={row.label} style={styles.infoRow}>
@@ -90,7 +90,6 @@ function BasicInfoCard({
         ))}
       </View>
 
-      {/* Edit nudge */}
       <TouchableOpacity
         style={[styles.cardEditBtn, { borderColor: t.primary + "44" }]}
         onPress={onEdit}
@@ -113,7 +112,6 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({ section, answers, t, onSeeAll }: CategoryCardProps) {
-  // Show only first 4 answers as a preview
   const previewIds = section.questionIds.slice(0, 4);
   const answeredCount = section.questionIds.filter(
     (id) => answers[id] !== null && answers[id] !== undefined && answers[id] !== ""
@@ -143,7 +141,7 @@ function CategoryCard({ section, answers, t, onSeeAll }: CategoryCardProps) {
             const q = findQuestionById(id);
             const ans = answers[id];
             if (!q) return null;
-            const displayAns = Array.isArray(ans) ? ans.join(", ") : ans ?? null;
+            const displayAns = formatAnswer(ans);
             return (
               <View key={id} style={styles.infoRow}>
                 <View style={{ flex: 1 }}>
@@ -158,7 +156,6 @@ function CategoryCard({ section, answers, t, onSeeAll }: CategoryCardProps) {
         </View>
       )}
 
-      {/* Mini progress */}
       <View style={styles.completionRow}>
         <View style={[styles.miniProgress, { backgroundColor: t.primary + "22" }]}>
           <View
@@ -171,6 +168,93 @@ function CategoryCard({ section, answers, t, onSeeAll }: CategoryCardProps) {
         <Text style={[styles.completionText, { color: t.textSecondary + "88" }]}>
           {answeredCount}/{total} answered
         </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Insights Card ────────────────────────────────────────────────────────────
+
+function InsightsCard({ t }: { t: any }) {
+  return (
+    <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleRow}>
+          <Text style={styles.sectionIcon}>📊</Text>
+          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>Photo Insights</Text>
+        </View>
+      </View>
+      <View style={{ alignItems: "center", paddingVertical: 20 }}>
+        <Ionicons name="bar-chart" size={48} color={t.primary + "88"} style={{ marginBottom: 16 }} />
+        <Text style={{ fontSize: 16, fontFamily: "Outfit_600SemiBold", color: t.textPrimary, marginBottom: 8 }}>
+          Unlock Photo Insights
+        </Text>
+        <Text style={{ fontSize: 13, fontFamily: "Outfit_400Regular", color: t.textSecondary, textAlign: "center", paddingHorizontal: 20 }}>
+          Find out which of your photos is getting the most attention and optimize your profile for more matches.
+        </Text>
+        <TouchableOpacity style={[styles.cardEditBtn, { backgroundColor: t.primary, borderWidth: 0, marginTop: 24, paddingHorizontal: 24, paddingVertical: 12 }]}>
+          <Text style={{ color: t.background, fontFamily: "Outfit_600SemiBold" }}>Get Insights</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── Pay Plan Card ────────────────────────────────────────────────────────────
+
+function PayPlanCard({ t }: { t: any }) {
+  const benefits = [
+    "Get exclusive photo insights",
+    "Fast track your likes",
+    "Stand out every day",
+    "Unlimited likes",
+    "See who liked you"
+  ];
+
+  return (
+    <View style={{ gap: 16 }}>
+      {/* Boost Actions */}
+      <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }}>
+        <TouchableOpacity style={[styles.sectionCard, { flex: 1, padding: 16, marginBottom: 0, flexDirection: "row", alignItems: "center", gap: 12 }]}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.textPrimary, justifyContent: "center", alignItems: "center" }}>
+            <Ionicons name="sparkles" size={20} color={t.background} />
+          </View>
+          <View>
+            <Text style={{ fontSize: 15, fontFamily: "Outfit_700Bold", color: t.textPrimary }}>Spotlight</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Outfit_500Medium", color: t.textSecondary }}>Stand out</Text>
+          </View>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.sectionCard, { flex: 1, padding: 16, marginBottom: 0, flexDirection: "row", alignItems: "center", gap: 12 }]}>
+          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.textPrimary, justifyContent: "center", alignItems: "center" }}>
+            <Ionicons name="star" size={20} color={t.background} />
+          </View>
+          <View>
+            <Text style={{ fontSize: 15, fontFamily: "Outfit_700Bold", color: t.textPrimary }}>SuperSwipe</Text>
+            <Text style={{ fontSize: 11, fontFamily: "Outfit_500Medium", color: t.textSecondary }}>Get noticed</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Premium Banner */}
+      <View style={[styles.sectionCard, { backgroundColor: "#FCD34D", marginHorizontal: 4 }]}>
+        <Text style={{ fontSize: 20, fontFamily: "Outfit_700Bold", color: "#1F2937", fontStyle: "italic", marginBottom: 8 }}>PREMIUM+</Text>
+        <Text style={{ fontSize: 14, fontFamily: "Outfit_500Medium", color: "#374151", marginBottom: 20, lineHeight: 20 }}>
+          Get the VIP treatment, and enjoy better ways to connect with incredible people.
+        </Text>
+        <TouchableOpacity style={{ backgroundColor: "#1F2937", borderRadius: 20, paddingVertical: 14, alignItems: "center" }}>
+          <Text style={{ color: "#F9FAFB", fontSize: 15, fontFamily: "Outfit_700Bold" }}>Explore Premium+</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Benefits List */}
+      <View style={[styles.sectionCard, { marginHorizontal: 4 }]}>
+        <Text style={{ fontSize: 16, fontFamily: "Outfit_700Bold", color: t.textPrimary, marginBottom: 16 }}>What you get:</Text>
+        {benefits.map((b, i) => (
+          <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: i === benefits.length - 1 ? 0 : 1, borderBottomColor: t.primary + "11" }}>
+            <Text style={{ fontSize: 14, fontFamily: "Outfit_400Regular", color: t.textSecondary, flex: 1 }}>{b}</Text>
+            <Feather name="check" size={18} color={t.textPrimary} />
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -203,13 +287,11 @@ export default function ProfileScreen() {
     ? `${firstName}${lastName ? ` ${lastName}` : ""}`
     : "Your Name";
 
-  // Pull extra fields from profile answers (with NA fallback handled in card)
   const location   = (answers['go_4'] as string) || null;
-  const height     = (answers['go_7'] as string) || null;
-  const occupation = (answers['go_6'] as string) || null;
-  const education  = (answers['go_5'] as string) || null;
-
-  const categorySection = sections.find((s) => s.key === 'category') ?? null;
+  const bio        = (answers['go_bio'] as string) || null;
+  const kids       = (answers['go_kids'] as string) || null;
+  const drinking   = (answers['go_9a'] as string) || null;
+  const interests  = formatAnswer(answers['go_11']);
 
   const navigateToFull = (sectionKey?: string) => {
     router.push({
@@ -222,368 +304,266 @@ export default function ProfileScreen() {
     router.push("/profile/edit/0" as any);
   };
 
+  // ── Tabs Setup ──
+  const [activeTab, setActiveTab] = useState<string>("overview");
+
+  const tabs = [
+    { key: "overview", label: "Overview" },
+    ...sections.filter((s) => s.key !== "overview").map((s) => ({ key: s.key, label: s.title })),
+    { key: "insights", label: "Insights" },
+    { key: "pay_plan", label: "Pay Plan" },
+  ];
+
   return (
-    <View style={[styles.master, { backgroundColor: t.background }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: t.background }]}>
+      <StatusBar barStyle="dark-content" backgroundColor={t.background} />
+      
+      {/* ── HEADER ── */}
+      <View style={styles.header}>
+        <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Profile</Text>
+        <View style={styles.headerRight}>
+          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
+            <Feather name="help-circle" size={24} color={t.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.push("/settings" as any)}>
+            <Feather name="settings" size={24} color={t.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}
-      >
-        {/* ── HERO IMAGE ─────────────────────────────────────── */}
-        <View style={styles.heroContainer}>
-          <Image source={{ uri: DUMMY_PHOTO }} style={styles.heroImage} />
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        
+        {/* ── TOP SECTION (Avatar & Name) ── */}
+        <View style={styles.topSection}>
+          <View style={styles.avatarContainer}>
+            {/* Simple circular ring wrapper */}
+            <View style={[styles.avatarRing, { borderColor: t.primary }]}>
+              <Image source={{ uri: DUMMY_PHOTO }} style={styles.avatarImage} />
+            </View>
+            <View style={[styles.pctPill, { backgroundColor: t.textPrimary }]}>
+              <Text style={[styles.pctText, { color: t.background }]}>{pct}%</Text>
+            </View>
+          </View>
 
-          <LinearGradient
-            colors={["rgba(0,0,0,0.55)", "transparent"]}
-            style={styles.topGradient}
-          />
-          <LinearGradient
-            colors={["transparent", t.background]}
-            locations={[0.5, 1]}
-            style={styles.bottomGradient}
-          />
+          <View style={styles.userInfoContainer}>
+            <Text style={[styles.nameAgeText, { color: t.textPrimary }]}>
+              {displayName}{age ? `, ${age}` : ""}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.completeProfileBtn, { borderColor: t.textPrimary + "33" }]} 
+              activeOpacity={0.7}
+              onPress={navigateToEdit}
+            >
+              <Text style={[styles.completeProfileText, { color: t.textPrimary }]}>
+                {isComplete ? "Edit profile" : "Complete profile"}
+              </Text>
+              {!isComplete && <View style={styles.redDot} />}
+            </TouchableOpacity>
+          </View>
+        </View>
 
-          <SafeAreaView style={styles.topBarOverlay}>
-            <View style={styles.topBar}>
-              <Text style={[styles.appName, { color: t.primary }]}>amora</Text>
+        {/* ── TABS (Pills) ── */}
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.tabsContainer}
+          style={styles.tabsScroll}
+        >
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
               <TouchableOpacity
+                key={tab.key}
                 style={[
-                  styles.settingsBtn,
-                  { backgroundColor: "rgba(0,0,0,0.35)" },
+                  styles.tabPill,
+                  isActive ? { backgroundColor: t.textPrimary } : { backgroundColor: "transparent" },
                 ]}
-                onPress={() => router.push("/settings" as any)}
+                onPress={() => setActiveTab(tab.key)}
                 activeOpacity={0.8}
               >
-                <Feather name="settings" size={18} color="#fff" />
+                <Text style={[
+                  styles.tabText,
+                  isActive ? { color: t.background, fontFamily: "Outfit_600SemiBold" } : { color: t.textSecondary, fontFamily: "Outfit_500Medium" }
+                ]}>
+                  {tab.label}
+                </Text>
               </TouchableOpacity>
-            </View>
-          </SafeAreaView>
+            );
+          })}
+        </ScrollView>
 
-          <View style={styles.verifiedBadge}>
-            <Feather name="check" size={10} color="#fff" />
-          </View>
-        </View>
-
-        {/* ── IDENTITY ROW ──────────────────────────────────── */}
-        <View style={styles.identitySection}>
-          <View style={styles.nameRow}>
-            <Text style={[styles.nameText, { color: t.textSecondary }]}>
-              {displayName}
-              {age ? `, ${age}` : ""}
-            </Text>
-            <View style={[styles.checkBadge, { backgroundColor: t.primary }]}>
-              <Feather name="check" size={12} color="#fff" />
-            </View>
-          </View>
-
-          <View style={styles.metaRow}>
-            {gender ? (
-              <View
-                style={[styles.metaPill, { backgroundColor: t.secondary }]}
-              >
-                <Ionicons
-                  name="person-outline"
-                  size={12}
-                  color={t.textSecondary}
-                />
-                <Text style={[styles.metaText, { color: t.textSecondary }]}>
-                  {gender}
-                </Text>
-              </View>
-            ) : null}
-            <View style={[styles.metaPill, { backgroundColor: t.secondary }]}>
-              <Ionicons
-                name="heart-outline"
-                size={12}
-                color={t.textSecondary}
-              />
-              <Text style={[styles.metaText, { color: t.textSecondary }]}>
-                {category.replace("_", " ")}
-              </Text>
-            </View>
-            {user?.email ? (
-              <View
-                style={[styles.metaPill, { backgroundColor: t.secondary }]}
-              >
-                <Feather name="mail" size={12} color={t.textSecondary} />
-                <Text
-                  style={[styles.metaText, { color: t.textSecondary }]}
-                  numberOfLines={1}
-                >
-                  Verified
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-
-        {/* ── COMPLETE PROFILE BANNER (only when incomplete) ─── */}
-        {!isComplete && (
-          <TouchableOpacity
-            activeOpacity={0.92}
-            onPress={navigateToEdit}
-            style={[
-              styles.completeBanner,
-              { backgroundColor: t.secondary, borderColor: t.primary },
-            ]}
-          >
-            <LinearGradient
-              colors={[t.primary + "22", "transparent"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={StyleSheet.absoluteFillObject}
+        {/* ── TAB CONTENT ── */}
+        <View style={styles.tabContentContainer}>
+          {activeTab === "overview" && (
+            <OverviewCard
+              displayName={displayName}
+              age={age}
+              gender={gender}
+              location={location}
+              bio={bio}
+              kids={kids}
+              drinking={drinking}
+              interests={interests}
+              t={t}
+              onSeeAll={() => navigateToFull("overview")}
+              onEdit={navigateToEdit}
             />
+          )}
 
-            <View style={styles.bannerLeft}>
-              <Text style={[styles.bannerTitle, { color: t.textSecondary }]}>
-                Complete your profile
-              </Text>
-              <Text style={[styles.bannerSub, { color: t.textSecondary + "aa" }]}>
-                Get 3× more matches · {pct}% done
-              </Text>
-
-              {/* Progress bar */}
-              <View
-                style={[
-                  styles.bannerTrack,
-                  { backgroundColor: t.primary + "33" },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.bannerFill,
-                    { backgroundColor: t.primary, width: `${pct}%` },
-                  ]}
-                />
-              </View>
-            </View>
-
-            <View
-              style={[
-                styles.bannerCTA,
-                { backgroundColor: t.primary },
-              ]}
-            >
-              <Text style={styles.bannerCTAText}>Start</Text>
-              <Feather name="arrow-right" size={14} color="#fff" />
-            </View>
-          </TouchableOpacity>
-        )}
-
-        {/* ── BASIC INFO SECTION ─────────────────────────────── */}
-        <BasicInfoCard
-          displayName={displayName}
-          age={age}
-          gender={gender}
-          location={location}
-          height={height}
-          occupation={occupation}
-          education={education}
-          t={t}
-          onSeeAll={() => navigateToFull('basic')}
-          onEdit={navigateToEdit}
-        />
-
-        {/* ── CATEGORY SECTION ──────────────────────────────── */}
-        {categorySection && (
-          <CategoryCard
-            section={categorySection}
-            answers={answers}
-            t={t}
-            onSeeAll={() => navigateToFull('category')}
-          />
-        )}
-
-        {/* ── EDIT PROFILE BUTTON (always at bottom) ────────── */}
-        <View style={styles.editSection}>
-          <TouchableOpacity
-            style={[styles.editBtn, { borderColor: t.primary }]}
-            activeOpacity={0.85}
-            onPress={navigateToEdit}
-          >
-            <Feather
-              name="edit-2"
-              size={16}
-              color={t.primary}
-              style={{ marginRight: 8 }}
+          {activeTab !== "overview" && activeTab !== "insights" && activeTab !== "pay_plan" && sections.find((s) => s.key === activeTab) && (
+            <CategoryCard
+              section={sections.find((s) => s.key === activeTab)!}
+              answers={answers}
+              t={t}
+              onSeeAll={() => navigateToFull("category")}
             />
-            <Text style={[styles.editBtnText, { color: t.primary }]}>
-              {isComplete ? "Edit Profile" : "Complete Profile"}
-            </Text>
-          </TouchableOpacity>
+          )}
+
+          {activeTab === "insights" && <InsightsCard t={t} />}
+          {activeTab === "pay_plan" && <PayPlanCard t={t} />}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  master: { flex: 1 },
-
-  /* HERO */
-  heroContainer: {
-    width,
-    height: HERO_HEIGHT,
-    position: "relative",
+  safeArea: {
+    flex: 1,
+    paddingTop: Platform.OS === 'android' ? 30 : 0,
   },
-  heroImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  topGradient: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 120,
-  },
-  bottomGradient: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: HERO_HEIGHT * 0.5,
-  },
-  topBarOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-  },
-  topBar: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === "android" ? 40 : 10,
-    paddingBottom: 10,
+    paddingTop: 10,
+    paddingBottom: 15,
   },
-  appName: {
-    fontSize: 22,
+  headerTitle: {
+    fontSize: 26,
     fontFamily: "Outfit_700Bold",
-    letterSpacing: -0.5,
   },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
+  headerRight: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  verifiedBadge: {
-    position: "absolute",
-    bottom: 16,
-    right: 20,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#3B82F6",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#fff",
+  iconBtn: {
+    padding: 8,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
 
-  /* IDENTITY */
-  identitySection: {
+  /* TOP SECTION */
+  topSection: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 20,
-    marginTop: -8,
-    marginBottom: 16,
+    marginTop: 10,
+    marginBottom: 24,
   },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 10,
+  avatarContainer: {
+    position: "relative",
+    marginRight: 16,
   },
-  nameText: {
-    fontSize: 28,
-    fontFamily: "Outfit_700Bold",
-    letterSpacing: -0.5,
-  },
-  checkBadge: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+  avatarRing: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    borderWidth: 2,
     justifyContent: "center",
     alignItems: "center",
+    padding: 3, // Space between ring and image
   },
-  metaRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  metaPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  metaText: {
-    fontSize: 12,
-    fontFamily: "Outfit_500Medium",
-  },
-
-  /* COMPLETE BANNER */
-  completeBanner: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 18,
-    flexDirection: "row",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  bannerLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  bannerTitle: {
-    fontSize: 15,
-    fontFamily: "Outfit_700Bold",
-    marginBottom: 3,
-  },
-  bannerSub: {
-    fontSize: 12,
-    fontFamily: "Outfit_400Regular",
-    marginBottom: 10,
-  },
-  bannerTrack: {
-    height: 4,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  bannerFill: {
+  avatarImage: {
+    width: "100%",
     height: "100%",
-    borderRadius: 2,
+    borderRadius: 40,
   },
-  bannerCTA: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+  pctPill: {
+    position: "absolute",
+    bottom: -6,
+    alignSelf: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 3,
     borderRadius: 12,
   },
-  bannerCTAText: {
-    fontSize: 13,
+  pctText: {
+    fontSize: 11,
     fontFamily: "Outfit_700Bold",
-    color: "#fff",
+  },
+  userInfoContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  nameAgeText: {
+    fontSize: 22,
+    fontFamily: "Outfit_600SemiBold",
+    marginBottom: 8,
+  },
+  completeProfileBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  completeProfileText: {
+    fontSize: 13,
+    fontFamily: "Outfit_500Medium",
+  },
+  redDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginLeft: 6,
+    backgroundColor: '#E53E3E',
+  },
+
+  /* TABS */
+  tabsScroll: {
+    maxHeight: 50,
+    marginBottom: 20,
+  },
+  tabsContainer: {
+    paddingHorizontal: 20,
+    gap: 8,
+    alignItems: "center",
+  },
+  tabPill: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tabText: {
+    fontSize: 14,
+  },
+
+  /* CONTENT */
+  tabContentContainer: {
+    paddingHorizontal: 16,
   },
 
   /* SECTION CARD */
   sectionCard: {
-    marginHorizontal: 16,
+    marginHorizontal: 4,
     marginBottom: 14,
     borderRadius: 20,
     padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -600,7 +580,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   sectionTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Outfit_600SemiBold",
   },
   seeAllBtn: {
@@ -639,11 +619,6 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 14,
     fontFamily: "Outfit_500Medium",
-  },
-  infoEmpty: {
-    fontSize: 13,
-    fontFamily: "Outfit_400Regular",
-    fontStyle: "italic",
   },
   cardEditBtn: {
     flexDirection: "row",
@@ -687,23 +662,5 @@ const styles = StyleSheet.create({
   completionText: {
     fontSize: 11,
     fontFamily: "Outfit_400Regular",
-  },
-
-  /* EDIT BUTTON */
-  editSection: {
-    paddingHorizontal: 16,
-    marginTop: 8,
-  },
-  editBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1.5,
-  },
-  editBtnText: {
-    fontSize: 15,
-    fontFamily: "Outfit_600SemiBold",
   },
 });

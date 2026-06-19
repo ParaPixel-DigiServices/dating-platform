@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 
 import { Loader } from '@/components/Loader';
 
@@ -14,6 +14,11 @@ import {
   Outfit_600SemiBold,
   Outfit_700Bold,
 } from '@expo-google-fonts/outfit';
+
+import {
+  PlayfairDisplay_400Regular,
+  PlayfairDisplay_600SemiBold,
+} from '@expo-google-fonts/playfair-display';
 
 import '@react-native-firebase/app';
 
@@ -32,6 +37,8 @@ export default function RootLayout() {
     Outfit_500Medium,
     Outfit_600SemiBold,
     Outfit_700Bold,
+    PlayfairDisplay_400Regular,
+    PlayfairDisplay_600SemiBold,
   });
 
   useEffect(() => {
@@ -121,6 +128,23 @@ export default function RootLayout() {
 
     bootstrap();
   }, []);
+
+  const segments = useSegments();
+  const router = useRouter();
+  const navigationState = useRootNavigationState();
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  useEffect(() => {
+    if (!hydrated || !fontsLoaded || isBootstrapping || !navigationState?.key) return;
+
+    const inAuthGroup = segments[0] === '(onboarding)';
+
+    // If the user is not signed in and the initial segment is not anything in the onboarding group
+    if (!accessToken && !inAuthGroup) {
+      // Route to landing
+      router.replace('/(onboarding)/landing');
+    }
+  }, [accessToken, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);
 
   if (
     !hydrated ||

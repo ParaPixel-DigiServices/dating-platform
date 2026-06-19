@@ -15,7 +15,7 @@ export interface ProfileQuestion {
   id: string;
   text: string;
   description?: string;
-  type: 'text' | 'select' | 'date' | 'multiselect' | 'file_upload' | 'slider_range';
+  type: 'text' | 'select' | 'date' | 'multiselect' | 'file_upload' | 'slider_range' | 'city_select' | 'height_slider';
   options?: string[];
 }
 
@@ -32,18 +32,52 @@ export interface EditStep {
 /** How many questions to show per wizard page */
 const QUESTIONS_PER_STEP = 3;
 
-/**
- * Groups an array of questions into pages of QUESTIONS_PER_STEP.
- */
 function chunkQuestions(questions: ProfileQuestion[], label: string, startIndex: number): EditStep[] {
   const steps: EditStep[] = [];
-  for (let i = 0; i < questions.length; i += QUESTIONS_PER_STEP) {
+  let currentGroup: ProfileQuestion[] = [];
+
+  for (let i = 0; i < questions.length; i++) {
+    const q = questions[i];
+    
+    // If it's a file upload, it needs its own dedicated step
+    if (q.type === 'file_upload') {
+      // First, flush the current group if it has any questions
+      if (currentGroup.length > 0) {
+        steps.push({
+          index: startIndex + steps.length,
+          label,
+          questions: [...currentGroup],
+        });
+        currentGroup = [];
+      }
+      // Then add the file upload as its own step
+      steps.push({
+        index: startIndex + steps.length,
+        label: 'Photos', // Custom label for the isolated photo step
+        questions: [q],
+      });
+    } else {
+      currentGroup.push(q);
+      if (currentGroup.length === QUESTIONS_PER_STEP) {
+        steps.push({
+          index: startIndex + steps.length,
+          label,
+          questions: [...currentGroup],
+        });
+        currentGroup = [];
+      }
+    }
+  }
+
+  // Flush any remaining questions
+  if (currentGroup.length > 0) {
     steps.push({
       index: startIndex + steps.length,
       label,
-      questions: questions.slice(i, i + QUESTIONS_PER_STEP) as ProfileQuestion[],
+      questions: [...currentGroup],
     });
   }
+
   return steps;
 }
 
@@ -101,11 +135,11 @@ export function getProfileSections(category: CategoryKey): ProfileSection[] {
 
   const sections: ProfileSection[] = [
     {
-      key: 'basic',
-      title: 'Basic Info',
-      icon: '👤',
-      // name, age, location, height, occupation, education, diet
-      questionIds: ['go_1', 'go_2', 'go_4', 'go_7', 'go_6', 'go_5', 'go_8'],
+      key: 'overview',
+      title: 'Overview',
+      icon: 'user',
+      // name, age, bio, location, kids, drinking, interests
+      questionIds: ['go_1', 'go_2', 'go_bio', 'go_4', 'go_kids', 'go_9a', 'go_11'],
     },
   ];
 
@@ -143,7 +177,7 @@ export function categoryToKey(
 
 function getCategoryLabel(category: CategoryKey): string {
   const labels: Record<CategoryKey, string> = {
-    Casual: 'Vibes & Preferences',
+    Casual: 'Your Vibe',
     Love: 'Love & Connection',
     Marriage: 'Life & Values',
     Find_Your_Roommate: 'Living Preferences',
@@ -153,12 +187,12 @@ function getCategoryLabel(category: CategoryKey): string {
 
 function getCategoryIcon(category: CategoryKey): string {
   const icons: Record<CategoryKey, string> = {
-    Casual: '🔥',
-    Love: '💕',
-    Marriage: '💍',
-    Find_Your_Roommate: '🏠',
+    Casual: 'zap',
+    Love: 'heart',
+    Marriage: 'anchor',
+    Find_Your_Roommate: 'home',
   };
-  return icons[category] ?? '💡';
+  return icons[category] ?? 'info';
 }
 
 /**
@@ -200,4 +234,26 @@ export function getAllGlobalQuestionIds(): string[] {
 export function getReadOnlyIds(): string[] {
   const readOnly = ((demoQuestionnaire.globalOnboarding as any).collectedDuringOnboarding ?? []) as ProfileQuestion[];
   return readOnly.map((q) => q.id);
+}
+
+/**
+ * Safely formats any answer (including objects) into a string for display.
+ * Prevents "Objects are not valid as a React child" errors.
+ */
+export function formatAnswer(ans: any): string | null {
+  if (ans === null || ans === undefined || ans === "") return null;
+  if (Array.isArray(ans)) return ans.join(", ");
+  
+  if (typeof ans === "object") {
+    // Specifically handle budget range slider { min, max }
+    if ("min" in ans && "max" in ans) {
+      const formatAmount = (n: number) =>
+        n >= 100000 ? "₹1L" : n >= 1000 ? `₹${n / 1000}k` : `₹${n}`;
+      return `${formatAmount(ans.min)} – ${formatAmount(ans.max)}`;
+    }
+    // Fallback for other objects
+    return JSON.stringify(ans);
+  }
+  
+  return String(ans);
 }

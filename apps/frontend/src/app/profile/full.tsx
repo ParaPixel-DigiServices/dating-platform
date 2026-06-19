@@ -18,6 +18,7 @@ import {
   findQuestionById,
   getAllGlobalQuestionIds,
   getReadOnlyIds,
+  formatAnswer,
   type ProfileSection,
 } from "@/utils/profileHelpers";
 import { demoQuestionnaire } from "@/onboarding_ques_temp/onboarding";
@@ -41,9 +42,7 @@ function QARow({ questionId, answers, t, onAdd }: QARowProps) {
   const isReadOnly = readOnlyIds.includes(questionId);
 
   const rawAns = answers[questionId];
-  const displayAns = Array.isArray(rawAns)
-    ? rawAns.join(", ")
-    : rawAns ?? null;
+  const displayAns = formatAnswer(rawAns);
 
   return (
     <View style={[styles.qaRow, { borderBottomColor: t.primary + "18" }]}>
@@ -120,7 +119,9 @@ function SectionBlock({
       nativeID={section.key}
     >
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionIcon}>{section.icon}</Text>
+        <View style={[styles.sectionIconWrap, { backgroundColor: t.primary + "22" }]}>
+          <Feather name={section.icon as any} size={18} color={t.primary} />
+        </View>
         <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>
           {section.title}
         </Text>
@@ -344,12 +345,16 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  sectionIcon: {
-    fontSize: 17,
+  sectionIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
   sectionTitle: {
-    fontSize: 16,
-    fontFamily: "Outfit_600SemiBold",
+    fontSize: 18,
+    fontFamily: "PlayfairDisplay_600SemiBold",
   },
 
   /* QA ROW */
