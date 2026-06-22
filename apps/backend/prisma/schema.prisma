@@ -86,7 +86,9 @@ model Device {
   id String @id @default(uuid()) @db.Uuid
 
   userId String @db.Uuid
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade )
+
+  clientDeviceId String
 
   deviceName String?
 
@@ -104,6 +106,7 @@ model Device {
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+  @@unique([userId, clientDeviceId])
 }
 
 /////////////////////////////////////////////////

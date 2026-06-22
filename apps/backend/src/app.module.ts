@@ -14,6 +14,7 @@ import { userInfo } from 'os';
 import { HealthModule } from './health/health.module';
 import { DatabaseModule } from './common/database/database.module';
 import { FirebaseModule } from './common/firebase/firebase.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -42,6 +43,8 @@ import { FirebaseModule } from './common/firebase/firebase.module';
     }),
 
     HealthModule,
+
+    AuthModule,
   ],
 
   providers: [
