@@ -4,47 +4,193 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
-enum AuthProvider {
+/////////////////////////////////////////////////
+// ENUMS
+/////////////////////////////////////////////////
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+enum VerificationType {
   PHONE
-  GOOGLE
-  APPLE
+  EMAIL
+  SELFIE
+  GOVERNMENT_ID
 }
 
-enum CategoryType {
-  LOVE
-  MARRIAGE
-  CASUAL
-  ROOMMATE
-}
-
-enum Gender {
-  MALE
-  FEMALE
-  NON_BINARY
-}
-
-enum OnboardingStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-}
-
-enum VerificationStatusType {
-  UNVERIFIED
+enum VerificationStatus {
   PENDING
   VERIFIED
   REJECTED
 }
 
+/////////////////////////////////////////////////
+// USERS
+/////////////////////////////////////////////////
+
+model User {
+  id String @id @default(uuid()) @db.Uuid
+
+  // Authentication
+  firebaseUid String @unique
+
+  phoneNumber String? @unique
+  email       String? @unique
+
+  // Authorization
+  role   UserRole   @default(USER)
+  status UserStatus @default(ACTIVE)
+
+  // Activity
+  lastActiveAt DateTime?
+
+  // Relations
+  devices       Device[]
+  sessions      Session[]
+  verifications UserVerification[]
+  profile       Profile?
+
+  moderationActionsReceived  ModerationAction[] @relation("UserModerationActions")
+  moderationActionsPerformed ModerationAction[] @relation("AdminModerationActions")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([lastActiveAt])
+}
+
+/////////////////////////////////////////////////
+// DEVICES
+/////////////////////////////////////////////////
+
+model Device {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceName String?
+
+  platform DevicePlatform
+
+  appVersion String?
+
+  pushToken String? @unique
+
+  lastActiveAt DateTime?
+
+  sessions Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+/////////////////////////////////////////////////
+// SESSIONS
+/////////////////////////////////////////////////
+
+model Session {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  deviceId String @db.Uuid
+  device   Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  refreshTokenHash String
+
+  ipAddress String?
+
+  userAgent String?
+
+  expiresAt DateTime
+
+  lastUsedAt DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+/////////////////////////////////////////////////
+// USER VERIFICATIONS
+/////////////////////////////////////////////////
+
+model UserVerification {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId String @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  type VerificationType
+
+  status VerificationStatus @default(PENDING)
+
+  rejectionReason String?
+
+  verifiedAt DateTime?
+
+  reviewedById String? @db.Uuid
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, type])
+  @@index([status])
+}
+
+/////////////////////////////////////////////////
+// PROFILE ENUMS
+/////////////////////////////////////////////////
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  DIPLOMA
+  BACHELORS
+  MASTERS
+  PHD
+  OTHER
+}
+
 enum DietPreference {
-  VEG
-  NON_VEG
+  VEGETARIAN
+  NON_VEGETARIAN
+  EGGETARIAN
   VEGAN
-  EGGITARIAN
-  JAIN
+  OTHER
 }
 
 enum SmokingHabit {
@@ -55,355 +201,146 @@ enum SmokingHabit {
 
 enum DrinkingHabit {
   NEVER
-  SOCIALLY
+  OCCASIONALLY
   REGULARLY
 }
 
-enum FitnessImportance {
+enum ImportanceLevel {
   LOW
   MEDIUM
   HIGH
 }
 
-enum PetsPreference {
-  LOVE_PETS
-  OKAY_WITH_PETS
-  NO_PETS
-}
-
-enum SocialLevel {
+enum PersonalityType {
   INTROVERT
-  AMBIVERT
   EXTROVERT
+  AMBIVERT
 }
 
-enum CommunicationStyle {
-  DIRECT
-  CALM
-  EXPRESSIVE
-  RESERVED
-}
-
-enum ConflictStyle {
-  DISCUSS
-  NEED_SPACE
-  AVOID
-  IMMEDIATE_RESOLUTION
-}
-
-enum MorningNightType {
+enum SleepPreference {
   MORNING_PERSON
-  FLEXIBLE
   NIGHT_OWL
 }
 
-enum MarriageTimeline {
-  ASAP
-  WITHIN_1_YEAR
-  WITHIN_2_YEARS
-  FLEXIBLE
+enum SocialLevel {
+  LOW
+  MODERATE
+  HIGH
 }
 
-enum ChildrenPreference {
-  YES
-  NO
-  MAYBE
-}
-
-enum RelocationPreference {
-  YES
-  NO
-  DEPENDS
-}
-
-enum LongDistancePreference {
-  YES
-  NO
-  DEPENDS
-}
-
-enum QuestionType {
-  TEXT
-  TEXTAREA
-  NUMBER
-  SINGLE_SELECT
-  MULTI_SELECT
-  BOOLEAN
-  DATE
-}
-
-enum VerificationMethod {
-  AADHAAR
-  PAN
-  PASSPORT
-  VOTER_ID
-  SELFIE
-}
-
-enum ModerationStatus {
-  PENDING
-  APPROVED
-  REJECTED
-}
-
-enum FamilyType {
-  NUCLEAR
-  JOINT
+enum CleanlinessLevel {
+  LOW
+  MODERATE
+  HIGH
 }
 
 model Religion {
-  id   String @id @default(uuid())
-  name String @unique
-
-  createdAt DateTime @default(now())
-
-  profiles Profile[]
-}
-
-model Language {
-  id String @id @default(uuid())
+  id String @id @default(uuid()) @db.Uuid
 
   name String @unique
 
-  createdAt DateTime @default(now())
-
-  motherTongueProfiles Profile[] @relation("MotherTongueLanguage")
-
-  userLanguages UserLanguage[]
-}
-
-model EducationLevel {
-  id   String @id @default(uuid())
-  name String @unique
-
-  createdAt DateTime @default(now())
-
-  profiles Profile[]
-}
-
-model Interest {
-  id   String @id @default(uuid())
-  name String @unique
-
-  createdAt DateTime @default(now())
-
-  users UserInterest[]
-}
-
-model User {
-  id String @id @default(uuid())
-
-  email String? @unique
-
-  phoneNumber String? @unique
-
-  category CategoryType?
-
-  phoneVerified Boolean @default(false)
-
-  onboardingStatus OnboardingStatus @default(NOT_STARTED)
+  displayOrder Int?
 
   isActive Boolean @default(true)
 
-  isBlocked Boolean @default(false)
+  castes Caste[]
 
-  isDiscoverable Boolean @default(true)
+  profiles Profile[]
 
   createdAt DateTime @default(now())
-
   updatedAt DateTime @updatedAt
-
-  deletedAt DateTime?
-
-  profile Profile?
-
-  sessions Session[]
-
-  authProviders UserAuthProvider[]
-
-  onboardingProgress OnboardingProgress?
-
-  verificationStatus VerificationStatus?
-
-  lifestyle UserLifestyle?
-
-  personality UserPersonality?
-
-  values UserValues?
-
-  preference UserPreference?
-
-  photos UserPhoto[]
-
-  prompts UserPrompt[]
-
-  languages UserLanguage[]
-
-  interests UserInterest[]
-
-  genderPreferences UserGenderPreference[]
-
-  answers       UserAnswer[]
-  userEmbedding UserEmbedding?
-
-  @@index([category])
-  @@index([onboardingStatus])
-  @@index([phoneNumber])
-  @@index([email])
 }
 
-model UserAuthProvider {
-  id String @id @default(uuid())
+model Caste {
+  id String @id @default(uuid()) @db.Uuid
 
-  userId String
+  religionId String @db.Uuid
 
-  provider AuthProvider
+  religion Religion @relation(fields: [religionId], references: [id])
 
-  providerUserId String
+  name String
+
+  parentCasteId String? @db.Uuid
+
+  parentCaste Caste? @relation("CasteHierarchy", fields: [parentCasteId], references: [id])
+
+  childCastes Caste[] @relation("CasteHierarchy")
+
+  state String?
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  profiles Profile[]
+
+  preferredByPartnerCastes PartnerPreferredCaste[]
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerUserId])
-  @@index([userId])
-  @@index([provider])
-  @@index([providerUserId])
+  @@unique([religionId, name])
+  @@index([religionId, state])
 }
 
 model Profile {
-  id String @id @default(uuid())
+  id String @id @default(uuid()) @db.Uuid
 
-  userId String @unique
+  userId String @unique @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Identity
 
   firstName String
 
-  lastName String?
+  lastName String
 
-  dateOfBirth DateTime
+  dateOfBirth DateTime @db.Date
 
   gender Gender
 
   bio String?
 
-  city    String?
-  state   String?
+  // Location
+
+  city String?
+
+  state String?
+
   country String?
 
-  isNRI Boolean?
+  // Education & Career
 
-  educationLevelId String?
+  educationLevel EducationLevel?
 
-  qualification String?
+  college String?
 
   occupation String?
 
-  annualSalary Int?
+  // Financial
 
-  familyIncome Int?
+  annualIncome Decimal? @db.Decimal(15, 2)
+
+  familyIncome Decimal? @db.Decimal(15, 2)
+
+  incomeCurrency String? @default("INR")
 
   assets String?
 
-  heightCm Int?
+  // Cultural
 
-  motherTongueId String?
-
-  religionId String?
-
-  caste String?
-
-  familyType FamilyType?
-
-  profileCompleted Boolean @default(false)
-
-  completionPercentage Int @default(0)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  educationLevel EducationLevel? @relation(fields: [educationLevelId], references: [id])
-
-  motherTongue Language? @relation("MotherTongueLanguage", fields: [motherTongueId], references: [id])
+  religionId String? @db.Uuid
 
   religion Religion? @relation(fields: [religionId], references: [id])
 
-  @@index([gender])
-  @@index([religionId])
-  @@index([country])
-  @@index([state])
-  @@index([city])
-  @@index([dateOfBirth])
-}
+  casteId String? @db.Uuid
 
-model Session {
-  id String @id @default(uuid())
+  caste Caste? @relation(fields: [casteId], references: [id])
 
-  userId String
+  motherTongue String?
 
-  refreshToken String
-
-  ipAddress String?
-
-  userAgent String?
-
-  expiresAt DateTime
-
-  revokedAt DateTime?
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
-  @@index([revokedAt])
-}
-
-model VerificationStatus {
-  id String @id @default(uuid())
-
-  userId String @unique
-
-  verificationMethod VerificationMethod?
-
-  status VerificationStatusType @default(UNVERIFIED)
-
-  reviewedAt DateTime?
-
-  rejectionReason String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model OnboardingProgress {
-  id String @id @default(uuid())
-
-  userId String @unique
-
-  currentStep Int @default(0)
-
-  completedSteps Json?
-
-  completed Boolean @default(false)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model UserLifestyle {
-  id String @id @default(cuid())
-
-  userId String @unique
+  // Lifestyle
 
   dietPreference DietPreference?
 
@@ -411,294 +348,1215 @@ model UserLifestyle {
 
   drinkingHabit DrinkingHabit?
 
-  fitnessImportance FitnessImportance?
+  fitnessImportance ImportanceLevel?
 
-  petsPreference PetsPreference?
+  petsPreference ImportanceLevel?
 
-  createdAt DateTime @default(now())
+  // Personality
 
-  updatedAt DateTime @updatedAt
+  personalityType PersonalityType?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sleepPreference SleepPreference?
 
-  @@index([dietPreference])
-  @@index([smokingHabit])
-  @@index([drinkingHabit])
-}
+  communicationStyle String?
 
-model UserPersonality {
-  id String @id @default(cuid())
-
-  userId String @unique
-
-  communicationStyle CommunicationStyle?
-
-  conflictStyle ConflictStyle?
+  conflictResolutionStyle String?
 
   socialLevel SocialLevel?
 
-  morningNightType MorningNightType?
+  cleanlinessLevel CleanlinessLevel?
 
-  cleanlinessLevel Int?
+  // Completion
 
-  createdAt DateTime @default(now())
+  completionPercentage Int @default(0)
 
-  updatedAt DateTime @updatedAt
+  isCompleted Boolean @default(false)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Relations
 
-  @@index([communicationStyle])
-  @@index([socialLevel])
-}
+  categories UserCategory[]
 
-model UserValues {
-  id String @id @default(cuid())
+  photos ProfilePhoto[]
 
-  userId String @unique
+  languages UserLanguage[]
 
-  familyImportance Int?
+  interests UserInterest[]
 
-  religionImportance Int?
+  loveProfile LoveProfile?
 
-  traditionImportance Int?
+  marriageProfile MarriageProfile?
 
-  careerImportance Int?
+  partnerPreference PartnerPreference?
 
-  travelImportance Int?
+  sentInteractions ProfileInteraction[] @relation("InteractionSender")
 
-  loyaltyImportance Int?
+  receivedInteractions ProfileInteraction[] @relation("InteractionReceiver")
 
-  independenceLevel Int?
+  matchesAsProfileOne Match[] @relation("MatchProfileOne")
 
-  createdAt DateTime @default(now())
+  matchesAsProfileTwo Match[] @relation("MatchProfileTwo")
 
-  updatedAt DateTime @updatedAt
+  messagesSent Message[]
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+  blocksCreated Block[] @relation("ProfileBlocks")
 
-model UserPreference {
-  id String @id @default(cuid())
+  blockedBy Block[] @relation("BlockedByProfiles")
 
-  userId String @unique
+  reportsCreated Report[] @relation("ReportsCreated")
 
-  childrenPreference ChildrenPreference?
-
-  marriageTimeline MarriageTimeline?
-
-  relocationPreference RelocationPreference?
-
-  longDistancePreference LongDistancePreference?
-
-  dealBreakers Json?
+  reportsReceived Report[] @relation("ReportsReceived")
 
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deletedAt DateTime?
+
+  @@index([city, state, country])
+  @@index([gender])
+  @@index([religionId])
+  @@index([casteId])
+  @@index([religionId, state])
 }
 
-model UserPhoto {
-  id String @id @default(cuid())
+enum PhotoModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
 
-  userId String
+model ProfilePhoto {
+  id String @id @default(uuid()) @db.Uuid
 
-  url String
+  profileId String @db.Uuid
 
-  order Int
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  storageKey String
+
+  cdnUrl String
+
+  displayOrder Int
 
   isPrimary Boolean @default(false)
 
-  moderationStatus ModerationStatus @default(PENDING)
-
-  blurHash String?
-
-  uploadedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-model UserPrompt {
-  id String @id @default(cuid())
-
-  userId String
-
-  promptKey String
-
-  answer String
-
-  displayOrder Int
-
-  isVisible Boolean @default(true)
+  moderationStatus PhotoModerationStatus @default(PENDING)
 
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([profileId])
+}
 
-  @@unique([userId, promptKey])
-  @@index([userId])
+model Language {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String @unique
+
+  code String @unique
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  users UserLanguage[]
+
+  preferredByPartnerLanguages PartnerPreferredLanguage[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+enum LanguageProficiency {
+  BASIC
+  CONVERSATIONAL
+  FLUENT
+  NATIVE
 }
 
 model UserLanguage {
-  id String @id @default(cuid())
+  id String @id @default(uuid()) @db.Uuid
 
-  userId String
+  profileId String @db.Uuid
 
-  languageId String
+  languageId String @db.Uuid
 
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   language Language @relation(fields: [languageId], references: [id])
 
-  @@unique([userId, languageId])
-  @@index([userId])
-  @@index([languageId])
+  proficiency LanguageProficiency?
+
+  createdAt DateTime @default(now())
+
+  @@unique([profileId, languageId])
+}
+
+model Interest {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String @unique
+
+  category String?
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  users UserInterest[]
+
+  preferredByPartnerInterests PartnerPreferredInterest[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
 }
 
 model UserInterest {
-  id String @id @default(cuid())
+  id String @id @default(uuid()) @db.Uuid
 
-  userId String
+  profileId String @db.Uuid
 
-  interestId String
+  interestId String @db.Uuid
 
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   interest Interest @relation(fields: [interestId], references: [id])
 
-  @@unique([userId, interestId])
-  @@index([userId])
+  createdAt DateTime @default(now())
+
+  @@unique([profileId, interestId])
+}
+
+/////////////////////////////////////////////////
+// CATEGORY ENUMS
+/////////////////////////////////////////////////
+
+enum CategoryType {
+  LOVE
+  MARRIAGE
+}
+
+enum UserJourneyStatus {
+  ACTIVE
+  COMPLETED
+  SWITCHED
+}
+
+/////////////////////////////////////////////////
+// LOVE ENUMS
+/////////////////////////////////////////////////
+
+enum RelationshipIntent {
+  LONG_TERM
+  OPEN_TO_MARRIAGE
+  UNDECIDED
+}
+
+/////////////////////////////////////////////////
+// MARRIAGE ENUMS
+/////////////////////////////////////////////////
+
+enum MarriageTimeline {
+  IMMEDIATE
+  WITHIN_ONE_YEAR
+  FAMILY_SEARCHING
+  EXPLORING_SERIOUSLY
+  REMARRIAGE
+}
+
+enum FamilyType {
+  JOINT
+  NUCLEAR
+}
+
+model Category {
+  id String @id @default(uuid()) @db.Uuid
+
+  type CategoryType @unique
+
+  description String?
+
+  subCategories SubCategory[]
+
+  users UserCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SubCategory {
+  id String @id @default(uuid()) @db.Uuid
+
+  categoryId String @db.Uuid
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  name String
+
+  description String?
+
+  isActive Boolean @default(true)
+
+  users UserCategory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([categoryId, name])
+}
+
+model UserCategory {
+  id String @id @default(uuid()) @db.Uuid
+
+  profileId String @db.Uuid
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  categoryId String @db.Uuid
+
+  category Category @relation(fields: [categoryId], references: [id])
+
+  subCategoryId String @db.Uuid
+
+  subCategory SubCategory @relation(fields: [subCategoryId], references: [id])
+
+  isCurrent Boolean @default(true)
+
+  startedAt DateTime @default(now())
+
+  endedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+  @@index([isCurrent])
+  @@index([profileId, isCurrent])
+}
+
+model LoveProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  profileId String @unique @db.Uuid
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  voiceIntroUrl String?
+
+  videoIntroUrl String?
+
+  prompts LovePromptAnswer[]
+
+  compatibility LoveCompatibility?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LovePrompt {
+  id String @id @default(uuid()) @db.Uuid
+
+  text String
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  answers LovePromptAnswer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LovePromptAnswer {
+  id String @id @default(uuid()) @db.Uuid
+
+  loveProfileId String @db.Uuid
+
+  loveProfile LoveProfile @relation(fields: [loveProfileId], references: [id], onDelete: Cascade)
+
+  promptId String @db.Uuid
+
+  prompt LovePrompt @relation(fields: [promptId], references: [id])
+
+  answer String @db.Text
+
+  displayOrder Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([loveProfileId, promptId])
+}
+
+model LoveCompatibility {
+  id String @id @default(uuid()) @db.Uuid
+
+  loveProfileId String @unique @db.Uuid
+
+  loveProfile LoveProfile @relation(fields: [loveProfileId], references: [id], onDelete: Cascade)
+
+  relationshipIntent RelationshipIntent
+
+  religiousCompatibilityImportance Int
+
+  wantsChildren Boolean?
+
+  openToRelocation Boolean?
+
+  comfortableLongDistance Boolean?
+
+  comfortablePoliticalDiscussions Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/////////////////////////////////////////////////
+// MARRIAGE ENUMS
+/////////////////////////////////////////////////
+
+enum MaritalStatus {
+  NEVER_MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum RelocationPreference {
+  DOMESTIC
+  ABROAD
+  BOTH
+  NOT_WILLING
+}
+
+enum PreferenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PracticeFrequency {
+  NEVER
+  OCCASIONALLY
+  MONTHLY
+  WEEKLY
+  DAILY
+}
+
+enum LifestyleType {
+  MODERN
+  TRADITIONAL
+  BALANCED
+}
+
+enum WeddingType {
+  SIMPLE
+  TRADITIONAL
+  LUXURY
+  DESTINATION
+  TEMPLE
+  CHURCH
+  MOSQUE
+  GURDWARA
+  MINIMAL
+}
+
+model MarriageProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  profileId String @unique @db.Uuid
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  lookingFor String?
+
+  marriageTimeline MarriageTimeline?
+
+  residence String?
+
+  maritalStatus MaritalStatus?
+
+  hasChildren   Boolean?
+  childrenCount Int?
+
+  siblingsCount Int?
+
+  familyType FamilyType?
+
+  parentalConsentRequired Boolean?
+
+  wantsChildren Boolean?
+
+  relocationPreference RelocationPreference?
+
+  partnerExpectations String?
+
+  dealBreakers String?
+
+  financialResponsibility PreferenceLevel?
+
+  angerManagement PreferenceLevel?
+
+  travelInterest PreferenceLevel?
+
+  hinduProfile HinduMarriageProfile?
+
+  muslimProfile MuslimMarriageProfile?
+
+  christianProfile ChristianMarriageProfile?
+
+  sikhProfile SikhMarriageProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HinduMarriageProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  marriageProfileId String @unique @db.Uuid
+
+  marriageProfile MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  // Faith & Astrology
+
+  religionImportance PreferenceLevel?
+
+  kundliRequired Boolean?
+
+  doshaImportance PreferenceLevel?
+
+  horoscopeMismatchAccepted Boolean?
+
+  hasSpiritualGuru Boolean?
+
+  // Rituals
+
+  poojaFrequency PracticeFrequency?
+
+  templeVisitFrequency PracticeFrequency?
+
+  fastingPreferences String[]
+
+  ritualPreferences String[]
+
+  touchesElderFeet Boolean?
+
+  // Lifestyle
+
+  nonVegAtHomeAccepted Boolean?
+
+  alcoholAcceptance PreferenceLevel?
+
+  smokingAcceptance PreferenceLevel?
+
+  dressingStyle LifestyleType?
+
+  genderRolePreference LifestyleType?
+
+  tattooAccepted Boolean?
+
+  clubbingAccepted Boolean?
+
+  oppositeGenderFriendAcceptance PreferenceLevel?
+
+  // Marriage
+
+  casteConscious Boolean?
+
+  intercasteMarriageAccepted Boolean?
+
+  sameFamilyStatusExpected Boolean?
+
+  workingPartnerPreference PreferenceLevel?
+
+  acceptDivorcee Boolean?
+
+  weddingPreference WeddingType?
+
+  wearsThali Boolean?
+
+  // Household
+
+  vastuImportance PreferenceLevel?
+
+  separatePoojaRoom Boolean?
+
+  livingNearTemplePreference Boolean?
+
+  hinduSymbolsAtHome Boolean?
+
+  childrenLearnSanskrit Boolean?
+
+  templeDonationImportance PreferenceLevel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MuslimSect {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String @unique
+
+  description String?
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  communities MuslimCommunity[]
+
+  profiles MuslimMarriageProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MuslimCommunity {
+  id String @id @default(uuid()) @db.Uuid
+
+  sectId String? @db.Uuid
+
+  sect MuslimSect? @relation(fields: [sectId], references: [id])
+
+  name String @unique
+
+  region String?
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  profiles MuslimMarriageProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MuslimMarriageProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  marriageProfileId String @unique @db.Uuid
+
+  marriageProfile MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  // Identity
+
+  sectId String?     @db.Uuid
+  sect   MuslimSect? @relation(fields: [sectId], references: [id])
+
+  communityId String?          @db.Uuid
+  community   MuslimCommunity? @relation(fields: [communityId], references: [id])
+
+  // Faith & Practices
+
+  practiceLevel PreferenceLevel?
+
+  prayerFrequency PracticeFrequency?
+
+  tahajjudPractice Boolean?
+
+  quranReadingFrequency PracticeFrequency?
+
+  ramadanObservance PreferenceLevel?
+
+  zakatImportance PreferenceLevel?
+
+  hajjUmrahPlan String?
+
+  followsScholar Boolean?
+
+  // Lifestyle
+
+  hijabPreference PreferenceLevel?
+
+  beardPreference PreferenceLevel?
+
+  halalLifestyleRequired Boolean?
+
+  interestFreeLifeImportance PreferenceLevel?
+
+  westernFestivalAcceptance Boolean?
+
+  // Marriage
+
+  nikahPreference WeddingType?
+
+  mehrImportance PreferenceLevel?
+
+  polygamyAcceptance Boolean?
+
+  womanWorkingAfterMarriage PreferenceLevel?
+
+  acceptDivorcee Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChristianDenomination {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String @unique
+
+  description String?
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  profiles ChristianMarriageProfile[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChristianMarriageProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  marriageProfileId String @unique @db.Uuid
+
+  marriageProfile MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  // Faith & Practices
+
+  denominationId String? @db.Uuid
+
+  denomination ChristianDenomination? @relation(fields: [denominationId], references: [id])
+
+  churchAttendanceFrequency PracticeFrequency?
+
+  bibleReadingFrequency PracticeFrequency?
+
+  prayerRoutines String[]
+
+  fastingRetreatImportance PreferenceLevel?
+
+  pastorGuidanceImportance PreferenceLevel?
+
+  // Church Life
+
+  churchServiceParticipation Boolean?
+
+  choirParticipation Boolean?
+
+  churchCharityImportance PreferenceLevel?
+
+  // Lifestyle & Boundaries
+
+  modestDressingPreference PreferenceLevel?
+
+  porkAcceptance Boolean?
+
+  alcoholAcceptance PreferenceLevel?
+
+  smokingAcceptance PreferenceLevel?
+
+  clubbingAcceptance Boolean?
+
+  livingNearChurchImportance PreferenceLevel?
+
+  religiousSymbolsAtHome Boolean?
+
+  entertainmentIndustryAcceptance Boolean?
+
+  phonePasswordSharingPreference PreferenceLevel?
+
+  pdaComfortLevel PreferenceLevel?
+
+  tattooAcceptance Boolean?
+
+  socialMediaModestyImportance PreferenceLevel?
+
+  therapyAcceptance Boolean?
+
+  // Marriage & Family
+
+  churchMarriageRequired Boolean?
+
+  premaritalCounsellingRequired Boolean?
+
+  weddingPreference WeddingType?
+
+  interDenominationAcceptance Boolean?
+
+  husbandSpiritualHeadPreference PreferenceLevel?
+
+  purityBeforeMarriageImportance PreferenceLevel?
+
+  childrenBaptismPreference Boolean?
+
+  christianSchoolPreference Boolean?
+
+  familyValuesOrientation LifestyleType?
+
+  parentingStyle PreferenceLevel?
+
+  adoptionAcceptance Boolean?
+
+  acceptDivorcee Boolean?
+
+  anniversaryImportance PreferenceLevel?
+
+  financialTransparencyImportance PreferenceLevel?
+
+  savingMoneyImportance PreferenceLevel?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model SikhReligiousStatus {
+  id String @id @default(uuid()) @db.Uuid
+
+  name String @unique
+
+  description String?
+
+  displayOrder Int?
+
+  isActive Boolean @default(true)
+
+  profiles SikhMarriageProfile[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model SikhMarriageProfile {
+  id String @id @default(uuid()) @db.Uuid
+
+  marriageProfileId String @unique @db.Uuid
+
+  marriageProfile MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  // Faith & Practices
+
+  religiousStatusId String? @db.Uuid
+
+  religiousStatus SikhReligiousStatus? @relation(fields: [religiousStatusId], references: [id])
+
+  nitnemFrequency PracticeFrequency?
+
+  gurdwaraVisitFrequency PracticeFrequency?
+
+  turbanPreference PreferenceLevel?
+
+  keshImportance PreferenceLevel?
+
+  sevaParticipationImportance PreferenceLevel?
+
+  // Lifestyle & Values
+
+  dietPreference DietPreference?
+
+  alcoholAcceptance PreferenceLevel?
+
+  smokingAcceptance PreferenceLevel?
+
+  lifestyleOrientation LifestyleType?
+
+  // Marriage & Family
+
+  casteConscious Boolean?
+
+  anandKarajPreference WeddingType?
+
+  interCasteAcceptance Boolean?
+
+  workingPartnerPreference PreferenceLevel?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+}
+
+model PartnerPreference {
+  id String @id @default(uuid()) @db.Uuid
+
+  //////////////////////////////////////////////////
+  // Ownership
+  //////////////////////////////////////////////////
+
+  profileId String @unique @db.Uuid
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  //////////////////////////////////////////////////
+  // HARD DISCOVERY FILTERS
+  //////////////////////////////////////////////////
+
+  ageFilterEnabled Boolean @default(false)
+
+  minAge Int?
+
+  maxAge Int?
+
+  heightFilterEnabled Boolean @default(false)
+
+  minHeightCm Int?
+
+  maxHeightCm Int?
+
+  distanceFilterEnabled Boolean @default(false)
+
+  maxDistanceKm Int?
+
+  casteFilterEnabled Boolean @default(false)
+
+  languageFilterEnabled Boolean @default(false)
+
+  educationFilterEnabled Boolean @default(false)
+
+  minimumEducationLevel EducationLevel?
+
+  incomeFilterEnabled Boolean @default(false)
+
+  minimumAnnualIncome Decimal? @db.Decimal(15, 2)
+
+  //////////////////////////////////////////////////
+  // SOFT COMPATIBILITY WEIGHTS
+  // 0 - Not important
+  // 100 - Extremely important
+  //////////////////////////////////////////////////
+
+  valuesWeight Int @default(100)
+
+  lifestyleWeight Int @default(90)
+
+  communicationWeight Int @default(90)
+
+  conflictResolutionWeight Int @default(90)
+
+  familyWeight Int @default(95)
+
+  interestsWeight Int @default(60)
+
+  careerWeight Int @default(40)
+
+  personalityWeight Int @default(85)
+
+  //////////////////////////////////////////////////
+  // Relationships
+  //////////////////////////////////////////////////
+
+  preferredCastes PartnerPreferredCaste[]
+
+  preferredLanguages PartnerPreferredLanguage[]
+
+  preferredInterests PartnerPreferredInterest[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([profileId])
+}
+
+model PartnerPreferredCaste {
+  id String @id @default(uuid()) @db.Uuid
+
+  partnerPreferenceId String @db.Uuid
+
+  casteId String @db.Uuid
+
+  partnerPreference PartnerPreference @relation(fields: [partnerPreferenceId], references: [id], onDelete: Cascade)
+
+  caste Caste @relation(fields: [casteId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([partnerPreferenceId, casteId])
+  @@index([casteId])
+}
+
+model PartnerPreferredLanguage {
+  id String @id @default(uuid()) @db.Uuid
+
+  partnerPreferenceId String @db.Uuid
+
+  languageId String @db.Uuid
+
+  partnerPreference PartnerPreference @relation(fields: [partnerPreferenceId], references: [id], onDelete: Cascade)
+
+  language Language @relation(fields: [languageId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([partnerPreferenceId, languageId])
+  @@index([languageId])
+}
+
+model PartnerPreferredInterest {
+  id String @id @default(uuid()) @db.Uuid
+
+  partnerPreferenceId String @db.Uuid
+
+  interestId String @db.Uuid
+
+  partnerPreference PartnerPreference @relation(fields: [partnerPreferenceId], references: [id], onDelete: Cascade)
+
+  interest Interest @relation(fields: [interestId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([partnerPreferenceId, interestId])
   @@index([interestId])
 }
 
-model QuestionSet {
-  id String @id @default(cuid())
+/////////////////////////////////////////////////
+// INTERACTION ENUMS
+/////////////////////////////////////////////////
 
-  key String @unique
+enum InteractionType {
+  LIKE
+  PASS
+  SUPER_LIKE
+}
 
-  title String
+enum MatchStatus {
+  ACTIVE
+  UNMATCHED
+}
+
+model ProfileInteraction {
+  id String @id @default(uuid()) @db.Uuid
+
+  fromProfileId String @db.Uuid
+
+  fromProfile Profile @relation("InteractionSender", fields: [fromProfileId], references: [id], onDelete: Cascade)
+
+  toProfileId String @db.Uuid
+
+  toProfile Profile @relation("InteractionReceiver", fields: [toProfileId], references: [id], onDelete: Cascade)
+
+  interactionType InteractionType
+
+  createdAt DateTime @default(now())
+
+  @@unique([fromProfileId, toProfileId])
+  @@index([toProfileId, interactionType])
+  @@index([fromProfileId])
+  @@index([toProfileId])
+  @@index([interactionType])
+}
+
+model Match {
+  id String @id @default(uuid()) @db.Uuid
+
+  profileOneId String @db.Uuid
+
+  profileOne Profile @relation("MatchProfileOne", fields: [profileOneId], references: [id], onDelete: Cascade)
+
+  profileTwoId String @db.Uuid
+
+  profileTwo Profile @relation("MatchProfileTwo", fields: [profileTwoId], references: [id], onDelete: Cascade)
+
+  status MatchStatus @default(ACTIVE)
+
+  matchedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  chat Chat?
+
+  @@unique([profileOneId, profileTwoId])
+  @@index([profileOneId])
+  @@index([profileTwoId])
+  @@index([status])
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VOICE
+  VIDEO
+  SYSTEM
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  DELETED
+}
+
+model Chat {
+  id String @id @default(uuid()) @db.Uuid
+
+  matchId String @unique @db.Uuid
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  lastMessageAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  messages Message[]
+
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id String @id @default(uuid()) @db.Uuid
+
+  chatId String @db.Uuid
+
+  chat Chat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  senderProfileId String @db.Uuid
+
+  senderProfile Profile @relation(fields: [senderProfileId], references: [id])
+
+  type MessageType @default(TEXT)
+
+  content String?
+
+  attachmentUrl String?
+
+  status MessageStatus @default(SENT)
+
+  sentAt DateTime @default(now())
+
+  isEdited Boolean @default(false)
+
+  editedAt DateTime?
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([chatId, sentAt(sort: Desc)])
+  @@index([senderProfileId])
+}
+
+/////////////////////////////////////////////////
+// SAFETY ENUMS
+/////////////////////////////////////////////////
+
+enum ReportReason {
+  FAKE_PROFILE
+  INAPPROPRIATE_CONTENT
+  HARASSMENT
+  SPAM
+  SCAM
+  UNDERAGE
+  IMPERSONATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum ModerationActionType {
+  WARNING
+  TEMP_SUSPENSION
+  PERMANENT_BAN
+  SHADOW_BAN
+}
+
+model Block {
+  id String @id @default(uuid()) @db.Uuid
+
+  blockerProfileId String @db.Uuid
+
+  blocker Profile @relation("ProfileBlocks", fields: [blockerProfileId], references: [id], onDelete: Cascade)
+
+  blockedProfileId String @db.Uuid
+
+  blocked Profile @relation("BlockedByProfiles", fields: [blockedProfileId], references: [id], onDelete: Cascade)
+
+  reason String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([blockerProfileId, blockedProfileId])
+  @@index([blockedProfileId])
+}
+
+model Report {
+  id String @id @default(uuid()) @db.Uuid
+
+  reporterProfileId String @db.Uuid
+
+  reporter Profile @relation("ReportsCreated", fields: [reporterProfileId], references: [id])
+
+  reportedProfileId String @db.Uuid
+
+  reported Profile @relation("ReportsReceived", fields: [reportedProfileId], references: [id])
+
+  reason ReportReason
 
   description String?
 
-  displayOrder Int
+  status ReportStatus @default(PENDING)
 
-  isActive Boolean @default(true)
+  assignedAdminId String? @db.Uuid
 
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  questions Question[]
-}
-
-model Question {
-  id String @id @default(cuid())
-
-  questionSetId String
-
-  key String @unique
-
-  label String
-
-  description String?
-
-  type QuestionType
-
-  required Boolean @default(false)
-
-  displayOrder Int
-
-  isActive Boolean @default(true)
+  resolvedAt DateTime?
 
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
 
-  questionSet QuestionSet @relation(fields: [questionSetId], references: [id], onDelete: Cascade)
+  evidence ReportEvidence[]
 
-  options QuestionOption[]
-
-  answers UserAnswer[]
-
-  @@index([questionSetId])
-  @@index([key])
+  @@index([reportedProfileId])
+  @@index([reporterProfileId])
+  @@index([status])
 }
 
-model QuestionOption {
-  id String @id @default(cuid())
+model ReportEvidence {
+  id String @id @default(uuid()) @db.Uuid
 
-  questionId String
+  reportId String @db.Uuid
 
-  label String
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
-  value String
+  storageKey String
 
-  displayOrder Int
+  fileUrl String
 
   createdAt DateTime @default(now())
 
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@index([questionId])
+  @@index([reportId])
 }
 
-model UserAnswer {
-  id String @id @default(cuid())
+model ModerationAction {
+  id String @id @default(uuid()) @db.Uuid
 
-  userId String
+  userId String @db.Uuid
 
-  questionId String
+  user User @relation("UserModerationActions", fields: [userId], references: [id], onDelete: Restrict)
 
-  answerJson Json
+  adminId String @db.Uuid
+
+  admin User @relation("AdminModerationActions", fields: [adminId], references: [id])
+
+  actionType ModerationActionType
+
+  reason String
+
+  expiresAt DateTime?
 
   createdAt DateTime @default(now())
 
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, questionId])
   @@index([userId])
-  @@index([questionId])
-}
-
-model UserEmbedding {
-  id String @id @default(cuid())
-
-  userId String @unique
-
-  embedding Json
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model UserGenderPreference {
-  id String @id @default(uuid())
-
-  userId String
-
-  gender Gender
-
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, gender])
-  @@index([userId])
-  @@index([gender])
+  @@index([adminId])
+  @@index([actionType])
 }

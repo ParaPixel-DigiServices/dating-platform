@@ -1,19 +1,45 @@
-import { ValidationPipe } from "@nestjs/common";
-import { NestFactory } from "@nestjs/core";
+import { NestFactory } from '@nestjs/core';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
+import { Logger } from 'nestjs-pino';
+import { AppConfigService } from './config/config.service';
 
-import helmet from 'helmet';
-import compression from 'compression';
-import cookieParser from 'cookie-parser';
+import { AppModule } from './app.module';
+import helmet from '@fastify/helmet';
+import cors from '@fastify/cors';
+import { ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
-import { AppModule } from "./app.module";
+async function bootstrap() {
+  const app = await NestFactory.create<NestFastifyApplication>(
+    AppModule,
+    new FastifyAdapter(),
+    {
+      bufferLogs: true,
+    }
+  );
 
-async function bootstrap(){
-  const app = await NestFactory.create(AppModule);
-  app.use(helmet());
-  app.use(compression());
-  app.use(cookieParser());
-  app.enableCors({
-    origin: true,
+  app.enableShutdownHooks();
+
+  app.useLogger(app.get(Logger));
+
+  app.useGlobalFilters(
+    new GlobalExceptionFilter(),
+  );
+
+  app.useGlobalInterceptors(
+    new ResponseInterceptor(),
+  );
+  
+  const config = app.get(AppConfigService);
+  await app.register(helmet, {
+    global: true,
+  });
+  await app.register(cors, {
+    origin: config.corsOrigin,
     credentials: true,
   });
 
@@ -22,12 +48,13 @@ async function bootstrap(){
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
     }),
   );
 
-  app.setGlobalPrefix('api');
-
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(config.port, '0.0.0.0');
 }
 
-bootstrap();
+void bootstrap();
