@@ -3,29 +3,32 @@ import {
   FastifyAdapter,
   NestFastifyApplication,
 } from '@nestjs/platform-fastify';
-import { Logger } from 'nestjs-pino';
-import { AppConfigService } from './config/config.service';
 
 import { AppModule } from './app.module';
+import { Logger } from 'nestjs-pino';
+import { AppConfigService } from './config/config.service';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import { ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { ResponseInterceptor } from './common/interceptors/response-interceptor';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    new FastifyAdapter(),
-    {
-      bufferLogs: true,
-    }
-  );
+  const app =
+    await NestFactory.create<NestFastifyApplication>(
+      AppModule,
+      new FastifyAdapter(),
+      {
+        bufferLogs: true,
+      },
+    );
 
   app.enableShutdownHooks();
 
+  // Pino logger
   app.useLogger(app.get(Logger));
 
+  // Global exception handling
   app.useGlobalFilters(
     new GlobalExceptionFilter(),
   );
@@ -33,16 +36,21 @@ async function bootstrap() {
   app.useGlobalInterceptors(
     new ResponseInterceptor(),
   );
-  
+
+
   const config = app.get(AppConfigService);
+
+  // Security
   await app.register(helmet, {
     global: true,
   });
+
   await app.register(cors, {
     origin: config.corsOrigin,
     credentials: true,
   });
 
+  // Validation
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -54,7 +62,11 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(config.port, '0.0.0.0');
+
+  await app.listen(
+    config.port,
+    '0.0.0.0',
+  );
 }
 
 void bootstrap();
