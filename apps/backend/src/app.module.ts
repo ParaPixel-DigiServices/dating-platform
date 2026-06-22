@@ -10,9 +10,11 @@ import { AppConfigService } from './config/config.service';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { HealthModule } from './health/health.module';
+import { DatabaseModule } from './common/database/database.module';
 
 @Module({
   imports: [
+    DatabaseModule,
     ConfigModule.forRoot({
       isGlobal: true,
 
