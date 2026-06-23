@@ -1,209 +1,184 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  ImageBackground,
+  TouchableOpacity,
+  Platform,
 } from "react-native";
-import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { CategoryKey } from "@/hooks/useOnboardingStore";
+import { LinearGradient } from "expo-linear-gradient";
+import { BlurView } from "expo-blur";
+import Animated, {
+  useAnimatedStyle,
+  withTiming,
+  interpolateColor,
+  useSharedValue,
+  withSpring,
+  FadeInDown,
+} from "react-native-reanimated";
 
-/**
- * CategoryCard
- *
- * One card in the 2×2 category grid on the category selection screen.
- *
- * Props:
- *   id            — CategoryKey ('Casual' | 'Love' | 'Marriage' | 'Find_Your_Roommate')
- *   title         — Display title
- *   description   — Short description
- *   iconName      — Icon name string
- *   iconFamily    — Which icon set to use
- *   imageUri      — Background image URL
- *   isSelected    — Whether this card is currently active
- *   primaryColor  — Active theme primary colour
- *   textSecondary — Active theme text secondary colour
- *   textPrimary   — Active theme text primary colour
- *   secondary     — Active theme surface colour
- *   onPress       — Selection callback
- */
+// --- Shared Constants ---
+const COLORS = {
+  primaryChampagne: "#E8C7B2",
+  warmIvory: "#FFF5EC",
+  textSecondary: "rgba(255,245,236, 0.55)",
+  borderSubtle: "rgba(232,199,178,0.12)",
+  borderSelected: "#E8C7B2",
+  cardGlassDark: "rgba(10, 5, 2, 0.45)",
+  cardGlassSelected: "rgba(50, 30, 20, 0.65)",
+};
 
-type IconFamily = "Ionicons" | "MaterialCommunityIcons" | "Feather";
+const FONTS = {
+  serif: Platform.select({ ios: "Times New Roman", android: "serif" }),
+  sans: Platform.select({ ios: "Helvetica Neue", android: "sans-serif" }),
+};
 
-interface Props {
-  id: CategoryKey;
-  title: string;
-  description: string;
-  iconName: string;
-  iconFamily: IconFamily;
-  imageUri: string;
-  isSelected: boolean;
-  primaryColor: string;
-  textPrimary: string;
-  textSecondary: string;
-  secondary: string;
-  onPress: (id: CategoryKey) => void;
-}
+const SPACING = { m: 12, l: 16 };
+const RADIUS = { card: 24 };
 
-function CategoryIcon({
-  name,
-  family,
-  color,
-}: {
-  name: string;
-  family: IconFamily;
-  color: string;
-}) {
-  if (family === "Ionicons")
-    return <Ionicons name={name as any} size={26} color={color} />;
-  if (family === "MaterialCommunityIcons")
-    return <MaterialCommunityIcons name={name as any} size={28} color={color} />;
-  return <Feather name={name as any} size={26} color={color} />;
-}
+export default function CategoryCard({ item, isSelected, onPress, index, cardHeight }) {
+  const Icon = item.icon;
+  const scale = useSharedValue(1);
+  const progress = useSharedValue(isSelected ? 1 : 0);
 
-export function CategoryCard({
-  id,
-  title,
-  description,
-  iconName,
-  iconFamily,
-  imageUri,
-  isSelected,
-  primaryColor,
-  textPrimary,
-  textSecondary,
-  secondary,
-  onPress,
-}: Props) {
+  useEffect(() => {
+    progress.value = withTiming(isSelected ? 1 : 0, { duration: 300 });
+  }, [isSelected]);
+
+  const animatedCardStyle = useAnimatedStyle(() => {
+    return {
+      borderColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        [COLORS.borderSubtle, COLORS.borderSelected],
+      ),
+      backgroundColor: interpolateColor(
+        progress.value,
+        [0, 1],
+        [COLORS.cardGlassDark, COLORS.cardGlassSelected],
+      ),
+      transform: [{ scale: scale.value }],
+    };
+  });
+
+  const animatedRadioStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: progress.value }],
+      opacity: progress.value,
+    };
+  });
+
   return (
-    <TouchableOpacity
-      style={[
-        styles.card,
-        { backgroundColor: secondary },
-        isSelected
-          ? { borderColor: primaryColor }
-          : { borderColor: "rgba(255,255,255,0.08)" },
-      ]}
-      onPress={() => onPress(id)}
-      activeOpacity={0.8}
+    <Animated.View
+      entering={FadeInDown.delay(index * 120).duration(400)}
+      style={[styles.cardWrapper, animatedCardStyle, {height: cardHeight}]}
     >
-      <ImageBackground source={{ uri: imageUri }} style={styles.image}>
-        {/* Dark overlay */}
-        <View style={[StyleSheet.absoluteFillObject, styles.overlay]} />
+      {/* 1. Base Blur Layer */}
+      <BlurView intensity={30} tint="dark" experimentalBlurMethod="dimezisBlurView" style={StyleSheet.absoluteFill} />
 
-        <View style={styles.inner}>
-          {/* Top row: icon + checkmark */}
-          <View style={styles.topRow}>
-            <View
-              style={[
-                styles.iconCircle,
-                {
-                  backgroundColor: isSelected
-                    ? "rgba(0,0,0,0.5)"
-                    : "rgba(0,0,0,0.3)",
-                },
-              ]}
-            >
-              <CategoryIcon
-                name={iconName}
-                family={iconFamily}
-                color={isSelected ? primaryColor : textSecondary}
-              />
-            </View>
+      {/* 2. Glassy Gradient Overlay */}
+      <LinearGradient
+        colors={["#131613", "#392e29b0"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
 
-            {isSelected && (
-              <View style={[styles.checkBadge, { backgroundColor: primaryColor }]}>
-                <Feather name="check" size={14} color="#FFF" />
-              </View>
-            )}
-          </View>
-
-          {/* Bottom row: title + underline + description */}
-          <View style={styles.bottomRow}>
-            <Text style={[styles.title, { color: textPrimary }]}>{title}</Text>
-            <View
-              style={[
-                styles.underline,
-                { backgroundColor: isSelected ? primaryColor : "transparent" },
-              ]}
-            />
-            <Text style={[styles.description, { color: textPrimary }]}>
-              {description}
-            </Text>
-          </View>
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={() => onPress(item)} // Passes the full item back so Landing can read the redirectPath
+        onPressIn={() => (scale.value = withTiming(0.98, { duration: 150 }))}
+        onPressOut={() => (scale.value = withTiming(1, { duration: 150 }))}
+        style={styles.cardTouchable}
+      >
+        <View
+          style={[
+            styles.iconContainer,
+            isSelected && styles.iconContainerSelected,
+          ]}
+        >
+          <Icon color={COLORS.primaryChampagne} size={22} strokeWidth={1} />
         </View>
-      </ImageBackground>
-    </TouchableOpacity>
+
+        <View style={styles.cardTextContainer}>
+          <Text style={styles.cardTitle}>{item.title}</Text>
+          <Text style={styles.cardSubtitle}>{item.subtitle}</Text>
+        </View>
+
+        <View
+          style={[styles.radioButton, isSelected && styles.radioButtonSelected]}
+        >
+          <Animated.View
+            style={[styles.radioButtonInner, animatedRadioStyle]}
+          />
+        </View>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    width: "47%",
-    aspectRatio: 0.85,
-    borderRadius: 16,
-    borderWidth: 1.5,
+  cardWrapper: {
+    borderRadius: RADIUS.card,
+    borderWidth: 1,
     overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  image: {
-    flex: 1,
-    width: "100%",
-    height: "100%",
-  },
-  overlay: {
-    backgroundColor: "rgba(0,0,0,0.7)",
-  },
-  inner: {
-    flex: 1,
-    padding: 16,
-    justifyContent: "space-between",
-    zIndex: 2,
-  },
-  topRow: {
+  cardTouchable: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "center",
+    paddingVertical: 18,
+    paddingHorizontal: 20,
   },
-  iconCircle: {
+  iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: SPACING.l,
+    borderWidth: 1,
+    borderColor: "rgba(232,199,178,0.15)",
   },
-  checkBadge: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  iconContainerSelected: {
+    borderColor: "rgba(232,199,178,0.3)",
+    backgroundColor: "rgba(232,199,178,0.05)",
+  },
+  cardTextContainer: {
+    flex: 1,
+    marginRight: SPACING.m,
+  },
+  cardTitle: {
+    fontFamily: FONTS.serif,
+    fontSize: 18,
+    color: COLORS.warmIvory,
+    marginBottom: 4,
+    fontWeight: "400",
+    letterSpacing: 0.3,
+  },
+  cardSubtitle: {
+    fontFamily: FONTS.sans,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    lineHeight: 18,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "rgba(255,245,236, 0.25)",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 4,
   },
-  bottomRow: {
-    justifyContent: "flex-end",
+  radioButtonSelected: {
+    borderColor: COLORS.primaryChampagne,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
-    letterSpacing: 0.3,
-    textShadowColor: "rgba(0,0,0,0.75)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  underline: {
-    width: 24,
-    height: 3,
-    borderRadius: 1.5,
-    marginTop: 6,
-    marginBottom: 10,
-  },
-  description: {
-    fontSize: 13,
-    fontWeight: "500",
-    lineHeight: 18,
-    textShadowColor: "rgba(0,0,0,0.75)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+  radioButtonInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: COLORS.primaryChampagne,
   },
 });

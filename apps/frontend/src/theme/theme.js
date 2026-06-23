@@ -188,13 +188,17 @@ const theme = {
   // Client can adjust any value here without touching layout code.
   onboarding: {
     themeName:     "Onboarding",
-    primary:       "#C9956A",   // warm champagne-gold — CTA, accents, AMORA text
-    primaryLight:  "#E8C49A",   // lighter gold — button gradient start
+    // primary:       "#C9956A",   // warm champagne-gold — CTA, accents, AMORA text
+    // primaryLight:  "#E8C49A",   // lighter gold — button gradient start
+    primary:       "#e5b399",
+    primaryLight:  "#f1cdb1",
     secondary:     "#1E1410",   // very dark warm brown — provider button bg
     background:    "#0D0A07",   // near-black with warm undertone
-    textPrimary:   "#F0E6D6",   // warm off-white — headings
-    textSecondary: "#9A8A78",   // muted warm grey — subtitles, captions
-    border:        "#3A2E24",   // subtle warm border — provider btn borders
+    // textPrimary:   "#F0E6D6",   // warm off-white — headings
+    // textSecondary: "#9A8A78",   // muted warm grey — subtitles, captions
+    textPrimary:   "#FFF5EC",   // warm off-white — headings
+    textSecondary: "#F0E6D6",   // muted warm grey — subtitles, captions
+    border:        "#4e4741",   // subtle warm border — provider btn borders
     divider:       "#2A2018",   // section dividers
   },
 };

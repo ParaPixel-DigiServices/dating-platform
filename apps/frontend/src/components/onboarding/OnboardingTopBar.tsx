@@ -6,82 +6,58 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { OnboardingProgressBar } from "./OnboardingProgressBar";
+import { ChevronLeft } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import theme from "@/theme/theme";
 
-/**
- * OnboardingTopBar
- *
- * The shared top navigation bar used on every onboarding screen.
- * Contains: back button | progress bar | right slot (help/settings/empty)
- *
- * Props:
- *   step          — current step 1-4, forwarded to OnboardingProgressBar
- *   primaryColor  — theme primary colour
- *   onBack        — callback for the back/chevron button
- *   rightSlot     — optional: 'help' | 'settings' | undefined (renders nothing)
- *   onRightPress  — callback for the right-side icon button
- *   title         — optional screen title shown instead of progress (OTP screen uses it)
- *   textColor     — theme text primary colour (for back icon & title)
- *   secondaryText — theme text secondary colour (for help icon)
- */
-
-type RightSlot = "help" | "settings" | "none";
+const t = theme.onboarding;
 
 interface Props {
-  step: 1 | 2 | 3 | 4;
-  primaryColor: string;
-  textColor: string;
-  secondaryText: string;
-  onBack: () => void;
-  rightSlot?: RightSlot;
-  onRightPress?: () => void;
+  step: number;
+  totalSteps?: number;
+  onBack?: () => void;
+  hideBack?: boolean;
 }
 
 export function OnboardingTopBar({
   step,
-  primaryColor,
-  textColor,
-  secondaryText,
+  totalSteps = 4,
   onBack,
-  rightSlot = "none",
-  onRightPress,
+  hideBack = false,
 }: Props) {
-  const renderRight = () => {
-    if (rightSlot === "help") {
-      return (
-        <TouchableOpacity
-          style={styles.sideBtn}
-          onPress={onRightPress}
-          activeOpacity={0.7}
-        >
-          <Feather name="help-circle" size={20} color={secondaryText} />
-        </TouchableOpacity>
-      );
-    }
-    if (rightSlot === "settings") {
-      return (
-        <TouchableOpacity
-          style={[styles.sideBtn, styles.settingsCircle]}
-          onPress={onRightPress}
-          activeOpacity={0.7}
-        >
-          <Feather name="settings" size={18} color="rgba(255,255,255,0.7)" />
-        </TouchableOpacity>
-      );
-    }
-    return <View style={styles.sideBtn} />;
-  };
-
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.sideBtn} onPress={onBack} activeOpacity={0.7}>
-        <Feather name="chevron-left" size={26} color={textColor} />
-      </TouchableOpacity>
+      {hideBack ? (
+        <View style={styles.sideBtn} />
+      ) : (
+        <TouchableOpacity style={styles.sideBtn} activeOpacity={0.6} onPress={onBack}>
+          <ChevronLeft color={t.textPrimary} size={28} strokeWidth={1} />
+        </TouchableOpacity>
+      )}
 
-      <OnboardingProgressBar step={step} primaryColor={primaryColor} />
+      <View style={styles.progressWrapper}>
+        <Text style={[styles.stepText, { color: t.textSecondary }]}>
+          STEP {step} OF {totalSteps}
+        </Text>
+        <View style={styles.progressTrackContainer}>
+          <View style={[styles.progressBarTrack, { flex: step }]}>
+            <LinearGradient
+              colors={[t.primary, t.textSecondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.progressBarFill}
+            />
+          </View>
+          
+          {step < totalSteps && <View style={[styles.progressDot, { backgroundColor: t.primary, shadowColor: t.primary }]} />}
+          
+          {step < totalSteps && (
+            <View style={[styles.progressBarTrackRemaining, { flex: totalSteps - step }]} />
+          )}
+        </View>
+      </View>
 
-      {renderRight()}
+      <View style={styles.sideBtn} />
     </View>
   );
 }
@@ -91,18 +67,58 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 40 : 16,
+    width: "100%",
+    paddingHorizontal: 28,
+    paddingTop: Platform.OS === "android" ? 50 : 16,
     paddingBottom: 16,
+    zIndex: 10,
   },
   sideBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "flex-start",
+    marginLeft: -8,
   },
-  settingsCircle: {
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.1)",
+  progressWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+  },
+  stepText: {
+    fontFamily: Platform.OS === "ios" ? "Helvetica" : "sans-serif",
+    fontSize: 10,
+    letterSpacing: 2,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
+  progressTrackContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: 120,
+  },
+  progressBarTrack: {
+    height: 1.5,
+    backgroundColor: "transparent",
+  },
+  progressBarFill: {
+    height: "100%",
+    width: "100%",
+    borderRadius: 1,
+  },
+  progressDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 6,
+    marginHorizontal: -1,
+    zIndex: 2,
+  },
+  progressBarTrackRemaining: {
+    height: 1.5,
+    backgroundColor: "rgba(229,179,153,0.15)",
+    borderRadius: 1,
   },
 });

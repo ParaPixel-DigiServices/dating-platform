@@ -93,7 +93,7 @@ export const useAuthStore = create<AuthStore>()(
       // on every app launch so the router waits for getCurrentUser() to resolve
       // before navigating.
       partialize: (state) => {
-        const { isBootstrapping, ...rest } = state;
+        const { isBootstrapping, isLoading, ...rest } = state;
         return rest;
       },
     }

@@ -4,10 +4,10 @@ import { useAuthStore } from "@/hooks/useAuthStore";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 
 /**
- * Routing decision tree (matches specified flows):
+ * Routing decision tree:
  *
- * SIGN-UP:   landing → login → OTP → [index] → details → category → home
- * SIGN-IN:   landing → login → [index] → (details → category →) home
+ * SIGN-UP:   landing → login → OTP → details → category → [index] → home
+ * SIGN-IN:   landing → login → [index] → home
  * RESTART:   [index] → home (all local state already populated)
  */
 export default function IndexScreen() {
@@ -17,15 +17,17 @@ export default function IndexScreen() {
 
   // Step 1: Not authenticated — go to landing
   if (!accessToken) {
-    return <Redirect href="/(onboarding)/landing" />;
+    // return <Redirect href="/(onboarding)/landing" />;
+        // return <Redirect href="/(onboarding)/category" />;
+        return <Redirect href="/(onboarding)/details" />;
   }
 
-  // Step 2: Authenticated but hasn’t entered basic details yet
+  // Step 2: Authenticated but hasn't entered basic details yet
   if (!firstName) {
     return <Redirect href="/(onboarding)/details" />;
   }
 
-  // Step 3: Has details but hasn’t chosen a category
+  // Step 3: Has details but hasn't chosen a category
   if (!category) {
     return <Redirect href="/(onboarding)/category" />;
   }
