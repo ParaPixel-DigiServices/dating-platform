@@ -1,3 +1,11 @@
 packages:
   - "apps/*"
   - "packages/*"
+allowBuilds:
+  '@firebase/util': false
+  '@prisma/client': false
+  '@prisma/engines': false
+  '@shopify/react-native-skia': false
+  prisma: false
+  protobufjs: false
+  unrs-resolver: false
