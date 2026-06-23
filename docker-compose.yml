@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+
+    container_name: amora-postgres
+
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: amora
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+
+    ports:
+      - "5432:5432"
+
+
+    volumes:
+      - amora-postgres-data:/var/lib/postgresql/data
+
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U postgres -d amora"
+        ]
+
+      interval: 10s
+
+      timeout: 5s
+
+      retries: 5
+
+
+    networks:
+      - amora-network
+
+
+volumes:
+  amora-postgres-data:
+
+
+networks:
+  amora-network:
+    name: amora-network
