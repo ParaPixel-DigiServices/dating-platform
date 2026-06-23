@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { ChevronLeft } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   SlideInRight,
@@ -120,6 +121,7 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
 
   // --- Handlers ---
   const handleSendOTP = async (data: PhoneFormData) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       phoneAuthStore.setVerifying(true);
       
@@ -156,6 +158,7 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
   };
 
   const handleVerifyOTP = async (data: OTPFormData) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       phoneAuthStore.setVerifying(true);
 
@@ -220,6 +223,7 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
   };
 
   const handleBack = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === "otp") {
       setStep("phone");
       phoneAuthStore.setCodeSent(false);

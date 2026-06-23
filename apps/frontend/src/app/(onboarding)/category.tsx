@@ -36,7 +36,9 @@ import { useRouter } from "expo-router";
 
 import CategoryCard from "@/components/onboarding/CategoryCard";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { OnboardingTopBar } from "@/components/onboarding/OnboardingTopBar";
+import * as Haptics from "expo-haptics";
 const BgImg = require("@/assets/images/bg.png");
 
 const { width, height } = Dimensions.get("window");
@@ -177,6 +179,7 @@ export default function Landing() {
   const router = useRouter();
   const setCategory = useOnboardingStore((s) => s.setCategory);
   const setSubCategory = useOnboardingStore((s) => s.setSubCategory);
+  const setOnboardingStatus = useAuthStore((s) => s.setOnboardingStatus);
 
   // Which step we're on
   const [step, setStep] = useState<"category" | "subCategory">("category");
@@ -196,6 +199,7 @@ export default function Landing() {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleContinue = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === "category") {
       if (!selectedItem) return;
       // Show loading on button, then slide to sub-category step
@@ -209,6 +213,11 @@ export default function Landing() {
       if (!selectedSubItem) return;
       setCategory(selectedItem!.categoryKey as any);
       setSubCategory(selectedSubItem.id);
+      
+      // Update global auth state to confirm onboarding completion
+      setOnboardingStatus("COMPLETED");
+
+      // Redirect to index which will now correctly route to /(tabs)/home
       router.replace("/");
     }
   };

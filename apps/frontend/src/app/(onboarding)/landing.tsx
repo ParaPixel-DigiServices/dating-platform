@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -33,6 +34,8 @@ const BG_IMG = require("@/assets/images/main-bg.png");
 export default function LandingScreen() {
   const router = useRouter();
   const { setGoogleFirebaseToken, setLoading } = useAuthStore();
+
+  console.log("LandingScreen rendered");
 
   const [step, setStep] = useState<"landing" | "auth" | "verification">("landing");
   const otpFlowRef = useRef<OtpFlowRef>(null);
@@ -91,7 +94,10 @@ export default function LandingScreen() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 style={styles.createBtnWrapper}
-                onPress={() => setStep("auth")}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setStep("auth");
+                }}
               >
                 <LinearGradient
                   colors={["#f2c7aa", "#e5b399", "#f2c7aa"]}

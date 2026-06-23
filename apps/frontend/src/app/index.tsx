@@ -12,14 +12,14 @@ import { useOnboardingStore } from "@/hooks/useOnboardingStore";
  */
 export default function IndexScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
+  const user = useAuthStore((s) => s.user);
   const firstName   = useOnboardingStore((s) => s.firstName);
   const category    = useOnboardingStore((s) => s.category);
 
   // Step 1: Not authenticated — go to landing
-  if (!accessToken) {
-    // return <Redirect href="/(onboarding)/landing" />;
-        // return <Redirect href="/(onboarding)/category" />;
-        return <Redirect href="/(onboarding)/details" />;
+  if (!accessToken && !user) {
+    console.log("Redirecting to landing because user is not authenticated");
+    return <Redirect href="/(onboarding)/landing" />;
   }
 
   // Step 2: Authenticated but hasn't entered basic details yet

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import Animated, {
   useAnimatedStyle,
   withTiming,
@@ -87,7 +88,10 @@ export default function CategoryCard({ item, isSelected, onPress, index, cardHei
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => onPress(item)} // Passes the full item back so Landing can read the redirectPath
-        onPressIn={() => (scale.value = withTiming(0.98, { duration: 150 }))}
+        onPressIn={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          scale.value = withTiming(0.98, { duration: 150 });
+        }}
         onPressOut={() => (scale.value = withTiming(1, { duration: 150 }))}
         style={styles.cardTouchable}
       >

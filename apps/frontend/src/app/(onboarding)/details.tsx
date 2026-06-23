@@ -19,11 +19,13 @@ import { useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { ChevronLeft } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import * as Haptics from "expo-haptics";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { showSuccessToast, showErrorToast } from "@/components/toast";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
+import { useAuthStore } from "@/hooks/useAuthStore";
 import { OnboardingTopBar } from "@/components/onboarding/OnboardingTopBar";
 
 const BG_IMG = require("@/assets/images/main-bg.png");
@@ -96,6 +98,7 @@ export default function DetailsScreen() {
   const yearRef = useRef<TextInput>(null);
 
   // Store
+  const setOnboardingStatus = useAuthStore((state) => state.setOnboardingStatus);
   const setFirstName = useOnboardingStore((state) => state.setFirstName);
   const setLastName = useOnboardingStore((state) => state.setLastName);
   const setGender = useOnboardingStore((state) => state.setGender);
@@ -119,6 +122,7 @@ export default function DetailsScreen() {
     });
 
   const onSubmit = async (data: DetailsFormData) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     try {
       setLoading(true);
       console.log("Submitting details:", data);
@@ -126,7 +130,7 @@ export default function DetailsScreen() {
       const dob = new Date(
         parseInt(data.year, 10),
         parseInt(data.month, 10) - 1,
-        parseInt(data.day, 10),
+        parseInt(data.day, 10)
       );
 
       console.log("Constructed DOB:", dob);
@@ -134,13 +138,11 @@ export default function DetailsScreen() {
 
       // Local cache only
       setFirstName(data.firstName.trim());
-
       setLastName(data.lastName.trim());
-
       setGender(data.gender);
-
       setDateOfBirthStore(dob.toISOString());
 
+      setOnboardingStatus("IN_PROGRESS");
       showSuccessToast("Details saved");
 
       router.push("/category");
@@ -171,7 +173,7 @@ export default function DetailsScreen() {
       <ImageBackground source={BG_IMG} style={styles.bg} resizeMode="cover">
         {/* Blur overlay */}
         <BlurView
-          intensity={75}
+          intensity={85}
           tint="dark"
           experimentalBlurMethod="dimezisBlurView"
           style={StyleSheet.absoluteFillObject}
@@ -180,6 +182,7 @@ export default function DetailsScreen() {
         {/* Gradient fade to theme background */}
         <LinearGradient
           colors={["transparent", casualTheme.background]}
+          // colors={["#241c1300", casualTheme.background]}
           locations={[0.4, 1]}
           style={StyleSheet.absoluteFillObject}
           pointerEvents="none"
@@ -272,7 +275,7 @@ export default function DetailsScreen() {
                               styles.textInput,
                               { color: casualTheme.textPrimary },
                             ]}
-                            placeholder="e.g. Rohan"
+                            placeholder="First Name"
                             placeholderTextColor={casualTheme.textSecondary}
                             value={field.value}
                             onChangeText={field.onChange}
@@ -323,7 +326,7 @@ export default function DetailsScreen() {
                               styles.textInput,
                               { color: casualTheme.textPrimary },
                             ]}
-                            placeholder="e.g. Kumar"
+                            placeholder="Last Name"
                             placeholderTextColor={casualTheme.textSecondary}
                             value={field.value}
                             onChangeText={field.onChange}
@@ -484,9 +487,10 @@ export default function DetailsScreen() {
                             },
                             fieldState.error && styles.inputErrorBorder,
                           ]}
-                          onPress={() =>
-                            setGenderDropdownOpen(!isGenderDropdownOpen)
-                          }
+                          onPress={() => {
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            setGenderDropdownOpen(!isGenderDropdownOpen);
+                          }}
                           activeOpacity={0.8}
                         >
                           <Feather
@@ -537,6 +541,7 @@ export default function DetailsScreen() {
                                   },
                                 ]}
                                 onPress={() => {
+                                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                                   setValue("gender", option, {
                                     shouldValidate: true,
                                   });

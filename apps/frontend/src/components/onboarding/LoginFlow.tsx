@@ -10,6 +10,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import * as Haptics from "expo-haptics";
 
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { firebaseGoogleSignInWithIdToken } from "@/services/firebaseAuthService";
@@ -77,6 +78,7 @@ export default function LoginFlow({ onSuccess }: { onSuccess: () => void }) {
   }, []);
 
   const handleGoogleSignIn = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoadingProvider("google");
     try {
       await GoogleSignin.hasPlayServices();
@@ -104,10 +106,12 @@ export default function LoginFlow({ onSuccess }: { onSuccess: () => void }) {
   };
 
   const handleAppleSignIn = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     showInfoToast("Apple Sign-In coming soon!");
   };
 
   const handleXSignIn = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     showInfoToast("X Sign-In coming soon!");
   };
 
