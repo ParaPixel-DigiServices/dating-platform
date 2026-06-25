@@ -13,250 +13,40 @@ import {
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
-import {
-  getProfileSections,
-  findQuestionById,
-  formatAnswer,
-  type ProfileSection,
-} from "@/utils/profileHelpers";
+import { formatAnswer } from "@/utils/profileHelpers";
 import theme from "@/theme/theme";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+const t = (theme as any).onboarding;
 
-const DUMMY_PHOTO =
-  "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80";
 
-// ─── Overview Card ────────────────────────────────────────────────────────────
+const HERO_HEIGHT = height * 0.4;
+const AVATAR_SIZE = 110;
+const DUMMY_PHOTO = "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=800&q=80";
+const HERO_BG = require("@/assets/images/main-bg.png");
 
-interface OverviewCardProps {
-  displayName: string;
-  age: number | null;
-  gender: string | null;
-  location: string | null;
-  bio: string | null;
-  kids: string | null;
-  drinking: string | null;
-  interests: string | null;
-  t: any;
-  onSeeAll: () => void;
-  onEdit: () => void;
-}
+// ─── Reusable Components ────────────────────────────────────────────────────────────
 
-function OverviewCard({
-  displayName, age, gender, location, bio, kids, drinking, interests, t, onSeeAll, onEdit
-}: OverviewCardProps) {
-  const NA = "NA";
-
-  const rows: { label: string; value: string | null; icon: string }[] = [
-    { label: "Name",       value: displayName !== "Your Name" ? displayName : null, icon: "user"    },
-    { label: "Age",        value: age ? `${age} years` : null,                      icon: "calendar" },
-    { label: "Gender",     value: gender,                                           icon: "users"    },
-    { label: "Location",   value: location,                                         icon: "map-pin"  },
-    { label: "Bio",        value: bio,                                              icon: "align-left"},
-    { label: "Interests",  value: interests,                                        icon: "heart"    },
-    { label: "Drinking",   value: drinking,                                         icon: "coffee"   },
-    { label: "Kids",       value: kids,                                             icon: "smile"    },
-  ];
-
+function InfoChip({ icon, label, value, t }: { icon: string; label: string; value: string | null; t: any }) {
+  if (!value) return null;
   return (
-    <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionIcon}>👤</Text>
-          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>Overview</Text>
-        </View>
-        <TouchableOpacity style={styles.seeAllBtn} onPress={onSeeAll} activeOpacity={0.7}>
-          <Text style={[styles.seeAllText, { color: t.primary }]}>See all</Text>
-          <Feather name="chevron-right" size={14} color={t.primary} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.infoGrid}>
-        {rows.map((row) => (
-          <View key={row.label} style={styles.infoRow}>
-            <View style={[styles.infoIconBox, { backgroundColor: t.primary + "18" }]}>
-              <Feather name={row.icon as any} size={13} color={t.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.infoLabel, { color: t.textSecondary + "77" }]}>{row.label}</Text>
-              <Text style={[styles.infoValue, { color: row.value ? t.textSecondary : t.textSecondary + "44" }]}>
-                {row.value ?? NA}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-
-      <TouchableOpacity
-        style={[styles.cardEditBtn, { borderColor: t.primary + "44" }]}
-        onPress={onEdit}
-        activeOpacity={0.75}
-      >
-        <Feather name="edit-2" size={12} color={t.primary} />
-        <Text style={[styles.cardEditText, { color: t.primary }]}>Edit basic info</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
-
-// ─── Category Section Card ────────────────────────────────────────────────────
-
-interface CategoryCardProps {
-  section: ProfileSection;
-  answers: Record<string, any>;
-  t: any;
-  onSeeAll: () => void;
-}
-
-function CategoryCard({ section, answers, t, onSeeAll }: CategoryCardProps) {
-  const previewIds = section.questionIds.slice(0, 4);
-  const answeredCount = section.questionIds.filter(
-    (id) => answers[id] !== null && answers[id] !== undefined && answers[id] !== ""
-  ).length;
-  const total = section.questionIds.length;
-
-  return (
-    <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionIcon}>{section.icon}</Text>
-          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>{section.title}</Text>
-        </View>
-        <TouchableOpacity style={styles.seeAllBtn} onPress={onSeeAll} activeOpacity={0.7}>
-          <Text style={[styles.seeAllText, { color: t.primary }]}>See all</Text>
-          <Feather name="chevron-right" size={14} color={t.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {answeredCount === 0 ? (
-        <Text style={[styles.emptyText, { color: t.textSecondary + "66" }]}>
-          No answers yet — tap See all to fill this in
-        </Text>
-      ) : (
-        <View style={styles.infoGrid}>
-          {previewIds.map((id) => {
-            const q = findQuestionById(id);
-            const ans = answers[id];
-            if (!q) return null;
-            const displayAns = formatAnswer(ans);
-            return (
-              <View key={id} style={styles.infoRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.infoLabel, { color: t.textSecondary + "77" }]}>{q.text}</Text>
-                  <Text style={[styles.infoValue, { color: displayAns ? t.textSecondary : t.textSecondary + "44" }]}>
-                    {displayAns ?? "Not answered"}
-                  </Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      )}
-
-      <View style={styles.completionRow}>
-        <View style={[styles.miniProgress, { backgroundColor: t.primary + "22" }]}>
-          <View
-            style={[
-              styles.miniProgressFill,
-              { backgroundColor: t.primary, width: `${Math.round((answeredCount / total) * 100)}%` },
-            ]}
-          />
-        </View>
-        <Text style={[styles.completionText, { color: t.textSecondary + "88" }]}>
-          {answeredCount}/{total} answered
-        </Text>
+    <View style={[styles.infoChip, { backgroundColor: t.primary + "12", borderColor: t.primary + "30" }]}>
+      <Feather name={icon as any} size={14} color={t.primary} style={{ marginRight: 8, marginTop: -12 }} />
+      <View>
+        <Text style={[styles.infoChipLabel, { color: t.textSecondary }]}>{label}</Text>
+        <Text style={[styles.infoChipValue, { color: t.textPrimary }]}>{value}</Text>
       </View>
     </View>
   );
 }
 
-// ─── Insights Card ────────────────────────────────────────────────────────────
-
-function InsightsCard({ t }: { t: any }) {
+function SectionTitle({ title, t }: { title: string; t: any }) {
   return (
-    <View style={[styles.sectionCard, { backgroundColor: t.secondary }]}>
-      <View style={styles.sectionHeader}>
-        <View style={styles.sectionTitleRow}>
-          <Text style={styles.sectionIcon}>📊</Text>
-          <Text style={[styles.sectionTitle, { color: t.textSecondary }]}>Photo Insights</Text>
-        </View>
-      </View>
-      <View style={{ alignItems: "center", paddingVertical: 20 }}>
-        <Ionicons name="bar-chart" size={48} color={t.primary + "88"} style={{ marginBottom: 16 }} />
-        <Text style={{ fontSize: 16, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary, marginBottom: 8 }}>
-          Unlock Photo Insights
-        </Text>
-        <Text style={{ fontSize: 13, fontFamily: "Lato_400Regular", color: t.textSecondary, textAlign: "center", paddingHorizontal: 20 }}>
-          Find out which of your photos is getting the most attention and optimize your profile for more matches.
-        </Text>
-        <TouchableOpacity style={[styles.cardEditBtn, { backgroundColor: t.primary, borderWidth: 0, marginTop: 24, paddingHorizontal: 24, paddingVertical: 12 }]}>
-          <Text style={{ color: t.background, fontFamily: "PlayfairDisplay_700Bold" }}>Get Insights</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-}
-
-// ─── Pay Plan Card ────────────────────────────────────────────────────────────
-
-function PayPlanCard({ t }: { t: any }) {
-  const benefits = [
-    "Get exclusive photo insights",
-    "Fast track your likes",
-    "Stand out every day",
-    "Unlimited likes",
-    "See who liked you"
-  ];
-
-  return (
-    <View style={{ gap: 16 }}>
-      {/* Boost Actions */}
-      <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }}>
-        <TouchableOpacity style={[styles.sectionCard, { flex: 1, padding: 16, marginBottom: 0, flexDirection: "row", alignItems: "center", gap: 12 }]}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.textPrimary, justifyContent: "center", alignItems: "center" }}>
-            <Ionicons name="sparkles" size={20} color={t.background} />
-          </View>
-          <View>
-            <Text style={{ fontSize: 15, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary }}>Spotlight</Text>
-            <Text style={{ fontSize: 11, fontFamily: "Lato_400Regular", color: t.textSecondary }}>Stand out</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.sectionCard, { flex: 1, padding: 16, marginBottom: 0, flexDirection: "row", alignItems: "center", gap: 12 }]}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: t.textPrimary, justifyContent: "center", alignItems: "center" }}>
-            <Ionicons name="star" size={20} color={t.background} />
-          </View>
-          <View>
-            <Text style={{ fontSize: 15, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary }}>SuperSwipe</Text>
-            <Text style={{ fontSize: 11, fontFamily: "Lato_400Regular", color: t.textSecondary }}>Get noticed</Text>
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Premium Banner */}
-      <View style={[styles.sectionCard, { backgroundColor: "#FCD34D", marginHorizontal: 4 }]}>
-        <Text style={{ fontSize: 20, fontFamily: "PlayfairDisplay_700Bold", color: "#1F2937", fontStyle: "italic", marginBottom: 8 }}>PREMIUM+</Text>
-        <Text style={{ fontSize: 14, fontFamily: "Lato_400Regular", color: "#374151", marginBottom: 20, lineHeight: 20 }}>
-          Get the VIP treatment, and enjoy better ways to connect with incredible people.
-        </Text>
-        <TouchableOpacity style={{ backgroundColor: "#1F2937", borderRadius: 20, paddingVertical: 14, alignItems: "center" }}>
-          <Text style={{ color: "#F9FAFB", fontSize: 15, fontFamily: "PlayfairDisplay_700Bold" }}>Explore Premium+</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Benefits List */}
-      <View style={[styles.sectionCard, { marginHorizontal: 4 }]}>
-        <Text style={{ fontSize: 16, fontFamily: "PlayfairDisplay_700Bold", color: t.textPrimary, marginBottom: 16 }}>What you get:</Text>
-        {benefits.map((b, i) => (
-          <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, borderBottomWidth: i === benefits.length - 1 ? 0 : 1, borderBottomColor: t.primary + "11" }}>
-            <Text style={{ fontSize: 14, fontFamily: "Lato_400Regular", color: t.textSecondary, flex: 1 }}>{b}</Text>
-            <Feather name="check" size={18} color={t.textPrimary} />
-          </View>
-        ))}
-      </View>
-    </View>
+    <Text style={[styles.sectionTitle, { color: t.primary }]}>{title}</Text>
   );
 }
 
@@ -270,14 +60,11 @@ export default function ProfileScreen() {
   const lastName    = useOnboardingStore((s) => s.lastName);
   const gender      = useOnboardingStore((s) => s.gender);
   const dateOfBirth = useOnboardingStore((s) => s.dateOfBirth);
-  const user        = useAuthStore((s) => s.user);
 
   const answers    = useUserProfileStore((s) => s.answers);
+  const preferences = useUserProfileStore((s) => s.preferences);
   const isComplete = useUserProfileStore((s) => s.isProfileComplete(category as any));
   const pct        = useUserProfileStore((s) => s.getCompletionPercent(category as any));
-
-  const t       = (theme as any)[category];
-  const sections = getProfileSections(category as any);
 
   const age = dateOfBirth
     ? new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
@@ -285,6 +72,10 @@ export default function ProfileScreen() {
 
   const displayName = firstName
     ? `${firstName}${lastName ? ` ${lastName}` : ""}`
+        .toLowerCase()
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ")
     : "Your Name";
 
   const location   = (answers['go_4'] as string) || null;
@@ -292,374 +83,545 @@ export default function ProfileScreen() {
   const kids       = (answers['go_kids'] as string) || null;
   const drinking   = (answers['go_9a'] as string) || null;
   const interests  = formatAnswer(answers['go_11']);
-
-  const navigateToFull = (sectionKey?: string) => {
-    router.push({
-      pathname: "/profile/full" as any,
-      params: { scrollTo: sectionKey ?? "top" },
-    });
-  };
+  const religion   = formatAnswer(answers['go_2']);
+  const education  = formatAnswer(answers['go_5']);
+  const occupation = formatAnswer(answers['go_6']);
+  const intent     = formatAnswer(answers['go_3']); // usually intent
 
   const navigateToEdit = () => {
-    router.push("/profile/edit/0" as any);
+    router.push("/profile/edit" as any);
   };
 
   // ── Tabs Setup ──
-  const [activeTab, setActiveTab] = useState<string>("overview");
-
-  const tabs = [
-    { key: "overview", label: "Overview" },
-    ...sections.filter((s) => s.key !== "overview").map((s) => ({ key: s.key, label: s.title })),
-    { key: "insights", label: "Insights" },
-    { key: "pay_plan", label: "Pay Plan" },
-  ];
+  const tabs = ["BIO", "PHOTOS", "IDENTITY", "LOOKING FOR"];
+  const [activeTab, setActiveTab] = useState<string>("BIO");
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: t.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={t.background} />
-      
-      {/* ── HEADER ── */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Profile</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn}>
-            <Feather name="help-circle" size={24} color={t.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity activeOpacity={0.7} style={styles.iconBtn} onPress={() => router.push("/settings" as any)}>
-            <Feather name="settings" size={24} color={t.textPrimary} />
-          </TouchableOpacity>
-        </View>
-      </View>
+    <View style={[styles.container, { backgroundColor: t.background }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
         
-        {/* ── TOP SECTION (Avatar & Name) ── */}
-        <View style={styles.topSection}>
-          <View style={styles.avatarContainer}>
-            {/* Simple circular ring wrapper */}
-            <View style={[styles.avatarRing, { borderColor: t.primary }]}>
+        {/* ── HERO SECTION ── */}
+        <View style={{ width: "100%", height: HERO_HEIGHT }}>
+          <Image source={HERO_BG} style={{ width: "100%", height: "100%" }} />
+          <LinearGradient
+            colors={["transparent", "rgba(13, 10, 7, 0.4)", t.background]}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+
+          <SafeAreaView style={styles.headerSafe}>
+            <View style={styles.headerRow}>
+              <TouchableOpacity style={styles.iconBtn} onPress={() => router.push("/settings" as any)}>
+                <Feather name="settings" size={24} color="#FFF" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.iconBtn}>
+                <Ionicons name="images-outline" size={24} color="#FFF" />
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+
+        {/* ── PROFILE CARD ── */}
+        <View style={styles.cardWrapper}>
+          <View style={[styles.profileCard, { backgroundColor: t.secondary }]}>
+            
+            {/* Overlapping Avatar */}
+            <View style={[styles.avatarRing, { borderColor: t.primary, backgroundColor: t.background }]}>
               <Image source={{ uri: DUMMY_PHOTO }} style={styles.avatarImage} />
             </View>
-            <View style={[styles.pctPill, { backgroundColor: t.textPrimary }]}>
-              <Text style={[styles.pctText, { color: t.background }]}>{pct}%</Text>
-            </View>
-          </View>
 
-          <View style={styles.userInfoContainer}>
-            <Text style={[styles.nameAgeText, { color: t.textPrimary }]}>
-              {displayName}{age ? `, ${age}` : ""}
-            </Text>
-            
-            <TouchableOpacity 
-              style={[styles.completeProfileBtn, { borderColor: t.textPrimary + "33" }]} 
-              activeOpacity={0.7}
-              onPress={navigateToEdit}
-            >
-              <Text style={[styles.completeProfileText, { color: t.textPrimary }]}>
-                {isComplete ? "Edit profile" : "Complete profile"}
-              </Text>
-              {!isComplete && <View style={styles.redDot} />}
+            <TouchableOpacity style={styles.editBtn} onPress={navigateToEdit} activeOpacity={0.7}>
+              <Feather name="edit-2" size={16} color={t.textSecondary} />
             </TouchableOpacity>
+
+            {/* Basic Info */}
+            <Text style={[styles.nameText, { color: t.textPrimary }]}>{displayName}</Text>
+            <Text style={[styles.subtitleText, { color: t.textSecondary }]}>
+              {gender ? gender.toLowerCase() : "gender"} • {age ? `${age} years` : "age"}
+            </Text>
+            {location && (
+              <Text style={[styles.locationText, { color: t.textSecondary }]}>
+                <Feather name="map-pin" size={12} /> {location}
+              </Text>
+            )}
+
+            {/* Completion Section */}
+            <TouchableOpacity 
+              onPress={isComplete ? undefined : navigateToEdit} 
+              style={[styles.meterBlock, isComplete && { opacity: 0.9 }]} 
+              activeOpacity={isComplete ? 1 : 0.85}
+            >
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: t.primary, width: `${pct}%`, opacity: 0.85 }]} />
+              <View style={styles.meterContent}>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text style={[styles.meterTitle, { color: t.textPrimary }]}>
+                    {isComplete ? "PROFILE COMPLETED" : "COMPLETE YOUR PROFILE"}
+                  </Text>
+                  {!isComplete && (
+                    <Feather name="chevron-right" size={12} color={t.textPrimary} style={{ marginLeft: 6, opacity: 0.8 }} />
+                  )}
+                </View>
+                <View style={[styles.meterPctBadge, isComplete && { backgroundColor: "transparent", paddingHorizontal: 0 }]}>
+                  <Text style={[styles.meterPctText, { color: t.textPrimary }]}>{pct}%</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
           </View>
         </View>
 
-        {/* ── TABS (Pills) ── */}
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={styles.tabsContainer}
-          style={styles.tabsScroll}
-        >
-          {tabs.map((tab) => {
-            const isActive = activeTab === tab.key;
-            return (
-              <TouchableOpacity
-                key={tab.key}
-                style={[
-                  styles.tabPill,
-                  isActive ? { backgroundColor: t.textPrimary } : { backgroundColor: "transparent" },
-                ]}
-                onPress={() => setActiveTab(tab.key)}
-                activeOpacity={0.8}
-              >
-                <Text style={[
-                  styles.tabText,
-                  isActive ? { color: t.background, fontFamily: "PlayfairDisplay_700Bold" } : { color: t.textSecondary, fontFamily: "Lato_400Regular" }
-                ]}>
-                  {tab.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+        {/* ── TABS ── */}
+        <View style={styles.tabsWrapper}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsScroll}>
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab;
+              return (
+                <TouchableOpacity
+                  key={tab}
+                  style={styles.tabBtn}
+                  onPress={() => setActiveTab(tab)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.tabText, 
+                    { color: isActive ? t.textPrimary : t.textSecondary },
+                    isActive && { fontFamily: "Lato_700Bold" }
+                  ]}>
+                    {tab}
+                  </Text>
+                  {isActive && <View style={[styles.activeIndicator, { backgroundColor: t.primary }]} />}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         {/* ── TAB CONTENT ── */}
-        <View style={styles.tabContentContainer}>
-          {activeTab === "overview" && (
-            <OverviewCard
-              displayName={displayName}
-              age={age}
-              gender={gender}
-              location={location}
-              bio={bio}
-              kids={kids}
-              drinking={drinking}
-              interests={interests}
-              t={t}
-              onSeeAll={() => navigateToFull("overview")}
-              onEdit={navigateToEdit}
-            />
+        <View style={styles.tabContent}>
+          {activeTab === "BIO" && (
+            <View style={styles.contentSection}>
+              {bio ? (
+                <Text style={[styles.bioText, { color: t.textSecondary }]}>"{bio}"</Text>
+              ) : (
+                <Text style={[styles.emptyText, { color: t.textSecondary + "66" }]}>Use your words to get what you want...</Text>
+              )}
+              
+              <View style={{ marginTop: 24, gap: 12 }}>
+                <SectionTitle title="Interests" t={t} />
+                <View style={styles.chipsRow}>
+                  {interests ? (
+                    interests.split(", ").map((interest: string, i: number) => (
+                      <View key={i} style={[styles.chip, { backgroundColor: t.primary + "15", borderColor: t.primary + "30" }]}>
+                        <Text style={[styles.chipText, { color: t.textPrimary }]}>{interest}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={[styles.emptyText, { color: t.textSecondary + "66" }]}>No interests added yet.</Text>
+                  )}
+                </View>
+
+                <SectionTitle title="Lifestyle" t={t} />
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <InfoChip icon="coffee" label="Drinking" value={drinking} t={t} />
+                  <InfoChip icon="smile" label="Kids" value={kids} t={t} />
+                </View>
+              </View>
+            </View>
           )}
 
-          {activeTab !== "overview" && activeTab !== "insights" && activeTab !== "pay_plan" && sections.find((s) => s.key === activeTab) && (
-            <CategoryCard
-              section={sections.find((s) => s.key === activeTab)!}
-              answers={answers}
-              t={t}
-              onSeeAll={() => navigateToFull("category")}
-            />
+          {activeTab === "PHOTOS" && (
+            <View style={[styles.contentSection, { alignItems: 'center', marginTop: 32 }]}>
+              <View style={[styles.photoPlaceholder, { borderColor: t.border, backgroundColor: "rgba(255,255,255,0.02)" }]}>
+                <Feather name="image" size={48} color={t.textSecondary + "50"} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: t.textPrimary, marginTop: 20 }]}>
+                No photos added
+              </Text>
+              <Text style={[styles.emptySubtitle, { color: t.textSecondary, marginTop: 8 }]}>
+                Add some photos to show your personality and get more matches.
+              </Text>
+              <TouchableOpacity style={[styles.addPhotoBtn, { backgroundColor: t.primary }]} activeOpacity={0.8}>
+                <Feather name="plus" size={18} color="#1E1410" style={{ marginRight: 8 }} />
+                <Text style={{ color: "#1E1410", fontFamily: "PlayfairDisplay_700Bold", fontSize: 16 }}>
+                  Add Photos
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
 
-          {activeTab === "insights" && <InsightsCard t={t} />}
-          {activeTab === "pay_plan" && <PayPlanCard t={t} />}
+          {activeTab === "IDENTITY" && (
+            <View style={styles.contentSection}>
+              <View style={[styles.verificationBadge, { backgroundColor: t.primary + "10", borderColor: t.primary + "30" }]}>
+                <Feather name="shield" size={18} color={t.primary} style={{ marginRight: 10 }} />
+                <Text style={[styles.verificationText, { color: t.textPrimary }]}>Verification Pending</Text>
+              </View>
+
+              <View style={{ marginTop: 24, gap: 12 }}>
+                <SectionTitle title="Background" t={t} />
+                <InfoChip icon="book-open" label="Education" value={education} t={t} />
+                <InfoChip icon="briefcase" label="Occupation" value={occupation} t={t} />
+                <InfoChip icon="globe" label="Religion/Community" value={religion} t={t} />
+              </View>
+            </View>
+          )}
+
+          {activeTab === "LOOKING FOR" && (
+            <View style={styles.contentSection}>
+              <SectionTitle title="Relationship Goal" t={t} />
+              {intent ? (
+                <Text style={[styles.bioText, { color: t.textSecondary }]}>{intent}</Text>
+              ) : (
+                <Text style={[styles.emptyText, { color: t.textSecondary}]}>Not specified yet.</Text>
+              )}
+              
+              <View style={{ marginTop: 24 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <SectionTitle title="Partner Preferences" t={t} />
+                  {Object.keys(preferences).length > 0 && (
+                    <TouchableOpacity onPress={() => router.push("/profile/preferences" as any)}>
+                      <Text style={{ color: t.primary, fontFamily: 'Lato_700Bold', fontSize: 13 }}>
+                        Edit
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                
+                {Object.keys(preferences).length > 0 ? (
+                  <View style={{ marginTop: 12, flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    {Object.keys(preferences).map((key) => {
+                      const val = preferences[key];
+                      if (!val) return null;
+                      const displayVal = Array.isArray(val) ? val.join(", ") : String(val);
+                      return (
+                        <View key={key} style={{ backgroundColor: t.primary + "15", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: t.primary + "30" }}>
+                          <Text style={{ color: t.textPrimary, fontFamily: "Lato_400Regular", fontSize: 13 }}>
+                            <Text style={{ fontFamily: "Lato_700Bold", color: t.primary }}>{key}: </Text>
+                            {displayVal}
+                          </Text>
+                        </View>
+                      )
+                    })}
+                  </View>
+                ) : (
+                  <TouchableOpacity 
+                    onPress={() => router.push("/profile/preferences" as any)}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: 16,
+                      backgroundColor: t.primary + "10",
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: t.primary + "30",
+                      marginTop: 8
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
+                      <Feather name="sliders" size={18} color={t.primary} style={{ marginRight: 12 }} />
+                      <Text style={{ fontSize: 15, fontFamily: "Lato_700Bold", color: t.textPrimary }}>
+                        Set Preferences
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={18} color={t.textSecondary} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
         </View>
+
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? 30 : 0,
   },
-  header: {
+  headerSafe: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+  },
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-  },
-  headerTitle: {
-    fontSize: 26,
-    fontFamily: "PlayfairDisplay_700Bold",
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    paddingTop: Platform.OS === "android" ? 40 : 10,
   },
   iconBtn: {
     padding: 8,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    borderRadius: 20,
   },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-
-  /* TOP SECTION */
-  topSection: {
-    flexDirection: "row",
+  
+  /* OVERLAPPING CARD */
+  cardWrapper: {
     alignItems: "center",
-    paddingHorizontal: 20,
-    marginTop: 10,
-    marginBottom: 24,
+    marginTop: -height * 0.18,
+    paddingHorizontal: 16,
+    zIndex: 10,
   },
-  avatarContainer: {
-    position: "relative",
-    marginRight: 16,
+  profileCard: {
+    width: "100%",
+    borderRadius: 24,
+    paddingBottom: 0,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: t.border,
   },
   avatarRing: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    borderWidth: 2,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 3, // Space between ring and image
+    marginTop: -AVATAR_SIZE / 2,
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    borderWidth: 3,
+    padding: 3,
   },
   avatarImage: {
     width: "100%",
     height: "100%",
-    borderRadius: 40,
+    borderRadius: (AVATAR_SIZE - 6) / 2,
   },
-  pctPill: {
+  editBtn: {
     position: "absolute",
-    bottom: -6,
-    alignSelf: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
+    right: 20,
+    top: 20,
+    padding: 8,
   },
-  pctText: {
-    fontSize: 11,
+  nameText: {
+    fontSize: 26,
     fontFamily: "PlayfairDisplay_700Bold",
-  },
-  userInfoContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  nameAgeText: {
-    fontSize: 22,
-    fontFamily: "Lato_700Bold",
-    marginBottom: 8,
-  },
-  completeProfileBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-  },
-  completeProfileText: {
-    fontSize: 13,
-    fontFamily: "Lato_400Regular",
-  },
-  redDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 6,
-    backgroundColor: '#E53E3E',
-  },
-
-  /* TABS */
-  tabsScroll: {
-    maxHeight: 50,
-    marginBottom: 20,
-  },
-  tabsContainer: {
-    paddingHorizontal: 20,
-    gap: 8,
-    alignItems: "center",
-  },
-  tabPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  tabText: {
-    fontSize: 14,
-  },
-
-  /* CONTENT */
-  tabContentContainer: {
-    paddingHorizontal: 16,
-  },
-
-  /* SECTION CARD */
-  sectionCard: {
-    marginHorizontal: 4,
-    marginBottom: 14,
-    borderRadius: 20,
-    padding: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
-  },
-  sectionTitleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  sectionIcon: {
-    fontSize: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontFamily: "PlayfairDisplay_700Bold",
-  },
-  seeAllBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 2,
-  },
-  seeAllText: {
-    fontSize: 13,
-    fontFamily: "Lato_400Regular",
-  },
-
-  /* INFO GRID inside section */
-  infoGrid: {
-    gap: 14,
-  },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  infoIconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  infoLabel: {
-    fontSize: 11,
-    fontFamily: "Lato_400Regular",
-    textTransform: "uppercase",
+    marginTop: 12,
     letterSpacing: 0.5,
-    marginBottom: 1,
   },
-  infoValue: {
+  subtitleText: {
     fontSize: 14,
     fontFamily: "Lato_400Regular",
+    marginTop: 4,
+    textTransform: "capitalize",
   },
-  cardEditBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    alignSelf: "flex-start",
-  },
-  cardEditText: {
+  locationText: {
     fontSize: 12,
     fontFamily: "Lato_400Regular",
-  },
-  emptyText: {
-    fontSize: 13,
-    fontFamily: "PlayfairDisplay_400Regular_Italic",
-    lineHeight: 20,
+    marginTop: 4,
+    opacity: 0.8,
   },
 
-  /* MINI PROGRESS */
-  completionRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginTop: 14,
-  },
-  miniProgress: {
-    flex: 1,
-    height: 3,
-    borderRadius: 2,
+  /* COMPLETION SECTION */
+  meterBlock: {
+    width: "100%",
+    marginTop: 24,
+    backgroundColor: "#0A0A0A",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     overflow: "hidden",
   },
-  miniProgressFill: {
+  meterContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 18,
+    paddingHorizontal: 24,  
+  },
+  meterTitle: {
+    fontSize: 10,
+    fontFamily: "Lato_700Bold",
+    letterSpacing: 1.5,
+    // textDecorationLine: "underline",
+    textDecorationStyle: "dotted",
+  },
+  meterPctBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  meterPctText: {
+    fontSize: 12,
+    fontFamily: "Lato_700Bold",
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  progressFill: {
     height: "100%",
     borderRadius: 2,
   },
-  completionText: {
-    fontSize: 11,
+  missingItemsContainer: {
+    marginTop: 4,
+  },
+  missingTitle: {
+    fontSize: 13,
+    fontFamily: "Lato_700Bold",
+    marginBottom: 8,
+  },
+  missingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  missingDot: {
+    marginRight: 8,
+  },
+  missingText: {
+    fontSize: 13,
     fontFamily: "Lato_400Regular",
+  },
+  completeBtn: {
+    marginTop: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  completeBtnText: {
+    fontFamily: "PlayfairDisplay_700Bold",
+    fontSize: 14,
+  },
+
+  /* TABS */
+  tabsWrapper: {
+    marginTop: 24,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(255,255,255,0.1)",
+  },
+  tabsScroll: {
+    paddingHorizontal: 20,
+    gap: 24,
+  },
+  tabBtn: {
+    paddingVertical: 12,
+    position: "relative",
+  },
+  tabText: {
+    fontSize: 12,
+    fontFamily: "Lato_400Regular",
+    letterSpacing: 1.5,
+  },
+  activeIndicator: {
+    position: "absolute",
+    bottom: -1,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderRadius: 1,
+  },
+
+  /* CONTENT */
+  tabContent: {
+    padding: 24,
+    paddingBottom: 60,
+  },
+  contentSection: {
+    flex: 1,
+  },
+  bioText: {
+    fontSize: 18,
+    fontFamily: "PlayfairDisplay_400Regular_Italic",
+    lineHeight: 26,
+  },
+  emptyText: {
+    fontSize: 14,
+    fontFamily: "Lato_400Regular",
+    fontStyle: "italic",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontFamily: "PlayfairDisplay_700Bold",
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    fontFamily: "Lato_400Regular",
+    textAlign: "center",
+    paddingHorizontal: 40,
+    lineHeight: 20,
+    opacity: 0.8,
+  },
+  photoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderStyle: "dashed",
+  },
+  addPhotoBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontFamily: "Lato_700Bold",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
+    marginBottom: 12,
+  },
+  
+  /* CHIPS & INFO */
+  chipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  chipText: {
+    fontSize: 13,
+    fontFamily: "Lato_400Regular",
+  },
+  infoChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    minWidth: "45%",
+  },
+  infoChipLabel: {
+    fontSize: 10,
+    fontFamily: "Lato_700Bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  infoChipValue: {
+    fontSize: 14,
+    fontFamily: "Lato_400Regular",
+    marginTop: 2,
+  },
+  verificationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  verificationText: {
+    fontSize: 15,
+    fontFamily: "Lato_700Bold",
   },
 });

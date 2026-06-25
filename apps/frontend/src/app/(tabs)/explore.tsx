@@ -7,6 +7,7 @@ import {
   StatusBar,
   SafeAreaView,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboardingStore }    from "@/hooks/useOnboardingStore";
 import theme                      from "@/theme/theme";
 import { ExploreHeader }          from "@/components/explore/ExploreHeader";
@@ -41,8 +42,8 @@ const ALL_LIKED: LikedProfile[] = [
 
 export default function ExploreScreen() {
   const router   = useRouter();
-  const category = useOnboardingStore((s) => s.category) ?? "Casual";
-  const t        = theme[category];
+  const insets   = useSafeAreaInsets();
+  const t        = (theme as any).onboarding;
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -66,13 +67,14 @@ export default function ExploreScreen() {
   );
 
   return (
-    <View style={[styles.screen, { backgroundColor: t.background }]}>
+    <View style={[styles.screen, { backgroundColor: t.background, paddingTop: insets.top }]}>
       <StatusBar barStyle="light-content" backgroundColor={t.background} />
 
       <ScrollView
         style={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
       >
         {/* ── Top safe area spacer ──────────────────────────── */}
         <View style={styles.topSpacer} />

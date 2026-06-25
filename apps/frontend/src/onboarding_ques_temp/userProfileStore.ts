@@ -22,10 +22,13 @@ export type AnswerValue = string | string[] | number | null;
 export interface UserProfileStore {
   /** { questionId: answer } — e.g. { "go_1": "John Doe", "m_3": "Yes" } */
   answers: Record<string, AnswerValue>;
+  /** Preferences object */
+  preferences: Record<string, AnswerValue>;
 
   // Mutators
   setAnswer: (questionId: string, value: AnswerValue) => void;
   setAnswers: (batch: Record<string, AnswerValue>) => void;
+  setPreference: (key: string, value: AnswerValue) => void;
   clearAnswers: () => void;
 
   // Selectors
@@ -51,12 +54,18 @@ export const useUserProfileStore = create<UserProfileStore>()(
   persist(
     (set, get) => ({
       answers: {},
+      preferences: {},
 
       // ── Mutators ────────────────────────────────────────────────────────
 
       setAnswer: (questionId, value) =>
         set((state) => ({
           answers: { ...state.answers, [questionId]: value },
+        })),
+
+      setPreference: (key, value) =>
+        set((state) => ({
+          preferences: { ...state.preferences, [key]: value },
         })),
 
       setAnswers: (batch) =>

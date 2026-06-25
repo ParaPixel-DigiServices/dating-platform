@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, SafeAreaView, Platform, StatusBar } from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Platform, StatusBar } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import theme from "@/theme/theme";
@@ -53,8 +54,8 @@ type FilterTab = "All" | "Likes You" | "Matches" | "Chats";
 
 export default function ChatScreen() {
   const router = useRouter();
-  const category = useOnboardingStore((s) => s.category) ?? "Casual";
-  const activeTheme = (theme as any)[category];
+  const insets = useSafeAreaInsets();
+  const activeTheme = (theme as any).onboarding;
 
   const [activeFilter, setActiveFilter] = useState<FilterTab>("All");
   const filters: FilterTab[] = ["All", "Likes You", "Matches", "Chats"];
@@ -78,8 +79,8 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: activeTheme.background }]}>
-      <StatusBar barStyle="dark-content" backgroundColor={activeTheme.background} />
+    <View style={[styles.safeArea, { backgroundColor: activeTheme.background, paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 30 : 0) }]}>
+      <StatusBar barStyle="light-content" backgroundColor={activeTheme.background} />
       
       {/* HEADER */}
       <View style={styles.header}>
@@ -132,17 +133,16 @@ export default function ChatScreen() {
             onPress={() => handlePressChat(item.id)}
           />
         )}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    paddingTop: Platform.OS === 'android' ? 30 : 0,
   },
   header: {
     paddingHorizontal: 20,

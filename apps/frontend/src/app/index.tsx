@@ -16,22 +16,28 @@ export default function IndexScreen() {
   const firstName   = useOnboardingStore((s) => s.firstName);
   const category    = useOnboardingStore((s) => s.category);
 
-  // Step 1: Not authenticated — go to landing
+  // Step 1: Onboarding fully completed locally (firstName + category persisted).
+  // Check this FIRST so the app works even when there is no live backend session.
+  if (firstName && category) {
+    return <Redirect href="/(tabs)/home" />;
+  }
+
+  // Step 2: Not authenticated and onboarding not complete — go to landing
   if (!accessToken && !user) {
     console.log("Redirecting to landing because user is not authenticated");
     return <Redirect href="/(onboarding)/landing" />;
   }
 
-  // Step 2: Authenticated but hasn't entered basic details yet
+  // Step 3: Authenticated but hasn't entered basic details yet
   if (!firstName) {
     return <Redirect href="/(onboarding)/details" />;
   }
 
-  // Step 3: Has details but hasn't chosen a category
+  // Step 4: Has auth + details but hasn't chosen a category yet
   if (!category) {
     return <Redirect href="/(onboarding)/category" />;
   }
 
-  // Step 4: Fully set up — go straight to the main app
+  // Step 5: Fully set up — go straight to the main app
   return <Redirect href="/(tabs)/home" />;
 }

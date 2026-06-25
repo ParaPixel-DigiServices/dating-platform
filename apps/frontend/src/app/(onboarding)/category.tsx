@@ -126,12 +126,6 @@ const SUB_OPTIONS: Record<
       subtitle: "United in love, faith & shared beliefs.",
       icon: Star,
     },
-    {
-      id: "sikh",
-      title: "Sikh",
-      subtitle: "Connected through Waheguru's grace.",
-      icon: Flame,
-    },
   ],
 };
 
@@ -282,7 +276,7 @@ export default function Landing() {
           {/* ── Spacer ── */}
           <View
             style={{
-              height: step === "category" ? height * 0.33 : height * 0.23,
+              height: step === "category" ? height * 0.3 : height * 0.23,
             }}
           />
 

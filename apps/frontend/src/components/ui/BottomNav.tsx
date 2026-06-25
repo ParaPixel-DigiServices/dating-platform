@@ -24,8 +24,7 @@ export function BottomNav() {
   const router   = useRouter();
   const pathname = usePathname();
 
-  const category    = useOnboardingStore((s) => s.category) ?? "Casual";
-  const t           = theme[category];
+  const t = (theme as any).onboarding;
 
   const isActive = (route: string) => {
     // e.g. route = "/(tabs)/home", pathname = "/home"
@@ -34,7 +33,7 @@ export function BottomNav() {
   };
 
   return (
-    <View style={[styles.wrapper, { backgroundColor: t.background, borderTopColor: `${t.textSecondary}30` }]}>
+    <View style={[styles.wrapper, { backgroundColor: t.background, borderTopColor: t.border }]}>
       {TABS.map((tab) => {
         const active = isActive(tab.route);
 
@@ -109,10 +108,10 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 11,
-    fontFamily: "Lato_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
     letterSpacing: 0.1,
   },
   labelActive: {
-    fontFamily: "Lato_700Bold",
+    fontFamily: "PlayfairDisplay_700Bold",
   },
 });

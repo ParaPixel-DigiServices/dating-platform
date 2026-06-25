@@ -115,19 +115,25 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
-  const accessToken = useAuthStore((s) => s.accessToken);
+  const accessToken   = useAuthStore((s) => s.accessToken);
+  const firstName     = useOnboardingStore((s) => s.firstName);
+  const category      = useOnboardingStore((s) => s.category);
+
+  // Consider onboarding locally complete if both firstName and category are set.
+  // This allows the app to work without a live backend session.
+  const onboardingDone = !!(firstName && category);
 
   useEffect(() => {
     if (!hydrated || !fontsLoaded || isBootstrapping || !navigationState?.key) return;
 
     const inAuthGroup = segments[0] === '(onboarding)';
 
-    // If the user is not signed in and the initial segment is not anything in the onboarding group
-    if (!accessToken && !inAuthGroup) {
-      // Route to landing
+    // Only send to landing if the user has no auth token AND hasn't completed
+    // onboarding locally. If local state is populated we can let them through.
+    if (!accessToken && !onboardingDone && !inAuthGroup) {
       router.replace('/(onboarding)/landing');
     }
-  }, [accessToken, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);
+  }, [accessToken, onboardingDone, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);
 
   if (
     !hydrated ||
