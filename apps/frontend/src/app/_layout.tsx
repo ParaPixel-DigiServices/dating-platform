@@ -131,8 +131,8 @@ export default function RootLayout() {
     // Only send to landing if the user has no auth token AND hasn't completed
     // onboarding locally. If local state is populated we can let them through.
     if (!accessToken && !onboardingDone && !inAuthGroup) {
-      router.replace('/(onboarding)/landing');
-      // router.replace('/(tabs)/home');
+      // router.replace('/(onboarding)/landing');
+      router.replace('/(tabs)/home');
     }
   }, [accessToken, onboardingDone, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);
 

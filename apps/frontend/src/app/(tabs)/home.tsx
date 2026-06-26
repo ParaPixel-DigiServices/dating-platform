@@ -202,15 +202,15 @@ export default function HomeScreen() {
       {/* FIXED ACTION BUTTONS */}
       <LinearGradient
         colors={[
-          "rgba(18,18,19,0)",
-          "rgba(18,18,19,0)",
-          "rgba(18,18,19,0.25)",
-          "rgba(0, 0, 0, 0.1)",
-          "rgba(0, 0, 0, 0.81)",
-          "rgba(0, 0, 0, 0.97)",
-          "#0D0D0F",
+          "rgba(14, 14, 15, 0)",
+          "rgba(14, 14, 15, 0)",
+          "rgba(14, 14, 15, 0.25)",
+          "rgba(14, 14, 15, 0.4)",
+          "rgba(14, 14, 15, 0.81)",
+          "rgba(14, 14, 15, 0.97)",
+          "#0e0e0f",
         ]}
-        locations={[0, 0.38, 0.55, 0.62, 0.72, 0.88, 1]}
+        locations={[0, 0.24, 0.41, 0.55, 0.62, 0.7, 0.82]}
         style={styles.fixedButtonsContainer}
         pointerEvents="box-none"
       >
