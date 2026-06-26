@@ -83,17 +83,18 @@ const styles = StyleSheet.create({
     marginBottom:      18,
   },
   sectionTitle: {
-    fontSize:      18,
-    fontWeight:    "700",
+    fontSize:      20,
+    fontFamily:    "Lato_700Bold",
     letterSpacing: 0.2,
   },
   sectionSub: {
-    fontSize:  12,
-    marginTop: 3,
+    fontSize:  13,
+    fontFamily: "Lato_400Regular",
+    marginTop: 4,
   },
   seeAll: {
-    fontSize:      13,
-    fontWeight:    "600",
+    fontSize:      14,
+    fontFamily:    "Lato_700Bold",
     letterSpacing: 0.3,
   },
   scrollContent: {

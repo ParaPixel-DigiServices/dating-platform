@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
-export type ConnectionStatus = "new_match" | "liked_you" | "messaged_you" | "chat";
+export type ConnectionStatus = "new_match" | "liked_you" | "messaged_you" | "chat" | "request" | "social";
 
 export interface ChatListItemProps {
   id: string;
@@ -14,6 +14,8 @@ export interface ChatListItemProps {
   unreadCount?: number;
   theme: any;
   onPress: () => void;
+  onAccept?: () => void;
+  onReject?: () => void;
 }
 
 export function ChatListItem({
@@ -25,13 +27,27 @@ export function ChatListItem({
   unreadCount,
   theme,
   onPress,
+  onAccept,
+  onReject,
 }: ChatListItemProps) {
   // Determine the right-side indicator based on statusType
   const renderIndicator = () => {
     if (statusType === "liked_you") {
       return <Ionicons name="heart-outline" size={20} color={theme.primary} />;
     }
-    if (statusType === "messaged_you" || statusType === "chat") {
+    if (statusType === "request") {
+      return (
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: theme.primary }]} onPress={(e) => { e.stopPropagation(); onAccept?.(); }}>
+            <Feather name="check" size={18} color="#1E1410" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, { borderColor: theme.border || "rgba(255,255,255,0.2)", borderWidth: 1 }]} onPress={(e) => { e.stopPropagation(); onReject?.(); }}>
+            <Feather name="x" size={18} color={theme.textPrimary} />
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    if (statusType === "messaged_you" || statusType === "chat" || statusType === "social") {
       return (
         <View style={styles.messageIndicatorContainer}>
           {unreadCount && unreadCount > 0 ? (
@@ -66,7 +82,7 @@ export function ChatListItem({
       <View style={styles.contentContainer}>
         <View style={styles.textContainer}>
           <Text style={[styles.nameText, { color: theme.textPrimary }]}>
-            {name}, {age}
+            {name}{age > 0 ? `, ${age}` : ""}
           </Text>
           <Text style={[styles.statusText, { color: theme.textSecondary }]}>
             {statusText || "Active now"}
@@ -141,5 +157,18 @@ const styles = StyleSheet.create({
   unreadText: {
     fontSize: 11,
     fontFamily: "Lato_700Bold",
+  },
+  actionButtonsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginLeft: 8,
+  },
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

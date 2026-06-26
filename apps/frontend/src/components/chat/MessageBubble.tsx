@@ -9,17 +9,17 @@ export interface MessageBubbleProps {
 }
 
 export function MessageBubble({ text, isSender, timestamp, theme }: MessageBubbleProps) {
-  // Use theme colors for bubbles to ensure consistency across categories
   const bubbleBackgroundColor = isSender ? theme.primary : theme.secondary;
-  const textColor = isSender ? "#FFFFFF" : theme.textPrimary; // Assuming primary is colorful, text should be white
-  const timeColor = isSender ? "rgba(255, 255, 255, 0.7)" : theme.textSecondary;
+  const textColor = isSender ? "#1E1410" : theme.textPrimary;
+  const timeColor = isSender ? "rgba(30, 20, 16, 0.6)" : theme.textSecondary;
+  const bubbleBorderColor = isSender ? theme.primary : theme.border;
 
   return (
     <View style={[styles.container, isSender ? styles.senderContainer : styles.receiverContainer]}>
       <View
         style={[
           styles.bubble,
-          { backgroundColor: bubbleBackgroundColor },
+          { backgroundColor: bubbleBackgroundColor, borderColor: bubbleBorderColor, borderWidth: 1 },
           isSender ? styles.senderBubble : styles.receiverBubble,
         ]}
       >

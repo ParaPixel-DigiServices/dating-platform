@@ -7,8 +7,10 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 
-const AVATAR = 76;
+const CARD_WIDTH = 110;
+const CARD_HEIGHT = 150;
 
 export interface MatchProfile {
   id:       string;
@@ -39,101 +41,110 @@ export function MatchAvatarCard({
 }: Props) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      {/* Avatar with ring */}
-      <View style={[styles.avatarRing, { borderColor: profile.isNew ? primaryColor : "transparent" }]}>
-        <Image source={profile.photo} style={styles.avatar} />
+      <Image source={profile.photo} style={styles.image} />
+      
+      {/* Dark gradient for text readability */}
+      <LinearGradient
+        colors={["transparent", "rgba(0,0,0,0.8)"]}
+        style={styles.gradient}
+      />
 
-        {/* Match % badge */}
-        <View style={[styles.matchBadge, { backgroundColor: primaryColor }]}>
-          <Text style={styles.matchText}>{profile.match}%</Text>
-        </View>
+      {/* Online dot at top right */}
+      {profile.isOnline && <View style={styles.onlineDot} />}
 
-        {/* Online dot */}
-        {profile.isOnline && (
-          <View style={styles.onlineDot} />
-        )}
-      </View>
-
-      {/* Name */}
-      <Text style={[styles.name, { color: textPrimary }]} numberOfLines={1}>
-        {profile.name}
-      </Text>
-      <Text style={[styles.age, { color: textSecondary }]}>{profile.age}</Text>
-
-      {/* New badge */}
+      {/* Border overlay for new match */}
       {profile.isNew && (
-        <View style={[styles.newBadge, { backgroundColor: `${primaryColor}22`, borderColor: `${primaryColor}55` }]}>
-          <Text style={[styles.newText, { color: primaryColor }]}>New</Text>
-        </View>
+        <View style={[styles.newBorder, { borderColor: primaryColor }]} />
       )}
+
+      {/* Info section at bottom */}
+      <View style={styles.infoContainer}>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, { color: textPrimary }]} numberOfLines={1}>
+            {profile.name}
+          </Text>
+          {profile.isNew && (
+            <View style={[styles.newBadge, { backgroundColor: primaryColor }]}>
+              <Text style={styles.newText}>NEW</Text>
+            </View>
+          )}
+        </View>
+        <Text style={[styles.matchText, { color: primaryColor }]}>
+          {profile.match}% Match
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    alignItems:  "center",
-    marginRight: 16,
-    width:       AVATAR + 16,
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    borderRadius: 16,
+    marginRight: 12,
+    overflow: "hidden",
+    backgroundColor: "#1c1c1e",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.05)",
   },
-  avatarRing: {
-    width:        AVATAR + 6,
-    height:       AVATAR + 6,
-    borderRadius: (AVATAR + 6) / 2,
-    borderWidth:  2.5,
-    padding:      2,
-    marginBottom: 8,
-    position:     "relative",
+  image: {
+    width: "100%",
+    height: "100%",
+    position: "absolute",
   },
-  avatar: {
-    width:        AVATAR,
-    height:       AVATAR,
-    borderRadius: AVATAR / 2,
-  },
-  matchBadge: {
-    position:          "absolute",
-    bottom:            2,
-    left:              2,
-    paddingHorizontal: 6,
-    paddingVertical:   2,
-    borderRadius:      10,
-  },
-  matchText: {
-    fontSize:   9,
-    fontWeight: "700",
-    color:      "#fff",
+  gradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "50%",
   },
   onlineDot: {
-    position:     "absolute",
-    bottom:       4,
-    right:        4,
-    width:        12,
-    height:       12,
-    borderRadius: 6,
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: "#4ade80",
-    borderWidth:  2,
-    borderColor:  "#1a1a1a",
+    borderWidth: 1.5,
+    borderColor: "rgba(0,0,0,0.5)",
+  },
+  newBorder: {
+    ...StyleSheet.absoluteFillObject,
+    borderWidth: 2,
+    borderRadius: 16,
+  },
+  infoContainer: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    right: 10,
+  },
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
   },
   name: {
-    fontSize:      13,
-    fontWeight:    "600",
-    textAlign:     "center",
-    maxWidth:      AVATAR + 16,
-  },
-  age: {
-    fontSize:  12,
-    textAlign: "center",
-    marginTop: 1,
+    fontSize: 14,
+    fontFamily: "Lato_700Bold",
+    flexShrink: 1,
   },
   newBadge: {
-    marginTop:         5,
-    paddingHorizontal: 8,
-    paddingVertical:   2,
-    borderRadius:      10,
-    borderWidth:       1,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   newText: {
-    fontSize:   10,
-    fontWeight: "600",
+    fontSize: 8,
+    fontFamily: "Lato_700Bold",
+    color: "#fff",
+  },
+  matchText: {
+    fontSize: 11,
+    fontFamily: "Lato_700Bold",
   },
 });

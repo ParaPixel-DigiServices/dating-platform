@@ -14,12 +14,16 @@ interface Props {
   textPrimary: string;
   textSecondary: string;
   secondary: string;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
   onFilterPress?: () => void;
 }
 
-export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary, onFilterPress }: Props) {
+const TABS = ["For You", "Recently Active", "Liked You"];
+
+export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary, activeTab, onTabChange, onFilterPress }: Props) {
   return (
-    <SafeAreaView>
+    <View>
       <View style={styles.container}>
         {/* ── AMORA Logo ────────────────────────────────── */}
         <View style={styles.logoRow}>
@@ -29,14 +33,40 @@ export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary
 
         {/* ── Filter icon ───────────────────────────────── */}
         <TouchableOpacity
-          style={[styles.filterBtn, { backgroundColor: secondary }]}
+          style={styles.filterBtn}
           onPress={onFilterPress}
           activeOpacity={0.75}
         >
-          <Feather name="sliders" size={22} color={textPrimary} />
+          <Feather name="sliders" size={24} color={primaryColor} />
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+
+      {/* ── Tabs ──────────────────────────────────────── */}
+      <View style={styles.tabsContainer}>
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              onPress={() => onTabChange(tab)}
+              style={styles.tabButton}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  { color: isActive ? primaryColor : textSecondary },
+                ]}
+              >
+                {tab}
+              </Text>
+              {isActive && (
+                <View style={[styles.activeIndicator, { backgroundColor: primaryColor }]} />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
   );
 }
 
@@ -47,7 +77,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingTop: Platform.OS === "android" ? 16 : 8,
-    paddingBottom: 12,
+    paddingBottom: 24,
   },
   logoRow: {
     flexDirection: "row",
@@ -58,17 +88,36 @@ const styles = StyleSheet.create({
     transform: [{ rotate: "20deg" }],
   },
   logoText: {
-    fontSize: 24,
-    fontFamily: "serif",           // Times New Roman on iOS, Noto Serif on Android
-    fontWeight: "600",
+    fontSize: 26,
+    fontFamily: "PlayfairDisplay_700Bold",
     letterSpacing: 2,
   },
   filterBtn: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
     justifyContent: "center",
-    alignItems: "center",
-    transform: [{ rotate: "90deg" }],
+    alignItems: "flex-end",
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    paddingHorizontal: 20,
+    gap: 24,
+    paddingBottom: 16,
+  },
+  tabButton: {
+    paddingBottom: 8,
+    position: "relative",
+  },
+  tabText: {
+    fontSize: 16,
+    fontFamily: "Lato_400Regular",
+  },
+  activeIndicator: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    borderRadius: 1,
   },
 });

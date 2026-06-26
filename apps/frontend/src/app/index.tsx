@@ -18,6 +18,7 @@ export default function IndexScreen() {
 
   // Step 1: Onboarding fully completed locally (firstName + category persisted).
   // Check this FIRST so the app works even when there is no live backend session.
+  
   if (firstName && category) {
     return <Redirect href="/(tabs)/home" />;
   }

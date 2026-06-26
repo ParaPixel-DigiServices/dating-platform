@@ -132,6 +132,7 @@ export default function RootLayout() {
     // onboarding locally. If local state is populated we can let them through.
     if (!accessToken && !onboardingDone && !inAuthGroup) {
       router.replace('/(onboarding)/landing');
+      // router.replace('/(tabs)/home');
     }
   }, [accessToken, onboardingDone, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);
 

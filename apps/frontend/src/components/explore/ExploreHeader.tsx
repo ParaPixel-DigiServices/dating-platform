@@ -42,7 +42,7 @@ export function ExploreHeader({
       </Text>
 
       {/* Search bar */}
-      <View style={[styles.searchBar, { backgroundColor: secondary }]}>
+      <View style={[styles.searchBar, { backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)", borderWidth: 1 }]}>
         <Feather name="search" size={18} color={textSecondary} style={styles.searchIcon} />
         <TextInput
           style={[styles.input, { color: textPrimary }]}
@@ -70,16 +70,15 @@ const styles = StyleSheet.create({
     paddingBottom:     20,
   },
   title: {
-    fontSize:      28,
-    fontWeight:    "700",
+    fontSize:      32,
+    fontFamily:    "Lato_700Bold",
     letterSpacing: 0.3,
-    fontFamily:    Platform.OS === "ios" ? "Times New Roman" : "serif",
     marginBottom:  4,
   },
   subtitle: {
-    fontSize:     13,
-    fontWeight:   "400",
-    marginBottom: 18,
+    fontSize:     14,
+    fontFamily:   "Lato_400Regular",
+    marginBottom: 20,
   },
   searchBar: {
     flexDirection:     "row",

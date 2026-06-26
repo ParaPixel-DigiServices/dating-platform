@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
   TextInput,
   FlatList,
@@ -11,6 +10,7 @@ import {
   Platform,
   Image,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
@@ -36,8 +36,8 @@ const INITIAL_MESSAGES = [
 export default function ChatDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
-  const category = useOnboardingStore((s) => s.category) ?? "Casual";
-  const activeTheme = (theme as any)[category];
+  const insets = useSafeAreaInsets();
+  const activeTheme = (theme as any).onboarding;
 
   const profile = MOCK_PROFILES[id as string] || { name: "Match", avatar: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80" };
 
@@ -59,13 +59,13 @@ export default function ChatDetailScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: activeTheme.background }]}>
+    <View style={[styles.safeArea, { backgroundColor: activeTheme.background, paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 30 : 0) }]}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         {/* HEADER */}
-        <View style={[styles.header, { borderBottomColor: "rgba(150, 150, 150, 0.2)" }]}>
+        <View style={[styles.header, { borderBottomColor: activeTheme.border }]}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Feather name="chevron-left" size={28} color={activeTheme.textPrimary} />
           </TouchableOpacity>
@@ -93,9 +93,9 @@ export default function ChatDetailScreen() {
         />
 
         {/* INPUT AREA */}
-        <View style={[styles.inputContainer, { backgroundColor: activeTheme.background, borderTopColor: "rgba(150, 150, 150, 0.2)" }]}>
+        <View style={[styles.inputContainer, { backgroundColor: activeTheme.background, borderTopColor: activeTheme.border }]}>
           <TextInput
-            style={[styles.input, { backgroundColor: activeTheme.secondary, color: activeTheme.textPrimary }]}
+            style={[styles.input, { backgroundColor: activeTheme.secondary, color: activeTheme.textPrimary, borderColor: activeTheme.border, borderWidth: 1 }]}
             placeholder="Type a message..."
             placeholderTextColor={activeTheme.textSecondary}
             value={inputText}
@@ -112,7 +112,7 @@ export default function ChatDetailScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
   },
   headerName: {
     flex: 1,
-    fontSize: 18,
-    fontFamily: "Lato_700Bold",
+    fontSize: 20,
+    fontFamily: "PlayfairDisplay_700Bold",
   },
   moreBtn: {
     padding: 4,
@@ -159,12 +159,12 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 44,
     maxHeight: 120,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
+    borderRadius: 22,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 14,
     fontSize: 15,
     fontFamily: "Lato_400Regular",
   },

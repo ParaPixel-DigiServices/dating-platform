@@ -16,7 +16,7 @@ import { LikedYouSection }        from "@/components/explore/LikedYouSection";
 import { MatchProfile }           from "@/components/explore/MatchAvatarCard";
 import { LikedProfile }           from "@/components/explore/LikedYouCard";
 
-const DUMMY = require("../../../assets/images/dummy_img1.png");
+const DUMMY = require("../../../assets/images/demo_post.png");
 
 // ── Dummy data ────────────────────────────────────────────────
 

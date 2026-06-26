@@ -5,7 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { LikedYouCard, LikedProfile } from "./LikedYouCard";
+import { LikedGridCard } from "./LikedGridCard";
+import { LikedProfile } from "./LikedYouCard"; // reuse the interface
 import { Feather } from "@expo/vector-icons";
 
 interface Props {
@@ -38,7 +39,7 @@ export function LikedYouSection({
             Liked You
           </Text>
           <Text style={[styles.sectionSub, { color: textSecondary }]}>
-            People waiting for your response
+            Upgrade to see who liked you
           </Text>
         </View>
 
@@ -48,30 +49,32 @@ export function LikedYouSection({
         </View>
       </View>
 
-      {/* Cards list */}
-      {profiles.map((p) => (
-        <LikedYouCard
-          key={p.id}
-          profile={p}
-          primaryColor={primaryColor}
-          textPrimary={textPrimary}
-          textSecondary={textSecondary}
-          secondary={secondary}
-          onPress={() => onProfile(p.id)}
-          onAction={() => onAction(p.id)}
-        />
-      ))}
+      {/* Grid of cards */}
+      <View style={styles.gridContainer}>
+        {profiles.map((p, index) => (
+          <LikedGridCard
+            key={p.id}
+            profile={p}
+            primaryColor={primaryColor}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            secondary={secondary}
+            isBlurred={index > 0} // First one clear, rest blurred
+            onPress={() => onProfile(p.id)}
+            onAction={() => onAction(p.id)}
+          />
+        ))}
+      </View>
 
       {/* See more link */}
       <TouchableOpacity
-        style={styles.seeMoreRow}
+        style={[styles.seeMoreBtn, { backgroundColor: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)" }]}
         onPress={onSeeMore}
         activeOpacity={0.7}
       >
         <Text style={[styles.seeMoreText, { color: primaryColor }]}>
-          See more profiles
+          Unlock all {profiles.length} admirers
         </Text>
-        <Feather name="arrow-right" size={14} color={primaryColor} style={{ marginLeft: 4 }} />
       </TouchableOpacity>
     </View>
   );
@@ -80,23 +83,24 @@ export function LikedYouSection({
 const styles = StyleSheet.create({
   wrapper: {
     paddingHorizontal: 20,
-    paddingTop:        16,
+    paddingTop:        24,
     paddingBottom:     32,
   },
   header: {
     flexDirection:  "row",
     justifyContent: "space-between",
     alignItems:     "flex-start",
-    marginBottom:   18,
+    marginBottom:   20,
   },
   sectionTitle: {
-    fontSize:      18,
-    fontWeight:    "700",
+    fontSize:      20,
+    fontFamily:    "Lato_700Bold",
     letterSpacing: 0.2,
   },
   sectionSub: {
-    fontSize:  12,
-    marginTop: 3,
+    fontSize:  13,
+    fontFamily: "Lato_400Regular",
+    marginTop: 4,
   },
   countBubble: {
     width:          28,
@@ -108,19 +112,26 @@ const styles = StyleSheet.create({
   },
   countText: {
     fontSize:   12,
-    fontWeight: "800",
-    color:      "#fff",
+    fontFamily: "Lato_700Bold",
+    color:      "#000",
   },
-  seeMoreRow: {
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  seeMoreBtn: {
     flexDirection:  "row",
     alignItems:     "center",
     justifyContent: "center",
-    marginTop:      8,
-    paddingVertical: 14,
+    marginTop:      12,
+    paddingVertical: 16,
+    borderRadius: 24,
+    borderWidth: 1,
   },
   seeMoreText: {
-    fontSize:      14,
-    fontWeight:    "600",
+    fontSize:      15,
+    fontFamily:    "Lato_700Bold",
     letterSpacing: 0.3,
   },
 });

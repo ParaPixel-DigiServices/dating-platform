@@ -193,7 +193,9 @@ const theme = {
     secondary:     "#1E1410",   // very dark warm brown — provider button bg
     secondaryLight: "#d7996f",
     // background:    "#0D0A07",   // near-black with warm undertone
-    background:    "#121213",   // near-black with warm undertone
+    // background:    "#121213",   // near-black with warm undertone
+    background:    "#0e0e0f",   // near-black with warm undertone
+    // background:    "#070707",   // near-black with warm undertone
     warmIvory:     "#FFF5EC",
     textPrimary:   "#FFF5EC",   // warm off-white — headings
     // textSecondary: "#f3e3c9ff",   // muted warm grey — subtitles, captions
