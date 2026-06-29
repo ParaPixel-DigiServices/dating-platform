@@ -14,11 +14,13 @@ interface DeckStore {
   profiles: Profile[];
   activeTab: string;
   filters: FilterState;
+  unreadCount: number;
 
   // Actions
   setMasterProfiles: (profiles: Profile[]) => void;
   setActiveTab: (tab: string) => void;
   setFilters: (filters: FilterState) => void;
+  setUnreadCount: (count: number) => void;
   swipeProfile: () => void;
   applyFilters: () => void;
 }
@@ -28,6 +30,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
   profiles: [],
   activeTab: "For You",
   filters: {},
+  unreadCount: 3,
 
   setMasterProfiles: (profiles) => {
     set({ masterProfiles: profiles });
@@ -43,6 +46,8 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     set({ filters });
     get().applyFilters();
   },
+
+  setUnreadCount: (count) => set({ unreadCount: count }),
 
   swipeProfile: () => set((state) => {
     if (state.profiles.length === 0) return state;

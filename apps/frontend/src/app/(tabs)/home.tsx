@@ -638,6 +638,8 @@ export default function HomeScreen() {
   const setMasterProfiles = useDeckStore((state) => state.setMasterProfiles);
   const swipeProfile = useDeckStore((state) => state.swipeProfile);
   const setFilters = useDeckStore((state) => state.setFilters);
+  const unreadCount = useDeckStore((state) => state.unreadCount);
+  const setUnreadCount = useDeckStore((state) => state.setUnreadCount);
 
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const topCardRef = useRef<SwipeableProfileCardRef>(null);
@@ -665,8 +667,11 @@ export default function HomeScreen() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onFilterPress={() => setIsFilterModalVisible(true)}
-          onNotificationPress={() => router.push("/notifications")}
-          notificationCount={3}
+          onNotificationPress={() => {
+            setUnreadCount(0);
+            router.push("/notifications");
+          }}
+          notificationCount={unreadCount}
         />
       </View>
 

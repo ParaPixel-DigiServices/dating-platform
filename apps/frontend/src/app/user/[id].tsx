@@ -35,7 +35,8 @@ export default function UserProfileScreen() {
   const router = useRouter();
   
   const category = useOnboardingStore((s) => s.category) ?? "Casual";
-  const t = theme[category];
+  const themeObj = (theme as any).default || theme;
+  const t = themeObj[category] || themeObj.onboarding;
 
   const profile = useMemo(() => getMockUser(id), [id]);
 

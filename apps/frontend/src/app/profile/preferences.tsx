@@ -18,10 +18,11 @@ import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
 import Slider from "@react-native-community/slider";
 import theme from "@/theme/theme";
 
-const t = (theme as any).onboarding;
+const themeObj = (theme as any).default || theme;
+const t = themeObj.onboarding;
 
 // Using the same base background as the profile screen to match
-const BG_COLOR = (theme as any).onboarding.background;
+const BG_COLOR = t.background;
 
 type PrefItem = 
   | { type: "row"; label: string; options?: string[] }

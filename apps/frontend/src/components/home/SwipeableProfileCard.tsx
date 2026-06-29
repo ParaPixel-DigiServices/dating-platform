@@ -159,12 +159,12 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
             <>
               {/* LIKE STAMP (Left side when swiping right) */}
               <Animated.View style={[styles.stampContainer, styles.likeStamp, likeOpacity, { backgroundColor: theme.primaryLight }]}>
-                <Ionicons name="heart" size={40} color="#000" />
+                <Ionicons name="heart" size={60} color="#000" />
               </Animated.View>
 
               {/* NOPE STAMP (Right side when swiping left) */}
               <Animated.View style={[styles.stampContainer, styles.nopeStamp, nopeOpacity, { backgroundColor: theme.primaryLight }]}>
-                <Ionicons name="close" size={40} color="#000" />
+                <Ionicons name="close" size={60} color="#000" />
               </Animated.View>
             </>
           )}
@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     zIndex: 1,
+    borderRadius: 25,
   },
   deckWrapper: {
     width: "100%",
@@ -204,10 +205,10 @@ const styles = StyleSheet.create({
   },
   stampContainer: {
     position: "absolute",
-    top: 60, // over the image
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    top: "15%", // moved up vertically
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: "center",
     alignItems: "center",
     elevation: 10,
@@ -217,11 +218,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   likeStamp: {
-    left: 40,
+    left: 20,
     transform: [{ rotate: "-15deg" }],
   },
   nopeStamp: {
-    right: 40,
+    right: 20,
     transform: [{ rotate: "15deg" }],
   },
 });

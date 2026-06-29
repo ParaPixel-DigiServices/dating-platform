@@ -65,6 +65,8 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     paddingTop: 10,
     position: "relative",
+    borderWidth: 2,
+    borderColor: "red",
   },
   backCardWrapper: {
     position: "absolute",

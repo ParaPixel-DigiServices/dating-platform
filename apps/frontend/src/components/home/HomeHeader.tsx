@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { NotificationIcon } from "./NotificationIcon";
+import { CoinBalanceBadge } from "./CoinBalanceBadge";
 
 interface Props {
   primaryColor: string;
@@ -28,10 +29,10 @@ export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary
   return (
     <View>
       <View style={styles.container}>
-        {/* ── AMORA Logo ────────────────────────────────── */}
+        {/* ── AMORA Logo & Coins ────────────────────────────────── */}
         <View style={styles.logoRow}>
-          {/* <Ionicons name="moon" size={18} color={primaryColor} style={styles.moonIcon} /> */}
           <Text style={[styles.logoText, { color: primaryColor }]}>AMORA</Text>
+          <CoinBalanceBadge />
         </View>
 
         {/* ── Right Actions ───────────────────────────────── */}
