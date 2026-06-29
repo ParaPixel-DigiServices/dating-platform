@@ -46,6 +46,10 @@ export interface Profile {
   age: number;
   gender: string;
   distance: string;
+  distanceNum?: number;
+  liked?: boolean;
+  recentlyActive?: boolean;
+  religion?: string;
   location?: string;
   match: number;
   interests: string[];

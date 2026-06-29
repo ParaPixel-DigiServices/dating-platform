@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { Loader } from '@/components/Loader';
 import { useAuthStore } from '@/hooks/useAuthStore';
@@ -145,11 +146,13 @@ export default function RootLayout() {
   }
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: 'fade',
-      }}
-    />
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: 'fade',
+        }}
+      />
+    </GestureHandlerRootView>
   );
 }

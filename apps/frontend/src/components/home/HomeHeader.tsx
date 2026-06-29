@@ -8,6 +8,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { NotificationIcon } from "./NotificationIcon";
 
 interface Props {
   primaryColor: string;
@@ -17,11 +18,13 @@ interface Props {
   activeTab: string;
   onTabChange: (tab: string) => void;
   onFilterPress?: () => void;
+  onNotificationPress?: () => void;
+  notificationCount?: number;
 }
 
 const TABS = ["For You", "Recently Active", "Liked You"];
 
-export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary, activeTab, onTabChange, onFilterPress }: Props) {
+export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary, activeTab, onTabChange, onFilterPress, onNotificationPress, notificationCount = 0 }: Props) {
   return (
     <View>
       <View style={styles.container}>
@@ -31,14 +34,21 @@ export function HomeHeader({ primaryColor, textPrimary, textSecondary, secondary
           <Text style={[styles.logoText, { color: primaryColor }]}>AMORA</Text>
         </View>
 
-        {/* ── Filter icon ───────────────────────────────── */}
-        <TouchableOpacity
-          style={styles.filterBtn}
-          onPress={onFilterPress}
-          activeOpacity={0.75}
-        >
-          <Feather name="sliders" size={24} color={primaryColor} />
-        </TouchableOpacity>
+        {/* ── Right Actions ───────────────────────────────── */}
+        <View style={styles.rightActions}>
+          <NotificationIcon
+            count={notificationCount}
+            color={primaryColor}
+            onPress={onNotificationPress || (() => {})}
+          />
+          <TouchableOpacity
+            style={styles.filterBtn}
+            onPress={onFilterPress}
+            activeOpacity={0.75}
+          >
+            <Feather name="sliders" size={24} color={primaryColor} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Tabs ──────────────────────────────────────── */}
@@ -92,11 +102,16 @@ const styles = StyleSheet.create({
     fontFamily: "PlayfairDisplay_700Bold",
     letterSpacing: 2,
   },
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   filterBtn: {
     width: 44,
     height: 44,
     justifyContent: "center",
-    alignItems: "flex-end",
+    alignItems: "center",
   },
   tabsContainer: {
     flexDirection: "row",
