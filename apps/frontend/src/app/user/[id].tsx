@@ -1,44 +1,43 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Image, StyleSheet, Dimensions, StatusBar, ScrollView, TouchableOpacity, Text, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
-import { Feather } from "@expo/vector-icons";
+import { Feather, MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import theme from "@/theme/theme";
-import { ProfileHeaderButtons } from "@/components/profile/ProfileHeaderButtons";
-import { ProfileInfoCard } from "@/components/profile/ProfileInfoCard";
 
-const { height } = Dimensions.get("window");
-const IMAGE_HEIGHT = height * 0.70; // 70% of screen height
+import { useDeckStore } from "@/hooks/useDeckStore";
 
-const DUMMY_IMG = require("../../../assets/images/dummy_img1.png");
+import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
+import { PostsTabContent } from "@/components/profile/PostsTabContent";
 
-// Mock function to simulate fetching a user by ID
-const getMockUser = (id: string) => {
-  return {
-    id,
-    name: "Priya",
-    age: 24,
-    distance: "2 km away",
-    match: 92,
-    photo: DUMMY_IMG,
-    about: "Book lover 📚, coffee enthusiast ☕️\nand always up for a good conversation.",
-    interests: ["Travel", "Books", "Photography", "Music", "Fitness", "Art"],
-    religion: "Hindu",
-    hobbies: ["Painting", "Yoga", "Baking", "Dancing"],
-    quote: "Life is what happens when you're busy making other plans.",
-  };
-};
+const { height, width } = Dimensions.get("window");
 
 export default function UserProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   
   const category = useOnboardingStore((s) => s.category) ?? "Casual";
   const themeObj = (theme as any).default || theme;
   const t = themeObj[category] || themeObj.onboarding;
 
-  const profile = useMemo(() => getMockUser(id), [id]);
+  const masterProfiles = useDeckStore((s) => s.masterProfiles);
+  const profile = useMemo(() => masterProfiles.find((p) => p.id === id), [id, masterProfiles]);
+
+  const [activeTab, setActiveTab] = useState<"Profile" | "Posts">("Profile");
+
+  if (!profile) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center", backgroundColor: t.background }]}>
+        <Text style={{ color: t.textPrimary }}>Profile not found</Text>
+      </View>
+    );
+  }
+
+  const topTags = ["Single", profile.height || "180cm"];
 
   const handleBack = () => {
     if (router.canGoBack()) {
@@ -48,78 +47,131 @@ export default function UserProfileScreen() {
     }
   };
 
-  const handleMenu = () => {
-    console.log("Menu pressed");
-  };
-
-  const handleSayHello = () => {
-    console.log("Say Hello pressed");
-  };
-
-  const handleReport = () => {
-    console.log("Report pressed");
-  };
-
   return (
-    <View style={[styles.container, { backgroundColor: t.background }]}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      {/* Top Image & Gradient Fade (Fixed Background) */}
-      <View style={styles.imageContainer}>
-        <Image source={profile.photo} style={styles.image} resizeMode="cover" />
+      
+      {/* Full Screen Image */}
+      <View style={StyleSheet.absoluteFillObject}>
+        <Image source={profile.main_photo} style={styles.image} resizeMode="cover" />
         <LinearGradient
-          colors={["transparent", t.background]}
-          locations={[0.5, 1]}
-          style={styles.imageGradient}
+          colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.85)", t.background]}
+          locations={[0, 0.25, 0.65, 1]}
+          style={StyleSheet.absoluteFillObject}
           pointerEvents="none"
         />
       </View>
 
-      {/* Overlay Header Buttons */}
-      <ProfileHeaderButtons primaryColor={t.primary} onBack={handleBack} onMenu={handleMenu} />
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, Platform.OS === "android" ? 30 : 0) }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
+          <View style={styles.backBtnCircle}>
+            <Feather name="chevron-left" size={24} color={t.textPrimary} />
+          </View>
+          <Text style={[styles.headerText, { color: t.textPrimary }]}>Home</Text>
+        </TouchableOpacity>
+        {/* Mock top right avatars/badges can go here */}
+      </View>
 
-      {/* Scrollable Content overlaying the image */}
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Transparent spacer to push the card down and reveal the image initially */}
-        <View style={{ height: IMAGE_HEIGHT * 0.55 }} />
+        {/* Transparent Spacer */}
+        <View style={{ height: height * 0.35 }} />
 
-        {/* Floating Info Card */}
-        <ProfileInfoCard
-          profile={profile}
-          textPrimary={t.textPrimary}
-          textSecondary={t.textSecondary}
-          background={t.background}
-          secondary={t.secondary}
-        />
+        {/* Hero Section */}
+        <View style={styles.heroContainer}>
+          <View style={styles.locationRow}>
+            <MaterialIcons name="location-on" size={16} color={t.textPrimary} />
+            <Text style={[styles.locationText, { color: t.textPrimary }]}>{profile.distance}</Text>
+          </View>
 
-        {/* Bottom spacer so scroll doesn't get hidden behind fixed buttons */}
-        <View style={{ height: 120 }} />
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: t.textPrimary }]}>{profile.name}</Text>
+            <View style={styles.ageBadge}>
+              <BlurView intensity={40} tint="dark" style={styles.ageBlur}>
+                <Text style={[styles.ageText, { color: t.textPrimary }]}>{profile.age}</Text>
+              </BlurView>
+            </View>
+          </View>
+
+          <View style={styles.tagsRow}>
+            {topTags.map((tag, i) => (
+              <View key={i} style={styles.tagBadge}>
+                <BlurView intensity={40} tint="dark" style={styles.tagBlur}>
+                  {i === 0 && <Feather name="user" size={12} color={t.textPrimary} style={styles.tagIcon} />}
+                  {i === 1 && <Feather name="arrow-up" size={12} color={t.textPrimary} style={styles.tagIcon} />}
+                  <Text style={[styles.tagText, { color: t.textPrimary }]}>{tag}</Text>
+                </BlurView>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.actionsRow}>
+            <TouchableOpacity style={styles.iconBtn}>
+              <BlurView intensity={60} tint="dark" style={styles.iconBtnBlur}>
+                <Feather name="heart" size={24} color={t.textPrimary} />
+              </BlurView>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.iconBtn}>
+              <BlurView intensity={60} tint="dark" style={styles.iconBtnBlur}>
+                <Feather name="message-circle" size={24} color={t.textPrimary} />
+              </BlurView>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.iconBtn}>
+              <BlurView intensity={60} tint="dark" style={styles.iconBtnBlur}>
+                <Feather name="video" size={24} color={t.textPrimary} />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Tab System */}
+        <View style={styles.tabsContainer}>
+          <View style={styles.tabSwitcher}>
+            <TouchableOpacity 
+              style={[styles.tabBtn, activeTab === "Profile" && styles.tabBtnActive]} 
+              onPress={() => setActiveTab("Profile")}
+            >
+              <Text style={[styles.tabText, { color: activeTab === "Profile" ? t.textPrimary : t.textSecondary }]}>
+                Profile
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.tabBtn, activeTab === "Posts" && styles.tabBtnActive]} 
+              onPress={() => setActiveTab("Posts")}
+            >
+              <Text style={[styles.tabText, { color: activeTab === "Posts" ? t.textPrimary : t.textSecondary }]}>
+                Social Posts
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Dynamic Tab Content */}
+        {activeTab === "Profile" ? (
+          <ProfileTabContent 
+            profile={profile}
+            textPrimary={t.textPrimary} 
+            textSecondary={t.textSecondary} 
+            primaryColor={t.primaryLight} 
+            background={t.background}
+            secondary={t.secondary}
+          />
+        ) : (
+          <PostsTabContent 
+            textPrimary={t.textPrimary} 
+            theme={t}
+            profileId={profile.id}
+            profileName={profile.name}
+          />
+        )}
+
       </ScrollView>
-
-      {/* Fixed Bottom Buttons Overlay (visually solid bottom part of the card) */}
-      <View style={[styles.fixedBottomContainer, { backgroundColor: t.background }]}>
-        {/* Say Hello Button */}
-        <TouchableOpacity style={styles.helloBtnWrapper} activeOpacity={0.8} onPress={handleSayHello}>
-          <LinearGradient
-            colors={[`${t.primary}dd`, t.primary]}
-            style={styles.helloBtn}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Feather name="send" size={18} color="#000" style={styles.helloIcon} />
-            <Text style={styles.helloText}>Say Hello</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-
-        {/* Report Button */}
-        <TouchableOpacity style={styles.reportBtn} activeOpacity={0.6} onPress={handleReport}>
-          <Feather name="flag" size={14} color={t.textSecondary} />
-          <Text style={[styles.reportText, { color: t.textSecondary }]}>Report</Text>
-        </TouchableOpacity>
-      </View>
-
     </View>
   );
 }
@@ -127,70 +179,175 @@ export default function UserProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  imageContainer: {
-    width: "100%",
-    height: IMAGE_HEIGHT,
-    position: "absolute",
-    top: 0,
-    left: 0,
+    backgroundColor: "#000",
   },
   image: {
     width: "100%",
     height: "100%",
   },
-  imageGradient: {
-    ...StyleSheet.absoluteFillObject,
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    zIndex: 10,
+  },
+  backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  backBtnCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 10,
+  },
+  headerText: {
+    fontSize: 20,
+    fontWeight: "700",
   },
   scrollView: {
     flex: 1,
   },
-  fixedBottomContainer: {
-    position: "absolute",
-    bottom: 0,
-    alignSelf: "center",
-    width: "95%", // Matches ProfileInfoCard width
-    borderBottomLeftRadius: 35, // Matches the top corners of the info card
-    borderBottomRightRadius: 35,
-    paddingTop: 20, 
-    paddingHorizontal: 24,
-    paddingBottom: Platform.OS === "ios" ? 30 : 20,
-    // Add shadow pointing upwards slightly to separate from the blur above if needed
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 10,
+  scrollContent: {
+    paddingBottom: 40,
   },
-  helloBtnWrapper: {
-    marginBottom: 16,
-    width: "100%", // Take full width of the padded container
+  heroContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
   },
-  helloBtn: {
+  locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    borderRadius: 16,
+    marginBottom: 8,
   },
-  helloIcon: {
-    marginRight: 8,
-  },
-  helloText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#000",
+  locationText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 4,
     letterSpacing: 0.5,
   },
-  reportBtn: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 10,
+    marginBottom: 16,
   },
-  reportText: {
+  name: {
+    fontSize: 36,
+    fontFamily: Platform.OS === "ios" ? "Times New Roman" : "serif",
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  ageBadge: {
+    marginLeft: 16,
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  ageBlur: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  ageText: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  tagsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 24,
+  },
+  tagBadge: {
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  tagBlur: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  tagIcon: {
+    marginRight: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  iconBtnBlur: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  meetingBtn: {
+    flex: 1,
+    height: 50,
+    borderRadius: 25,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.2)",
+  },
+  meetingBtnBlur: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    height: "100%",
+    paddingHorizontal: 16,
+  },
+  meetingIcon: {
+    marginRight: 8,
+  },
+  meetingText: {
+    flex: 1,
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "700",
+  },
+  meetingClose: {
+    marginLeft: 8,
+  },
+  tabsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 10,
+  },
+  tabSwitcher: {
+    flexDirection: "row",
+    gap: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  tabBtn: {
+    paddingVertical: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  tabBtnActive: {
+    borderBottomColor: "#FFF",
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

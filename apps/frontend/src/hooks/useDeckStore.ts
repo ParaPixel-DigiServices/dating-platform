@@ -25,9 +25,11 @@ interface DeckStore {
   applyFilters: () => void;
 }
 
+import { MOCK_PROFILES } from '@/utils/mockData';
+
 export const useDeckStore = create<DeckStore>((set, get) => ({
-  masterProfiles: [],
-  profiles: [],
+  masterProfiles: MOCK_PROFILES,
+  profiles: MOCK_PROFILES,
   activeTab: "For You",
   filters: {},
   unreadCount: 3,

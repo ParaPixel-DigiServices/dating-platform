@@ -9,33 +9,13 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useOnboardingStore }    from "@/hooks/useOnboardingStore";
+import { useDeckStore }          from "@/hooks/useDeckStore";
 import theme                      from "@/theme/theme";
 import { ExploreHeader }          from "@/components/explore/ExploreHeader";
 import { MatchesSection }         from "@/components/explore/MatchesSection";
 import { LikedYouSection }        from "@/components/explore/LikedYouSection";
 import { MatchProfile }           from "@/components/explore/MatchAvatarCard";
 import { LikedProfile }           from "@/components/explore/LikedYouCard";
-
-const DUMMY = require("../../../assets/images/demo_post.png");
-
-// ── Dummy data ────────────────────────────────────────────────
-
-const ALL_MATCHES: MatchProfile[] = [
-  { id: "m1", name: "Priya",  age: 24, photo: DUMMY, match: 92, isOnline: true,  isNew: true  },
-  { id: "m2", name: "Ananya", age: 26, photo: DUMMY, match: 87, isOnline: false, isNew: true  },
-  { id: "m3", name: "Kavya",  age: 25, photo: DUMMY, match: 94, isOnline: true,  isNew: false },
-  { id: "m4", name: "Meera",  age: 23, photo: DUMMY, match: 79, isOnline: false, isNew: false },
-  { id: "m5", name: "Shreya", age: 27, photo: DUMMY, match: 81, isOnline: true,  isNew: true  },
-  { id: "m6", name: "Nisha",  age: 22, photo: DUMMY, match: 88, isOnline: false, isNew: true  },
-];
-
-const ALL_LIKED: LikedProfile[] = [
-  { id: "l1", name: "Riya",  age: 24, photo: DUMMY, isOnline: true,  timeAgo: "2h ago"   },
-  { id: "l2", name: "Sneha", age: 25, photo: DUMMY, isOnline: false, timeAgo: "5h ago"   },
-  { id: "l3", name: "Pooja", age: 23, photo: DUMMY, isOnline: true,  timeAgo: "Just now" },
-  { id: "l4", name: "Divya", age: 26, photo: DUMMY, isOnline: false, timeAgo: "1d ago"   },
-  { id: "l5", name: "Isha",  age: 22, photo: DUMMY, isOnline: true,  timeAgo: "30m ago"  },
-];
 
 
 // ── Screen ────────────────────────────────────────────────────
@@ -44,6 +24,40 @@ export default function ExploreScreen() {
   const router   = useRouter();
   const insets   = useSafeAreaInsets();
   const t        = (theme as any).onboarding;
+
+  const masterProfiles = useDeckStore((s) => s.masterProfiles);
+
+  // Derive match/liked display data from central store
+  const ALL_MATCHES: MatchProfile[] = useMemo(() =>
+    masterProfiles
+      .filter((p) => p.match !== undefined)
+      .slice(0, 6)
+      .map((p, i) => ({
+        id: p.id,
+        name: p.name,
+        age: p.age,
+        photo: p.main_photo,
+        match: p.match ?? 80,
+        isOnline: i % 2 === 0,
+        isNew: i < 3,
+      })),
+    [masterProfiles]
+  );
+
+  const ALL_LIKED: LikedProfile[] = useMemo(() =>
+    masterProfiles
+      .filter((p) => p.liked === true)
+      .slice(0, 5)
+      .map((p, i) => ({
+        id: p.id,
+        name: p.name,
+        age: p.age,
+        photo: p.main_photo,
+        isOnline: i % 2 === 0,
+        timeAgo: ["2h ago", "5h ago", "Just now", "1d ago", "30m ago"][i] ?? "Recently",
+      })),
+    [masterProfiles]
+  );
 
   const [searchQuery, setSearchQuery] = useState("");
 
