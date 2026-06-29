@@ -205,7 +205,7 @@ export default function ProfileScreen() {
               {bio ? (
                 <Text style={[styles.bioText, { color: t.textSecondary }]}>"{bio}"</Text>
               ) : (
-                <Text style={[styles.emptyText, { color: t.textSecondary + "66" }]}>Use your words to get what you want...</Text>
+                <Text style={[styles.emptyText, { color: t.primaryLight + "66" }]}>Use your words to get what you want...</Text>
               )}
               
               <View style={{ marginTop: 24, gap: 12 }}>
@@ -218,7 +218,7 @@ export default function ProfileScreen() {
                       </View>
                     ))
                   ) : (
-                    <Text style={[styles.emptyText, { color: t.textSecondary + "66" }]}>No interests added yet.</Text>
+                    <Text style={[styles.emptyText, { color: t.primaryLight + "66" }]}>No interests added yet.</Text>
                   )}
                 </View>
 

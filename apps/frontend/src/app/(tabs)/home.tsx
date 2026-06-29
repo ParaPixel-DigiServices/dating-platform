@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   ScrollView,
@@ -20,6 +20,7 @@ import { Profile } from "@/components/home/MatchCard";
 import { ProfileCarousel } from "@/components/home/ProfileCarousel";
 import { AboutMeSection } from "@/components/home/AboutMeSection";
 import { ProfilePrompt } from "@/components/home/ProfilePrompt";
+import { HomeFilterModal } from "@/components/home/HomeFilterModal";
 
 const { height } = Dimensions.get("window");
 
@@ -133,7 +134,8 @@ const PROFILES: Profile[] = [
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const t = (theme as any).onboarding;
-  const [activeTab, setActiveTab] = React.useState("For You");
+  const [activeTab, setActiveTab] = useState("For You");
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
   return (
     <View style={[styles.screen, { backgroundColor: t.background, paddingTop: Math.max(insets.top, Platform.OS === 'android' ? 30 : 0) }]}>
@@ -153,7 +155,7 @@ export default function HomeScreen() {
           secondary={t.secondary}
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          onFilterPress={() => { }}
+          onFilterPress={() => setIsFilterModalVisible(true)}
         />
 
         {/* Static Card Stack */}
@@ -224,6 +226,14 @@ export default function HomeScreen() {
         />
       </LinearGradient>
 
+      <HomeFilterModal
+        theme={t}
+        visible={isFilterModalVisible}
+        onClose={() => setIsFilterModalVisible(false)}
+        onApply={(filters) => {
+          console.log("Applied Filters:", filters);
+        }}
+      />
     </View>
   );
 }

@@ -80,9 +80,9 @@ const styles = StyleSheet.create({
   frontCardWrapper: {
     position: "absolute",
     top: 10,
-    transform: [
-      { rotate: "-6deg" },
-    ],
+    // transform: [
+    //   { rotate: "-6deg" },
+    // ],
     zIndex: 2,
     elevation: 5,
     shadowColor: "#000",

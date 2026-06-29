@@ -26,8 +26,8 @@ export default function IndexScreen() {
   // Step 2: Not authenticated and onboarding not complete — go to landing
   if (!accessToken && !user) {
     console.log("Redirecting to landing because user is not authenticated");
-    // return <Redirect href="/(onboarding)/landing" />;
-    return <Redirect href="/(tabs)/home" />;
+    return <Redirect href="/(onboarding)/landing" />;
+    // return <Redirect href="/(tabs)/home" />;
 
   }
 
