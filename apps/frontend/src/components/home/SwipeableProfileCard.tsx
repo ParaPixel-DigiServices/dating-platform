@@ -39,19 +39,24 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
     const translateY = useSharedValue(0);
     const context = useSharedValue({ x: 0, y: 0 });
 
-    const handleSwipeComplete = () => {
+    const triggerHaptic = () => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    };
+
+    const handleSwipeComplete = () => {
       onSwipe();
     };
 
     useImperativeHandle(ref, () => ({
       swipeLeft: () => {
-        translateX.value = withTiming(-SCREEN_WIDTH * 1.5, { duration: 1200, easing: Easing.out(Easing.cubic) }, () => {
+        triggerHaptic();
+        translateX.value = withTiming(-SCREEN_WIDTH * 1.5, { duration: 800, easing: Easing.out(Easing.cubic) }, () => {
           runOnJS(handleSwipeComplete)();
         });
       },
       swipeRight: () => {
-        translateX.value = withTiming(SCREEN_WIDTH * 1.5, { duration: 1200, easing: Easing.out(Easing.cubic) }, () => {
+        triggerHaptic();
+        translateX.value = withTiming(SCREEN_WIDTH * 1.5, { duration: 800, easing: Easing.out(Easing.cubic) }, () => {
           runOnJS(handleSwipeComplete)();
         });
       },
@@ -71,11 +76,13 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
       .onEnd((event) => {
         if (event.translationX > SWIPE_THRESHOLD) {
           // Swipe Right (Like)
+          runOnJS(triggerHaptic)();
           translateX.value = withSpring(SCREEN_WIDTH * 1.5, { velocity: event.velocityX }, () => {
             runOnJS(handleSwipeComplete)();
           });
         } else if (event.translationX < -SWIPE_THRESHOLD) {
           // Swipe Left (Reject)
+          runOnJS(triggerHaptic)();
           translateX.value = withSpring(-SCREEN_WIDTH * 1.5, { velocity: event.velocityX }, () => {
             runOnJS(handleSwipeComplete)();
           });
@@ -95,13 +102,39 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
       };
     });
 
-    const likeOpacity = useAnimatedStyle(() => ({
-      opacity: interpolate(translateX.value, [0, SCREEN_WIDTH * 0.15], [0, 1], "clamp"),
-    }));
+    const likeStyle = useAnimatedStyle(() => {
+      const opacity = interpolate(translateX.value, [0, SCREEN_WIDTH * 0.2], [0, 1], "clamp");
+      const scale = interpolate(translateX.value, [0, SCREEN_WIDTH * 0.35], [0.3, 1.5], "clamp");
+      
+      // Target absolute movement towards center (negative means moving left)
+      const targetAbsoluteMove = interpolate(translateX.value, [0, SCREEN_WIDTH * 0.35], [0, -(SCREEN_WIDTH / 2 - 70)], "clamp");
+      // Offset relative to the card so it appears fixed/moving on screen
+      const moveX = targetAbsoluteMove - translateX.value;
+      const moveY = -translateY.value;
 
-    const nopeOpacity = useAnimatedStyle(() => ({
-      opacity: interpolate(translateX.value, [0, -SCREEN_WIDTH * 0.15], [0, 1], "clamp"),
-    }));
+      return {
+        // Fade out slowly as the card exits the screen
+        opacity: opacity * interpolate(translateX.value, [SCREEN_WIDTH * 0.7, SCREEN_WIDTH * 1.3], [1, 0], "clamp"),
+        transform: [{ translateX: moveX }, { translateY: moveY }, { scale }, { rotate: "-15deg" }]
+      };
+    });
+
+    const nopeStyle = useAnimatedStyle(() => {
+      const opacity = interpolate(translateX.value, [0, -SCREEN_WIDTH * 0.2], [0, 1], "clamp");
+      const scale = interpolate(translateX.value, [0, -SCREEN_WIDTH * 0.35], [0.3, 1.5], "clamp");
+      
+      // Target absolute movement towards center (positive means moving right)
+      const targetAbsoluteMove = interpolate(translateX.value, [0, -SCREEN_WIDTH * 0.35], [0, (SCREEN_WIDTH / 2 - 70)], "clamp");
+      // Offset relative to the card
+      const moveX = targetAbsoluteMove - translateX.value;
+      const moveY = -translateY.value;
+
+      return {
+        // Fade out slowly as the card exits the screen
+        opacity: opacity * interpolate(translateX.value, [-SCREEN_WIDTH * 0.7, -SCREEN_WIDTH * 1.3], [1, 0], "clamp"),
+        transform: [{ translateX: moveX }, { translateY: moveY }, { scale }, { rotate: "15deg" }]
+      };
+    });
 
     return (
       <GestureDetector gesture={panGesture}>
@@ -157,13 +190,13 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
           {/* Swipe Overlay Stamps */}
           {isTop && (
             <>
-              {/* LIKE STAMP (Left side when swiping right) */}
-              <Animated.View style={[styles.stampContainer, styles.likeStamp, likeOpacity, { backgroundColor: theme.primaryLight }]}>
+              {/* LIKE STAMP (Right side when swiping right) */}
+              <Animated.View style={[styles.stampContainer, styles.likeStamp, likeStyle, { backgroundColor: theme.primaryLight }]}>
                 <Ionicons name="heart" size={60} color="#000" />
               </Animated.View>
 
-              {/* NOPE STAMP (Right side when swiping left) */}
-              <Animated.View style={[styles.stampContainer, styles.nopeStamp, nopeOpacity, { backgroundColor: theme.primaryLight }]}>
+              {/* NOPE STAMP (Left side when swiping left) */}
+              <Animated.View style={[styles.stampContainer, styles.nopeStamp, nopeStyle, { backgroundColor: theme.primaryLight }]}>
                 <Ionicons name="close" size={60} color="#000" />
               </Animated.View>
             </>
@@ -205,7 +238,7 @@ const styles = StyleSheet.create({
   },
   stampContainer: {
     position: "absolute",
-    top: "15%", // moved up vertically
+    top: "25%", // moved down slightly from 15%
     width: 100,
     height: 100,
     borderRadius: 50,
@@ -218,11 +251,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
   likeStamp: {
-    left: 20,
-    transform: [{ rotate: "-15deg" }],
+    right: 20, // swapped to right
   },
   nopeStamp: {
-    right: 20,
-    transform: [{ rotate: "15deg" }],
+    left: 20, // swapped to left
   },
 });
