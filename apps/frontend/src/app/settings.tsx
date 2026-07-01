@@ -32,7 +32,8 @@ export default function SettingsScreen() {
   const logout   = useAuthStore((s) => s.logout);
   const reset    = useOnboardingStore((s) => s.reset);
   const user     = useAuthStore((s) => s.user);
-  const t        = theme[category];
+  const themeObj = (theme as any).default || theme;
+  const t        = themeObj[category] || themeObj.onboarding;
 
   // Local toggle states (dummy)
   const [notifications,  setNotifications]  = useState(true);
