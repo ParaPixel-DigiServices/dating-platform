@@ -15,10 +15,10 @@ interface Props {
   textPrimary:  string;
   onDislike:    () => void;
   onLike:       () => void;
-  onSuperLike:  () => void;
+  onSpark:      () => void;
 }
 
-const UP_THRESHOLD = 50; // px upward drag needed to trigger super like
+const UP_THRESHOLD = 50;
 
 export function ActionButtons({
   primaryColor,
@@ -26,10 +26,8 @@ export function ActionButtons({
   textPrimary,
   onDislike,
   onLike,
-  onSuperLike,
+  onSpark,
 }: Props) {
-  // Removed complex drag logic since swipe engine is disabled.
-
   return (
     <View style={styles.row}>
 
@@ -51,21 +49,13 @@ export function ActionButtons({
         <Ionicons name="heart-outline" size={25} color={primaryColor} />
       </TouchableOpacity>
 
-      {/* ── Super Like (★) ─────────────────────── */}
+      {/* ── Spark (Zap) ─────────────────────────── */}
       <TouchableOpacity
-        style={[
-          styles.btn,
-          styles.btnLarge,
-          { 
-            backgroundColor: secondary, 
-            borderWidth: 1, 
-            borderColor: primaryColor,
-          }
-        ]}
-        onPress={onSuperLike}
+        style={[styles.btn, styles.btnLarge, { backgroundColor: primaryColor }]}
+        onPress={onSpark}
         activeOpacity={0.8}
       >
-        <Ionicons name="star" size={36} color={primaryColor} />
+        <Feather name="zap" size={34} color="#2D211C" />
       </TouchableOpacity>
 
     </View>

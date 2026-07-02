@@ -18,6 +18,7 @@ import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
 import { formatAnswer } from "@/utils/profileHelpers";
+import { useProfileCompletionStore } from "@/hooks/useProfileCompletionStore";
 import theme from "@/theme/theme";
 
 const { width, height } = Dimensions.get("window");
@@ -66,6 +67,13 @@ export default function ProfileScreen() {
   const isComplete = useUserProfileStore((s) => s.isProfileComplete(category as any));
   const pct        = useUserProfileStore((s) => s.getCompletionPercent(category as any));
 
+  // New profile completion store (MCQ-based)
+  const { profileCompleted, profileAnswers } = useProfileCompletionStore();
+  const TOTAL_QUESTIONS = 25; // 3 basic + 22 personality
+  const newAnsweredCount = Object.keys(profileAnswers).length;
+  const newPct = profileCompleted ? 100 : Math.min(Math.round((newAnsweredCount / TOTAL_QUESTIONS) * 100), 99);
+  const newIsComplete = profileCompleted;
+
   const age = dateOfBirth
     ? new Date().getFullYear() - new Date(dateOfBirth).getFullYear()
     : null;
@@ -89,7 +97,7 @@ export default function ProfileScreen() {
   const intent     = formatAnswer(answers['go_3']); // usually intent
 
   const navigateToEdit = () => {
-    router.push("/profile/edit" as any);
+    router.push("/profile-completion" as any);
   };
 
   // ── Tabs Setup ──
@@ -148,23 +156,23 @@ export default function ProfileScreen() {
             )}
 
             {/* Completion Section */}
-            <TouchableOpacity 
-              onPress={isComplete ? undefined : navigateToEdit} 
-              style={[styles.meterBlock, isComplete && { opacity: 0.9 }]} 
-              activeOpacity={isComplete ? 1 : 0.85}
+            <TouchableOpacity
+              onPress={newIsComplete ? undefined : navigateToEdit}
+              style={[styles.meterBlock, newIsComplete && { opacity: 0.9 }]}
+              activeOpacity={newIsComplete ? 1 : 0.85}
             >
-              <View style={[StyleSheet.absoluteFill, { backgroundColor: t.primary, width: `${pct}%`, opacity: 0.85 }]} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: t.primary, width: `${newPct}%`, opacity: 0.85 }]} />
               <View style={styles.meterContent}>
                 <View style={{ flexDirection: "row", alignItems: "center" }}>
                   <Text style={[styles.meterTitle, { color: t.textPrimary }]}>
-                    {isComplete ? "PROFILE COMPLETED" : "COMPLETE YOUR PROFILE"}
+                    {newIsComplete ? "PROFILE COMPLETED" : "COMPLETE YOUR PROFILE"}
                   </Text>
-                  {!isComplete && (
+                  {!newIsComplete && (
                     <Feather name="chevron-right" size={12} color={t.textPrimary} style={{ marginLeft: 6, opacity: 0.8 }} />
                   )}
                 </View>
-                <View style={[styles.meterPctBadge, isComplete && { backgroundColor: "transparent", paddingHorizontal: 0 }]}>
-                  <Text style={[styles.meterPctText, { color: t.textPrimary }]}>{pct}%</Text>
+                <View style={[styles.meterPctBadge, newIsComplete && { backgroundColor: "transparent", paddingHorizontal: 0 }]}>
+                  <Text style={[styles.meterPctText, { color: t.textPrimary }]}>{newPct}%</Text>
                 </View>
               </View>
             </TouchableOpacity>

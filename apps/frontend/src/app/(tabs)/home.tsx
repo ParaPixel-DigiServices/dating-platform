@@ -717,7 +717,10 @@ export default function HomeScreen() {
           textPrimary={t.textPrimary}
           onDislike={() => topCardRef.current?.swipeLeft()}
           onLike={() => topCardRef.current?.swipeRight()}
-          onSuperLike={() => { /* Superlike action */ }}
+          onSpark={() => {
+            const topProfile = profiles[0];
+            if (topProfile) router.push(`/spark/${topProfile.id}` as any);
+          }}
         />
       </View>
 

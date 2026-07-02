@@ -12,6 +12,8 @@ import { useDeckStore } from "@/hooks/useDeckStore";
 
 import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
 import { PostsTabContent } from "@/components/profile/PostsTabContent";
+import { InsightTabContent } from "@/components/profile/InsightTabContent";
+import { SyncTabContent } from "@/components/profile/SyncTabContent";
 
 const { height, width } = Dimensions.get("window");
 
@@ -27,7 +29,7 @@ export default function UserProfileScreen() {
   const masterProfiles = useDeckStore((s) => s.masterProfiles);
   const profile = useMemo(() => masterProfiles.find((p) => p.id === id), [id, masterProfiles]);
 
-  const [activeTab, setActiveTab] = useState<"Profile" | "Posts">("Profile");
+  const [activeTab, setActiveTab] = useState<"Profile" | "Insight" | "Sync" | "Posts">("Profile");
 
   if (!profile) {
     return (
@@ -132,39 +134,51 @@ export default function UserProfileScreen() {
 
         {/* Tab System */}
         <View style={styles.tabsContainer}>
-          <View style={styles.tabSwitcher}>
-            <TouchableOpacity 
-              style={[styles.tabBtn, activeTab === "Profile" && styles.tabBtnActive]} 
-              onPress={() => setActiveTab("Profile")}
-            >
-              <Text style={[styles.tabText, { color: activeTab === "Profile" ? t.textPrimary : t.textSecondary }]}>
-                Profile
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.tabBtn, activeTab === "Posts" && styles.tabBtnActive]} 
-              onPress={() => setActiveTab("Posts")}
-            >
-              <Text style={[styles.tabText, { color: activeTab === "Posts" ? t.textPrimary : t.textSecondary }]}>
-                Social Posts
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabSwitcher}>
+            {(["Profile", "Insight", "Sync", "Posts"] as const).map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
+                onPress={() => setActiveTab(tab)}
+              >
+                <Text style={[styles.tabText, { color: activeTab === tab ? t.textPrimary : t.textSecondary }]}>
+                  {tab === "Posts" ? "Social" : tab}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
 
         {/* Dynamic Tab Content */}
-        {activeTab === "Profile" ? (
-          <ProfileTabContent 
+        {activeTab === "Profile" && (
+          <ProfileTabContent
             profile={profile}
-            textPrimary={t.textPrimary} 
-            textSecondary={t.textSecondary} 
-            primaryColor={t.primaryLight} 
+            textPrimary={t.textPrimary}
+            textSecondary={t.textSecondary}
+            primaryColor={t.primaryLight}
             background={t.background}
             secondary={t.secondary}
           />
-        ) : (
-          <PostsTabContent 
-            textPrimary={t.textPrimary} 
+        )}
+        {activeTab === "Insight" && (
+          <InsightTabContent
+            textPrimary={t.textPrimary}
+            textSecondary={t.textSecondary}
+            primaryColor={t.primaryLight}
+            secondary={t.secondary}
+          />
+        )}
+        {activeTab === "Sync" && (
+          <SyncTabContent
+            textPrimary={t.textPrimary}
+            textSecondary={t.textSecondary}
+            primaryColor={t.primaryLight}
+            viewedUserName={profile.name}
+          />
+        )}
+        {activeTab === "Posts" && (
+          <PostsTabContent
+            textPrimary={t.textPrimary}
             theme={t}
             profileId={profile.id}
             profileName={profile.name}

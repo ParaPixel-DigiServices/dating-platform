@@ -82,31 +82,11 @@ const OPTIONS = [
   },
 ];
 
-// --- Sub-category Options (keyed by parent category id) ---
+// --- Sub-category Options (Marriage only now) ---
 const SUB_OPTIONS: Record<
   string,
   { id: string; title: string; subtitle: string; icon: any }[]
 > = {
-  love: [
-    {
-      id: "spark",
-      title: "Spark",
-      subtitle: "An instant chemistry that lights the way.",
-      icon: Zap,
-    },
-    {
-      id: "insights",
-      title: "Insights",
-      subtitle: "Deep conversations and emotional depth.",
-      icon: Eye,
-    },
-    {
-      id: "synchronization",
-      title: "Synchronization",
-      subtitle: "Shared values, pace, and life goals.",
-      icon: RefreshCw,
-    },
-  ],
   marriage: [
     {
       id: "hindu",
@@ -196,22 +176,26 @@ export default function Landing() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === "category") {
       if (!selectedItem) return;
-      // Show loading on button, then slide to sub-category step
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setStep("subCategory");
-        setIsTransitioning(false);
-      }, 500);
+
+      if (selectedItem.id === "love") {
+        // Love: save category, go to profile completion MCQ (no sub-category)
+        setCategory(selectedItem.categoryKey as any);
+        setOnboardingStatus("COMPLETED");
+        router.replace("/(tabs)/home" as any);
+      } else {
+        // Marriage: show sub-category step
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setStep("subCategory");
+          setIsTransitioning(false);
+        }, 500);
+      }
     } else {
-      // Sub-category step — save both and go home
+      // Sub-category step (Marriage only) — save both and go home
       if (!selectedSubItem) return;
       setCategory(selectedItem!.categoryKey as any);
       setSubCategory(selectedSubItem.id);
-      
-      // Update global auth state to confirm onboarding completion
       setOnboardingStatus("COMPLETED");
-
-      // Redirect to index which will now correctly route to /(tabs)/home
       router.replace("/");
     }
   };
