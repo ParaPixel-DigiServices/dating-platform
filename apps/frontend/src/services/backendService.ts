@@ -1,9 +1,15 @@
 import { create } from 'axios';
+import { useAuthStore } from '@/hooks/useAuthStore';
+import * as Device from 'expo-device';
+import { Platform } from 'react-native';
 
-const BACKEND_URL =
-  process.env.EXPO_PUBLIC_BACKEND_ENV === 'prod'
-    ? process.env.EXPO_PUBLIC_BACKEND_PROD_URL
-    : process.env.EXPO_PUBLIC_BACKEND_TEST_URL;
+const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_TEST_URL;
+
+console.log("BACKEND_URL", BACKEND_URL);
+// const BACKEND_URL =
+//   process.env.EXPO_PUBLIC_BACKEND_ENV === 'prod'
+//     ? process.env.EXPO_PUBLIC_BACKEND_PROD_URL
+//     : process.env.EXPO_PUBLIC_BACKEND_TEST_URL;
 
 // Create axios instance with default config
 const apiClient = create({
@@ -15,62 +21,54 @@ const apiClient = create({
 });
 
 // Interceptor to add access token to authenticated requests
-import { useAuthStore } from '@/hooks/useAuthStore';
-
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = useAuthStore.getState().accessToken;
-
-    if(token){
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-
-    return config;
-  },
-);
+apiClient.interceptors.request.use((config) => {
+  const token = useAuthStore.getState().accessToken;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 /**
- * Send onboarding data to backend
- * Backend will create the user in the database
+ * Handle Firebase Login (Sign up / Login)
+ * Uses both Google and optionally Phone Firebase tokens.
  */
-export const submitOnboardingData = async (data: {
-  firebaseUid: string;
-  email: string;
-  phoneNumber: string;
-  firstName: string;
-  lastName: string;
-  dateOfBirth: string;
-  category: 'love' | 'marriage' | 'casual';
-}) => {
+export const firebaseLogin = async (
+  googleIdToken: string,
+  phoneIdToken?: string,
+) => {
   try {
-    const response = await apiClient.post('/user/onboarding/', {
-      firebaseUid: data.firebaseUid,
-      email: data.email,
-      phoneNumber: data.phoneNumber,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      dateOfBirth: data.dateOfBirth,
-      lookingFor: data.category,
-      createdAt: new Date().toISOString(),
+    console.log("firebase login token recieved");
+    // Generate device info if available
+    const deviceId = Device.osBuildId || 'unknown-device';
+    const platform = Platform.OS === 'ios' ? 'IOS' : Platform.OS === 'android' ? 'ANDROID' : 'WEB';
+    const deviceName = Device.modelName || undefined;
+
+    console.log("firebase login token deviceName", deviceName);
+
+    const response = await apiClient.post('/auth/firebase-login', {
+      googleIdToken,
+      ...(phoneIdToken ? { phoneIdToken } : {}),
+      deviceId,
+      platform,
+      deviceName,
     });
 
-    return {
-      success: true,
-      data: response.data,
-      appToken: response.data.appToken || null,
-    };
+    console.log("response", response);
+
+    return response.data;
   } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message;
-    throw new Error(`Onboarding Failed: ${errorMessage}`);
+    throw new Error(`Firebase Login Failed: ${errorMessage}`);
   }
 };
 
 /**
- * Get user profile from backend
+ * Fetch current user session and onboarding state
  */
-export const getUserProfile = async (firebaseUid: string) => {
+export const getMe = async () => {
   try {
-    const response = await apiClient.get(`/user/${firebaseUid}`);
+    const response = await apiClient.get('/auth/me');
     return response.data;
   } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message;
@@ -78,85 +76,64 @@ export const getUserProfile = async (firebaseUid: string) => {
   }
 };
 
-export const firebaseLogin = async(
-  idToken: string,
-) => {
+/**
+ * Logout and revoke session on the backend
+ */
+export const logout = async () => {
   try {
-    const response = await apiClient.post(
-      '/auth/firebase-login',
-      {
-        idToken,
-      },
-    );
-
+    const response = await apiClient.post('/auth/logout');
     return response.data;
-  } catch (error : any) {
+  } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message;
-
-    throw new Error(
-      `Firebase Login Failed: ${errorMessage}`,
-    );
+    throw new Error(`Logout Failed: ${errorMessage}`);
   }
 };
 
-export const completePhoneVerification = async (
-  googleIdToken : string,
-  phoneIdToken : string,
-) => {
+/**
+ * Refresh access token
+ */
+export const refreshAccessToken = async (refreshToken: string) => {
   try {
-    const response = await apiClient.post(
-      '/auth/complete-phone-verification',
-      {
-        googleIdToken,
-        phoneIdToken,
-      },
-    );
-
+    const response = await apiClient.post('/auth/refresh', { refreshToken });
     return response.data;
-  } catch (error : any){
+  } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message;
-
-    throw new Error(
-      `Phone Verification Failed: ${errorMessage}`,
-    );
+    throw new Error(`Token Refresh Failed: ${errorMessage}`);
   }
 };
 
-export const saveOnboardingDetails = async (
-  data:{
-    firstName: string;
-    lastName: string;
-    dateOfBirth: string;
-    gender: 'MALE' | 'FEMALE' | 'NON-BINARY';
-  },
-) => {
+/**
+ * Save user basic details (Name, DOB, Gender)
+ */
+export const saveOnboardingDetails = async (data: {
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: 'MALE' | 'FEMALE' | 'NON-BINARY';
+}) => {
   try {
-    const accessToken =
-      useAuthStore.getState().accessToken;
-
-      console.log("Saving onboarding details with access token:", accessToken);
-
-    const response = await apiClient.post(
-      '/onboarding/details',
-      data,
-      {
-        headers: accessToken
-          ? {
-              Authorization: `Bearer ${accessToken}`,
-            }
-          : undefined,
-      },
-    );
-
+    const response = await apiClient.post('/onboarding/details', data);
     return response.data;
-  } catch (error : any){
+  } catch (error: any) {
     const errorMessage = error.response?.data?.message || error.message;
+    throw new Error(`Save Details Failed: ${errorMessage}`);
+  }
+};
 
-    throw new Error(
-      `Save Details Failed: ${errorMessage}`,
-    );
+/**
+ * Save user category preference (Love / Marriage)
+ */
+export const saveOnboardingCategory = async (data: {
+  category: 'LOVE' | 'MARRIAGE';
+  subCategory?: string;
+}) => {
+  try {
+    const response = await apiClient.post('/onboarding/category', data);
+    return response.data;
+  } catch (error: any) {
+    const errorMessage = error.response?.data?.message || error.message;
+    throw new Error(`Save Category Failed: ${errorMessage}`);
   }
 };
 
 export default apiClient;
-

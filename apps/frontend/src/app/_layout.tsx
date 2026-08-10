@@ -19,7 +19,7 @@ import {
 
 import '@react-native-firebase/app';
 
-import { getCurrentUser } from '@/services/authBootstrap';
+import { restoreSession } from '@/services/authBootstrap';
 
 export default function RootLayout() {
   const [hydrated, setHydrated] = useState(false);
@@ -53,17 +53,7 @@ export default function RootLayout() {
       }
 
       try {
-        // Validate the stored token is still good and restore the user object.
-        // Routing is purely based on local state (firstName + category in
-        // useOnboardingStore), so we don't need to touch onboardingStatus here.
-        const user = await getCurrentUser();
-        setUser({
-          id: user.id,
-          email: user.email ?? null,
-          phoneNumber: user.phoneNumber ?? null,
-          displayName: null,
-          photoURL: null,
-        });
+        await restoreSession();
       } catch (error) {
         console.error('Session restore failed:', error);
         // Token is invalid/expired — clear everything and send to landing
@@ -117,23 +107,19 @@ export default function RootLayout() {
   const router = useRouter();
   const navigationState = useRootNavigationState();
   const accessToken   = useAuthStore((s) => s.accessToken);
-  const firstName     = useOnboardingStore((s) => s.firstName);
-  const category      = useOnboardingStore((s) => s.category);
+  const user          = useAuthStore((s) => s.user);
 
-  // Consider onboarding locally complete if both firstName and category are set.
-  // This allows the app to work without a live backend session.
-  const onboardingDone = !!(firstName && category);
+  // Consider onboarding locally complete only when the step is CATEGORY_DONE.
+  const onboardingDone = user?.onboardingStep === 'CATEGORY_DONE';
 
   useEffect(() => {
     if (!hydrated || !fontsLoaded || isBootstrapping || !navigationState?.key) return;
 
     const inAuthGroup = segments[0] === '(onboarding)';
 
-    // Only send to landing if the user has no auth token AND hasn't completed
-    // onboarding locally. If local state is populated we can let them through.
-    if (!accessToken && !onboardingDone && !inAuthGroup) {
+    // Only allow access to protected routes if authenticated and fully onboarded
+    if ((!accessToken || !onboardingDone) && !inAuthGroup) {
       router.replace('/(onboarding)/landing');
-      // router.replace('/(tabs)/home');
     }
   }, [accessToken, onboardingDone, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);
 

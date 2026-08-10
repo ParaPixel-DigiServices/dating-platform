@@ -12,6 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useDeckStore } from "@/hooks/useDeckStore";
+import { useInteractionStore } from "@/hooks/useInteractionStore";
 import theme from "@/theme/theme";
 import demoImg from "../../../assets/images/demo_post.png";
 
@@ -640,6 +641,7 @@ export default function HomeScreen() {
   const setFilters = useDeckStore((state) => state.setFilters);
   const unreadCount = useDeckStore((state) => state.unreadCount);
   const setUnreadCount = useDeckStore((state) => state.setUnreadCount);
+  const { addLike, addSpark } = useInteractionStore();
 
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const topCardRef = useRef<SwipeableProfileCardRef>(null);
@@ -651,6 +653,39 @@ export default function HomeScreen() {
 
   const handleSwipe = () => {
     swipeProfile();
+  };
+
+  const handleLike = () => {
+    const top = profiles[0];
+    if (top) {
+      addLike({
+        id: top.id,
+        name: top.name,
+        age: top.age,
+        avatar: top.main_photo?.uri ?? "",
+        occupation: top.occupation,
+        location: top.location,
+        match: top.match,
+        timestamp: Date.now(),
+      });
+    }
+    topCardRef.current?.swipeRight();
+  };
+
+  const handleSpark = () => {
+    const top = profiles[0];
+    if (!top) return;
+    addSpark({
+      id: top.id,
+      name: top.name,
+      age: top.age,
+      avatar: top.main_photo?.uri ?? "",
+      occupation: top.occupation,
+      location: top.location,
+      match: top.match,
+      timestamp: Date.now(),
+    });
+    router.push(`/spark/${top.id}` as any);
   };
 
   return (
@@ -716,11 +751,8 @@ export default function HomeScreen() {
           secondary={t.secondary}
           textPrimary={t.textPrimary}
           onDislike={() => topCardRef.current?.swipeLeft()}
-          onLike={() => topCardRef.current?.swipeRight()}
-          onSpark={() => {
-            const topProfile = profiles[0];
-            if (topProfile) router.push(`/spark/${topProfile.id}` as any);
-          }}
+          onLike={handleLike}
+          onSpark={handleSpark}
         />
       </View>
 

@@ -11,11 +11,14 @@ import {
  * Pass the idToken from GoogleSignin.getTokens().
  */
 export async function firebaseGoogleSignInWithIdToken(idToken: string) {
+  console.log("1. here is the id token in firebase auth service : ", idToken)
     try {
-
   const credential = GoogleAuthProvider.credential(idToken);
+
   const result = await signInWithCredential(auth, credential);
+  console.log("2. herer is the result in firebase auth service : ")
   const token = await result.user.getIdToken();
+  console.log("3. here is the token in firebase auth service : ")
   
   return {
     uid: result.user.uid,

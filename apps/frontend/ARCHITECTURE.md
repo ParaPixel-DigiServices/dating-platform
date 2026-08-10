@@ -1,19 +1,18 @@
-# Dating App Architecture
+# Dating App Architecture (Frontend)
 
-A production-grade React Native + Expo dating app with comprehensive auth flow, state management, and scalable architecture.
+A production-grade React Native + Expo dating app with comprehensive auth flow, state management, and scalable architecture. This document outlines the current state of the frontend, which is currently running on mock data and local stores, awaiting backend integration.
 
 ## 🏗️ Architecture Overview
 
 ### Tech Stack
 - **Framework**: Expo 55 + React Native
-- **Navigation**: Expo Router (file-based routing)
+- **Navigation**: Expo Router v3 (file-based routing)
 - **State Management**: Zustand with AsyncStorage persistence
 - **Forms**: React Hook Form + Zod validation
 - **Auth**: Firebase (Google OAuth + Phone OTP)
-- **Styling**: React Native StyleSheet + NativeWind
-- **HTTP Client**: Axios
-- **Data Fetching**: React Query (TanStack Query)
-- **Date/Time**: @react-native-community/datetimepicker
+- **Styling**: React Native StyleSheet, LinearGradient, BlurView, Reanimated
+- **HTTP Client**: Axios (configured in `services/backendService.ts`)
+- **Data Fetching**: React Query (TanStack Query) - *Planned for backend integration*
 - **Type Safety**: TypeScript (strict mode)
 
 ## 📁 Folder Structure
@@ -22,338 +21,127 @@ A production-grade React Native + Expo dating app with comprehensive auth flow, 
 src/
 ├── app/                          # Expo Router screens & navigation
 │   ├── _layout.tsx              # Root layout with auth guards
-│   ├── index.tsx                # Entry point → redirects to login
-│   ├── login.tsx                # Google/Apple/X sign-in
-│   ├── otp.tsx                  # Phone OTP verification (2-step)
-│   ├── details.tsx              # User details onboarding
-│   ├── category.tsx             # Category selection
-│   └── explore.tsx              # Tabs layout with home screen
-│   └── home.tsx                 # Home screen
-│
-├── hooks/                       # Custom hooks & Zustand stores
-│   ├── useAuthStore.ts          # Auth state (Zustand + persist)
-│   ├── useOnboardingStore.ts    # Onboarding state (Zustand + persist)
-│   ├── usePhoneAuthStore.ts     # Phone auth state (non-persisted)
-│   ├── authService.ts           # Firebase auth functions
-│   └── storage.ts               # Storage utilities
+│   ├── index.tsx                # Entry point
+│   ├── (onboarding)/            # Onboarding flow
+│   │   ├── landing.tsx          # Initial landing screen
+│   │   ├── details.tsx          # Name, DOB, Gender
+│   │   ├── category.tsx         # Category selection (Love, Marriage, Casual)
+│   │   ├── profile-completion.tsx # 25-question MCQ flow (Modern UI)
+│   │   └── profile-completion-v2.tsx # 25-question MCQ flow (Legacy UI)
+│   ├── (tabs)/                  # Main app tabs
+│   │   ├── _layout.tsx          # Bottom tab navigator
+│   │   ├── home.tsx             # Swiping deck
+│   │   ├── explore.tsx          # Grid view of profiles
+│   │   ├── chat.tsx             # Chat list & requests
+│   │   ├── social.tsx           # Social feed
+│   │   └── profile.tsx          # Current user profile & completion meter
+│   ├── chat/[id].tsx            # Chat detail screen
+│   ├── call/[id].tsx            # Voice/Video call mock screen
+│   ├── spark/[userId].tsx       # Spark question flow for Love category
+│   └── user/[id].tsx            # Other user's profile view
 │
 ├── components/                  # Reusable UI components
-│   ├── Button.tsx               # Primary, secondary, outline variants
-│   ├── Input.tsx                # Form input with validation
-│   ├── Loader.tsx               # Loading spinner
-│   ├── ScreenWrapper.tsx        # Safe area + keyboard handling
-│   ├── toast.ts                 # Toast notifications
-│   └── [existing components]
+│   ├── home/                    # Swipeable cards, Action buttons
+│   ├── chat/                    # Message bubbles, Chat list items
+│   ├── profile/                 # ActivityTabContent, InsightTabContent, SyncTabContent
+│   └── ui/                      # BottomNav, standard UI elements
 │
-├── types/                       # TypeScript interfaces (future expansion)
-│   └── index.ts                 # Type definitions
+├── hooks/                       # Custom hooks & Zustand stores
+│   ├── useAuthStore.ts          # Auth state (JWT, Firebase user)
+│   ├── useOnboardingStore.ts    # Basic onboarding state
+│   ├── useProfileCompletionStore.ts # 25-question MCQ answers & progress
+│   ├── useDeckStore.ts          # Swipe deck profiles & state
+│   ├── useInteractionStore.ts   # Liked & Sparked profiles (persisted)
+│   ├── useSocialStore.ts        # Social feed state
+│   └── authService.ts           # Firebase auth wrappers
 │
-├── lib/                         # Library setup (future: services)
-│   └── firebase.ts              # Firebase initialization
+├── services/                    # API clients
+│   ├── backendService.ts        # Axios instance with JWT interceptor
+│   └── authBootstrap.ts         # Session restoration
 │
-├── theme/                       # Design tokens (future expansion)
-│   └── colors.ts                # Color palette
+├── theme/                       # Design tokens & dynamic themes
+│   └── theme.js                 # Theme definitions (onboarding, love, marriage, casual)
 │
-└── utils/                       # Helper functions (future expansion)
-    ├── validation.ts            # Form validation helpers
-    └── constants.ts             # App constants
+└── utils/                       # Helpers
+    └── mockData.ts              # MOCK_PROFILES used while backend is pending
 ```
 
-## 🔐 Auth Flow
+## 🔐 Auth & Onboarding Flow
 
-### 1. Login Screen (`/login`)
-- **Entry Point**: User sees black background with app name
-- **Options**:
-  - ✅ **Google** (functional): Firebase Google OAuth
-  - ❌ **Apple** (disabled): Shows toast "Coming soon"
-  - ❌ **X** (disabled): Shows toast "Coming soon"
-- **Next**: Routes to `/otp` on successful Google sign-in
+### 1. Authentication
+- Firebase Phone OTP and Google Sign-In.
+- `backendService.ts` contains `firebaseLogin` to exchange Firebase token for backend JWT.
 
-### 2. Phone OTP (`/otp`)
-- **Step 1**: Enter phone number
-  - Validation: min 10 digits, valid E.164 format
-  - Button triggers Firebase `sendOTP()`
-  - Shows loading state
-- **Step 2**: Enter 6-digit OTP code
-  - Auto-masked input (numbers only)
-  - Button triggers Firebase `verifyOTP()`
-  - Can go back to change phone
-- **Next**: Routes to `/details` after successful verification
+### 2. Basic Onboarding
+- **`/onboarding/details`**: First Name, Last Name, DOB, Gender.
+- **`/onboarding/category`**: Selection of `LOVE`, `MARRIAGE`, or `CASUAL`.
+  - *Marriage* prompts for religious sub-categories.
+  - *Love* routes directly to home.
 
-### 3. User Details (`/details`)
-- **Form Fields**:
-  - First Name (required)
-  - Last Name (required)
-  - Date of Birth (date picker, min 18 years old)
-- **Validation**: React Hook Form + Zod
-- **Persistence**: Zustand onboarding store
-- **Next**: Routes to `/category`
+### 3. Profile Completion (25 MCQ)
+- Located at `/onboarding/profile-completion`.
+- Users answer 3 Basic and 22 Personality questions.
+- Managed by `useProfileCompletionStore.ts`.
+- Calculates a completion percentage shown on the Profile tab meter.
 
-### 4. Category Selection (`/category`)
-- **Options** (single selection):
-  - ❤️ **Love**: Looking for serious relationship
-  - 💍 **Marriage**: Ready for commitment
-  - 😊 **Casual**: Just connecting
-- **Validation**: Can't proceed without selection
-- **Persistence**: Zustand store
-- **Next**: Routes to `/explore` (tabs)
+## 🎯 State Management (Zustand)
 
-### 5. Home Screen (`/explore`)
-- **Display**: User profile summary
-- **Data shown**:
-  - Personalized greeting with first name
-  - User profile info (name, category)
-  - Email address
-  - Placeholder message for upcoming features
+Currently heavily reliant on Zustand to simulate backend persistence:
 
-## 🎯 State Management
+1. **`useAuthStore`**: Stores JWTs, Firebase user info, onboarding completion flags. Persisted.
+2. **`useProfileCompletionStore`**: Stores the user's answers to the 25 MCQ questions and current progress index. Persisted.
+3. **`useInteractionStore`**: Stores profiles the user has Liked or Sparked. Populates the "Activity" tab on the profile. Persisted.
+4. **`useDeckStore`**: Manages the array of profiles shown on the swiping deck (`home.tsx`). Currently loads from `mockData.ts`.
+5. **`useSocialStore`**: Manages mock social posts.
 
-### Auth Store (`useAuthStore`)
-**Location**: `src/hooks/useAuthStore.ts`
-```typescript
-{
-  user: User | null,           // Firebase user object
-  accessToken: string | null,  // JWT token
-  isAuthenticated: boolean,    // Auth state flag
-  isLoading: boolean,          // Loading state
-  error: string | null,        // Error messages
-  onboardingCompleted: boolean // Completion flag
-}
-```
-**Persistence**: ✅ Persisted with AsyncStorage (key: `auth-storage`)
+## 🌟 Key Features & Workflows
 
-### Onboarding Store (`useOnboardingStore`)
-**Location**: `src/hooks/useOnboardingStore.ts`
-```typescript
-{
-  firstName: string,
-  lastName: string,
-  dateOfBirth: string | null,  // ISO format
-  category: 'love' | 'marriage' | 'casual' | null
-}
-```
-**Persistence**: ✅ Persisted with AsyncStorage (key: `onboarding-storage`)
+### The Swiping Deck (`/tabs/home`)
+- Custom gesture-based swipe cards (`SwipeableProfileCard`).
+- Tapping 'Like' (Right swipe) adds the user to `useInteractionStore`.
+- Tapping 'Spark' opens the Spark flow.
 
-### Phone Auth Store (`usePhoneAuthStore`)
-**Location**: `src/hooks/usePhoneAuthStore.ts`
-```typescript
-{
-  phoneNumber: string,
-  verificationId: string | null,
-  isCodeSent: boolean,
-  isVerifying: boolean,
-  error: string | null
-}
-```
-**Persistence**: ❌ NOT persisted (ephemeral)
+### Category Split: Love vs. Marriage
+The app architecture fundamentally splits features based on whether the user is in the "Love" (casual/dating) or "Marriage" (matrimony) category. The backend must enforce this separation via flags.
 
-## 🎨 Reusable Components
+**Love Category Features (Exclusive):**
+These 3 features are *only* available to users in the Love category and are completely hidden from Marriage users:
+1. **Spark (`/spark/[userId]`)**: Completely replaces the traditional "Super Like" for Love users. Instead of a button press, sending a Spark requires answering 3 custom prompts set by the target user.
+2. **Insight Tab**: Found on user profiles. Shows personality traits, love languages, and core values generated from the 25 MCQ answers (visualized with Reanimated bar charts).
+3. **Sync Tab (Synchronization)**: Shows a compatibility breakdown (Values, Lifestyle, Communication) between the current user and the viewed profile.
 
-### Button
-**Usage**: All CTA and action buttons
-```tsx
-<Button
-  title="Continue"
-  onPress={handlePress}
-  variant="primary"      // 'primary' | 'secondary' | 'outline'
-  loading={isLoading}
-  disabled={!isValid}
-/>
-```
+**Marriage Category Features (Exclusive):**
+- Does *not* have Spark, Insight, or Sync features.
+- Has religion-specific sub-categories chosen during onboarding (Hindu, Muslim, Christian, Sikh, etc.).
+- Requires entirely different profile data fields (Marriage Timeline, Family Type, Marital Status) which need specific tables in the backend schema.
 
-### Input
-**Usage**: Text inputs with validation
-```tsx
-<Input
-  label="First Name"
-  placeholder="Enter name"
-  value={value}
-  onChangeText={onChange}
-  error={fieldState.error?.message}
-/>
-```
+### Chat & Calling
+- **`/tabs/chat`**: List of matches, likes, and message requests.
+- **`/chat/[id]`**: Chat interface. Header includes Voice and Video call buttons.
+- **`/call/[id]`**: A rich mock calling screen with pulsing animations, simulated connection steps, and a live duration timer.
 
-### Loader
-**Usage**: Full-screen loading indicator
-```tsx
-<Loader size="large" color="#000" />
-```
+## 🔌 API & Integration Status (Pending Backend)
 
-### ScreenWrapper
-**Usage**: Screen container with safe area, keyboard handling
-```tsx
-<ScreenWrapper backgroundColor="#000" scrollable>
-  {/* Content */}
-</ScreenWrapper>
-```
+The frontend currently uses mock data, but `services/backendService.ts` is pre-configured to connect to a NestJS backend. 
 
-## 🔌 Firebase Integration
+**Endpoints expected by the Frontend (Needs Backend Implementation):**
+- `POST /auth/firebase-login`: Exchange Firebase ID token for JWTs.
+- `GET /auth/me`: Restore session on app launch.
+- `POST /onboarding/details`: Save name, DOB, gender.
+- `POST /onboarding/category`: Save chosen category (and sub-category).
+- `GET /discovery/deck`: Fetch profiles for the swipe deck (currently `mockData.ts`).
+- `POST /interactions`: Record Like/Pass/Spark.
+- `POST /profile/completion`: Persist the 25 MCQ answers.
 
-**Config**: `src/lib/firebase.ts`
-```typescript
-const firebaseConfig = {
-  apiKey: "AIzaSyBaVODoexERlLvNWS6G1YFoj4EMu3odAms",
-  authDomain: "dating-app-1ce2c.firebaseapp.com",
-  projectId: "dating-app-1ce2c",
-  // ... rest of config
-};
-```
+## 🎨 UI/UX Patterns
 
-**Services**: `src/hooks/authService.ts`
-- `signInWithGoogle()` → Returns JWT token
-- `sendPhoneOTP(phoneNumber)` → Sends OTP via Firebase
-- `verifyPhoneOTP(verificationId, otp)` → Verifies code
-- `signOut()` → Logs out user
-- `getCurrentUser()` → Returns current Firebase user
-- `onAuthChange(callback)` → Listens to auth state
+- **Glassmorphism**: Heavy use of `BlurView` and translucent `LinearGradient` overlays for a premium, modern feel.
+- **Micro-interactions**: React Native Reanimated is used for smooth entering/exiting animations, pulse rings on the call screen, and progress bars.
+- **Dynamic Theming**: The app applies different color palettes based on the user's chosen category (Love vs. Marriage).
 
-## 🔄 Navigation Flow
+## 🔮 Future Enhancements (Post-Backend Integration)
 
-```
-/login
-  ↓ (Google sign-in)
-/otp
-  ↓ (Phone verified)
-/details
-  ↓ (Details saved)
-/category
-  ↓ (Category selected)
-/explore (Tabs)
-  └── /home (Home screen)
-```
-
-**Route Protection**: Handled in `_layout.tsx` based on:
-- `isAuthenticated` flag
-- `onboardingCompleted` flag
-
-## 📱 UI/UX Details
-
-### Color Scheme
-- **Auth/Onboarding**: Black background (#000) with white text
-- **Home**: White background (#fff) with dark text
-- **Buttons**: Black primary, outline variants
-- **Borders**: Light gray (#ddd) for inputs, (#333) for cards
-
-### Loading States
-- All async actions show loading states
-- Buttons disable during submission
-- Inputs disable during submission
-
-### Validation
-- Phone: E.164 format (e.g., +1 5551234567)
-- OTP: Exactly 6 digits
-- Names: Non-empty strings
-- DOB: ISO format, minimum 18 years old
-
-### Error Handling
-- Form validation errors displayed inline
-- Toast notifications for API errors
-- Graceful error recovery
-
-## 🚀 Getting Started
-
-### Prerequisites
-```bash
-node>=18
-npm or yarn
-expo-cli
-```
-
-### Installation
-```bash
-npm install
-```
-
-### Running
-```bash
-npm start
-# Press 'a' for Android, 'i' for iOS, 'w' for web
-```
-
-### Lint & Type Check
-```bash
-npm run lint
-```
-
-## 🔮 Future Enhancements
-
-### Phase 2: Core Features
-- [ ] Profile picture upload
-- [ ] Profile browsing/swiping
-- [ ] Messaging system
-- [ ] Match notifications
-- [ ] User preferences filtering
-
-### Phase 3: Advanced
-- [ ] Location-based matching
-- [ ] Video calls integration
-- [ ] Payments (premium features)
-- [ ] Analytics
-- [ ] Push notifications
-
-### Phase 4: Optimization
-- [ ] Image optimization
-- [ ] Bundle size reduction
-- [ ] Performance monitoring
-- [ ] A/B testing
-
-## 📚 Key Patterns & Best Practices
-
-### Type Safety
-- **No `any` types**: All values properly typed
-- **Zod schemas**: Runtime validation for forms
-- **Strict mode**: TypeScript strict compilation
-
-### Performance
-- **Zustand**: Minimal re-renders with selector pattern
-- **React Query**: Caching & request deduplication
-- **Lazy Loading**: Route components code-split by Expo Router
-
-### State Management
-- **Zustand > Context**: Simpler, more performant
-- **Persistence**: AsyncStorage for critical data (auth, onboarding)
-- **Separation**: Auth & onboarding in separate stores
-
-### Navigation
-- **Expo Router**: File-based routing (Next.js-like)
-- **Route Guards**: Conditional rendering in root layout
-- **Type-safe**: Typed routes via `expo-router`
-
-### Error Handling
-- **Try-catch**: All async operations wrapped
-- **User Feedback**: Toast notifications for errors
-- **Graceful Degradation**: Error states don't crash app
-
-## 🐛 Troubleshooting
-
-### Port Already in Use
-```bash
-# Find process on port 8081
-netstat -ano | findstr :8081
-# Kill it
-taskkill /PID <PID> /F
-```
-
-### Modules Not Found
-```bash
-npm install
-npm start -- --clear
-```
-
-### Firebase Config Issues
-- Verify config in `src/lib/firebase.ts`
-- Check Firebase console project settings
-- Ensure Google OAuth is enabled
-
-## 📄 License
-
-Proprietary - Startup Dating App Foundation
-
-## 👨‍💻 Developer Notes
-
-- All screens use strict TypeScript - no implicit `any`
-- Components are stateless where possible
-- Business logic isolated in hooks and services
-- Navigation flows defined in root `_layout.tsx`
-- Forms always use React Hook Form + Zod combo
-- AsyncStorage used for persistence (not Redux/persist)
+1. **Real-time Chat**: Upgrade REST messages to WebSockets.
+2. **Push Notifications**: Integrate FCM for match and message alerts.
+3. **Photo Uploads**: Connect frontend image picker to backend S3/R2 presigned URLs.
+4. **AI Matchmaking**: Replace static Insight/Sync mock data with backend-generated ML insights based on the MCQ answers.

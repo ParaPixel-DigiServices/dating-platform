@@ -70,9 +70,25 @@ export default function ChatDetailScreen() {
             <Feather name="chevron-left" size={28} color={activeTheme.textPrimary} />
           </TouchableOpacity>
           <Image source={{ uri: profile.avatar }} style={styles.headerAvatar} />
-          <Text style={[styles.headerName, { color: activeTheme.textPrimary }]}>{profile.name}</Text>
-          <TouchableOpacity style={styles.moreBtn}>
-            <Feather name="more-horizontal" size={24} color={activeTheme.textPrimary} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerName, { color: activeTheme.textPrimary }]}>{profile.name}</Text>
+            <Text style={{ fontSize: 11, color: activeTheme.textSecondary, fontFamily: "Lato_400Regular" }}>Online</Text>
+          </View>
+          {/* Voice Call */}
+          <TouchableOpacity
+            style={[styles.callBtn, { backgroundColor: activeTheme.secondary }]}
+            onPress={() => router.push(`/call/${id}?type=audio&name=${encodeURIComponent(profile.name)}` as any)}
+            activeOpacity={0.8}
+          >
+            <Feather name="phone" size={18} color={activeTheme.primary} />
+          </TouchableOpacity>
+          {/* Video Call */}
+          <TouchableOpacity
+            style={[styles.callBtn, { backgroundColor: activeTheme.secondary, marginLeft: 8 }]}
+            onPress={() => router.push(`/call/${id}?type=video&name=${encodeURIComponent(profile.name)}` as any)}
+            activeOpacity={0.8}
+          >
+            <Feather name="video" size={18} color={activeTheme.primary} />
           </TouchableOpacity>
         </View>
 
@@ -141,11 +157,15 @@ const styles = StyleSheet.create({
   },
   headerName: {
     flex: 1,
-    fontSize: 20,
+    fontSize: 18,
     fontFamily: "PlayfairDisplay_700Bold",
   },
-  moreBtn: {
-    padding: 4,
+  callBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    alignItems: "center",
   },
   listContent: {
     paddingVertical: 20,

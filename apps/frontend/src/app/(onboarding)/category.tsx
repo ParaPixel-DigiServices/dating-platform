@@ -35,8 +35,9 @@ import {
 import { useRouter } from "expo-router";
 
 import CategoryCard from "@/components/onboarding/CategoryCard";
-import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { saveOnboardingCategory } from "@/services/backendService";
+import { showSuccessToast, showErrorToast } from "@/components/toast";
 import { OnboardingTopBar } from "@/components/onboarding/OnboardingTopBar";
 import * as Haptics from "expo-haptics";
 const BgImg = require("@/assets/images/bg.png");
@@ -70,7 +71,7 @@ const OPTIONS = [
     subtitle: "Looking for a meaningful connection.",
     icon: Heart,
     redirectPath: "/flow/love",
-    categoryKey: "Love",
+    categoryKey: "LOVE",
   },
   {
     id: "marriage",
@@ -78,7 +79,7 @@ const OPTIONS = [
     subtitle: "Ready for a committed and lifelong partnership.",
     icon: Target,
     redirectPath: "/flow/marriage",
-    categoryKey: "Marriage",
+    categoryKey: "MARRIAGE",
   },
 ];
 
@@ -151,9 +152,7 @@ const ContinueButton = ({
 // ── Screen ────────────────────────────────────────────────────────────────────
 export default function Landing() {
   const router = useRouter();
-  const setCategory = useOnboardingStore((s) => s.setCategory);
-  const setSubCategory = useOnboardingStore((s) => s.setSubCategory);
-  const setOnboardingStatus = useAuthStore((s) => s.setOnboardingStatus);
+  const setOnboardingStep = useAuthStore((s) => s.setOnboardingStep);
 
   // Which step we're on
   const [step, setStep] = useState<"category" | "subCategory">("category");
@@ -172,16 +171,25 @@ export default function Landing() {
   // Button loading state (shown during transition)
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (step === "category") {
       if (!selectedItem) return;
 
       if (selectedItem.id === "love") {
-        // Love: save category, go to profile completion MCQ (no sub-category)
-        setCategory(selectedItem.categoryKey as any);
-        setOnboardingStatus("COMPLETED");
-        router.replace("/(tabs)/home" as any);
+        // Love: save category, no sub-category
+        try {
+          setIsTransitioning(true);
+          const response = await saveOnboardingCategory({
+            category: "LOVE",
+          });
+          setOnboardingStep(response.onboardingStep);
+          showSuccessToast("Category saved");
+          router.replace("/(tabs)/home" as any);
+        } catch (error: any) {
+          showErrorToast(error?.message || "Failed to save category");
+          setIsTransitioning(false);
+        }
       } else {
         // Marriage: show sub-category step
         setIsTransitioning(true);
@@ -191,12 +199,21 @@ export default function Landing() {
         }, 500);
       }
     } else {
-      // Sub-category step (Marriage only) — save both and go home
+      // Sub-category step (Marriage only)
       if (!selectedSubItem) return;
-      setCategory(selectedItem!.categoryKey as any);
-      setSubCategory(selectedSubItem.id);
-      setOnboardingStatus("COMPLETED");
-      router.replace("/");
+      try {
+        setIsTransitioning(true);
+        const response = await saveOnboardingCategory({
+          category: "MARRIAGE",
+          subCategory: selectedSubItem.id, // e.g. "hindu", "muslim"
+        });
+        setOnboardingStep(response.onboardingStep);
+        showSuccessToast("Category saved");
+        router.replace("/(tabs)/home" as any);
+      } catch (error: any) {
+        showErrorToast(error?.message || "Failed to save category");
+        setIsTransitioning(false);
+      }
     }
   };
 

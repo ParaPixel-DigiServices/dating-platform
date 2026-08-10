@@ -26,6 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import "@react-native-firebase/app";
 import rnAuth from "@react-native-firebase/auth";
+import { useRouter } from "expo-router";
 
 // Functional Imports
 import { useForm, Controller } from "react-hook-form";
@@ -34,6 +35,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { showSuccessToast, showErrorToast } from "@/components/toast";
 import { usePhoneAuthStore } from "@/hooks/usePhoneAuthStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { firebaseLogin } from "@/services/backendService";
 import theme from "@/theme/theme";
 
 // --- DEV MODE FLAG ---
@@ -71,6 +73,7 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [timer, setTimer] = useState(0);
   const [confirmationResult, setConfirmationResult] = useState<any | null>(null);
+  const router = useRouter();
   
   // UI States
   const [isHelpModalVisible, setIsHelpModalVisible] = useState(false);
@@ -206,9 +209,29 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
         );
       }
 
+      // We have the phoneIdToken now
+      const phoneIdToken = await userCredential.user.getIdToken();
+
+      // Backend call
+      console.log("Exchanging Firebase tokens with backend...");
+      const response = await firebaseLogin(googleFirebaseToken, phoneIdToken);
+
+      setAccessToken(response.accessToken);
+      setRefreshToken(response.refreshToken);
+      setUser(response.user);
+
       phoneAuthStore.reset();
       showSuccessToast("Phone verified successfully!");
       onSuccess();
+      
+      // Route based on onboardingStep
+      if (response.user.onboardingStep === 'CATEGORY_DONE') {
+        router.replace('/(tabs)/home');
+      } else if (response.user.onboardingStep === 'DETAILS_DONE') {
+        router.replace('/category');
+      } else {
+        router.replace('/details'); // PHONE_VERIFIED
+      }
     } catch (error) {
       const message =
         error instanceof Error

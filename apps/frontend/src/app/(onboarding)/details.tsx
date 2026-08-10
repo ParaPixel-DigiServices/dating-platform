@@ -26,6 +26,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { showSuccessToast, showErrorToast } from "@/components/toast";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { saveOnboardingDetails } from "@/services/backendService";
 import { OnboardingTopBar } from "@/components/onboarding/OnboardingTopBar";
 
 const BG_IMG = require("@/assets/images/main-bg.png");
@@ -98,7 +99,8 @@ export default function DetailsScreen() {
   const yearRef = useRef<TextInput>(null);
 
   // Store
-  const setOnboardingStatus = useAuthStore((state) => state.setOnboardingStatus);
+  const setOnboardingStep = useAuthStore((state) => state.setOnboardingStep);
+  const updateAuthUser = useAuthStore((state) => state.updateAuthUser);
   const setFirstName = useOnboardingStore((state) => state.setFirstName);
   const setLastName = useOnboardingStore((state) => state.setLastName);
   const setGender = useOnboardingStore((state) => state.setGender);
@@ -134,15 +136,25 @@ export default function DetailsScreen() {
       );
 
       console.log("Constructed DOB:", dob);
-      console.log("Details saved locally (backend disabled)");
+      const mappedGender = mapGenderToBackend(data.gender);
 
-      // Local cache only
+      const response = await saveOnboardingDetails({
+        firstName: data.firstName.trim(),
+        lastName: data.lastName.trim(),
+        dateOfBirth: dob.toISOString(),
+        gender: mappedGender as any,
+      });
+
+      // Update local states
       setFirstName(data.firstName.trim());
       setLastName(data.lastName.trim());
       setGender(data.gender);
       setDateOfBirthStore(dob.toISOString());
 
-      setOnboardingStatus("IN_PROGRESS");
+      // Update user state for onboarding
+      setOnboardingStep(response.onboardingStep);
+      updateAuthUser({ displayName: data.firstName.trim() });
+
       showSuccessToast("Details saved");
 
       router.push("/category");
@@ -499,7 +511,7 @@ export default function DetailsScreen() {
                             color={casualTheme.primary}
                             style={styles.inputIcon}
                           />
-                          <Text
+                        fcontin  <Text
                             style={[
                               styles.textInput,
                               field.value

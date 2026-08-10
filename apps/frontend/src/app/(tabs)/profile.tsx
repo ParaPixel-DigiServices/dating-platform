@@ -19,6 +19,7 @@ import { useAuthStore } from "@/hooks/useAuthStore";
 import { useUserProfileStore } from "@/onboarding_ques_temp/userProfileStore";
 import { formatAnswer } from "@/utils/profileHelpers";
 import { useProfileCompletionStore } from "@/hooks/useProfileCompletionStore";
+import ActivityTabContent from "@/components/profile/ActivityTabContent";
 import theme from "@/theme/theme";
 
 const { width, height } = Dimensions.get("window");
@@ -101,7 +102,7 @@ export default function ProfileScreen() {
   };
 
   // ── Tabs Setup ──
-  const tabs = ["BIO", "PHOTOS", "IDENTITY", "LOOKING FOR"];
+  const tabs = ["BIO", "PHOTOS", "IDENTITY", "ACTIVITY", "LOOKING FOR"];
   const [activeTab, setActiveTab] = useState<string>("BIO");
 
   return (
@@ -339,6 +340,10 @@ export default function ProfileScreen() {
                 )}
               </View>
             </View>
+          )}
+
+          {activeTab === "ACTIVITY" && (
+            <ActivityTabContent theme={t} />
           )}
         </View>
 

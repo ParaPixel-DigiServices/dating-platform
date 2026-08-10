@@ -5,11 +5,11 @@ module.exports = () => {
     ...expo,
     android: {
       ...expo.android,
-      package: 'com.amora.parapixel',
+      package: 'com.parapixel.amora',
     },
     ios: {
       ...expo.ios,
-      bundleIdentifier: 'com.amora.parapixel',
+      bundleIdentifier: 'com.parapixel.amora',
     },
   };
 };

@@ -11,9 +11,11 @@ import { Ionicons } from "@expo/vector-icons";
 import Animated, { SlideInRight, SlideOutRight } from "react-native-reanimated";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 
 import { useAuthStore } from "@/hooks/useAuthStore";
 import { firebaseGoogleSignInWithIdToken } from "@/services/firebaseAuthService";
+import { firebaseLogin } from "@/services/backendService";
 import { showSuccessToast, showErrorToast, showInfoToast } from "@/components/toast";
 import theme from "@/theme/theme";
 
@@ -66,23 +68,37 @@ const XAuthButton = ({ isLoading, onPress }: { isLoading: boolean; onPress: () =
 // ── Main Flow Component ──────────────────────────────────────────────────
 
 export default function LoginFlow({ onSuccess }: { onSuccess: () => void }) {
-  const { setGoogleFirebaseToken } = useAuthStore();
+  const { setGoogleFirebaseToken, setAccessToken, setRefreshToken, setUser } = useAuthStore();
+  const router = useRouter();
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+
+  // // Configure Google Sign-In on mount
+  // useEffect(() => {
+  //   GoogleSignin.configure({
+  //     webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  //   }); 
+  // }, []);
 
   // Configure Google Sign-In on mount
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
-        "1021629025840-1p1nm5k4ptqvea3lpfeup4tk0g1mlpo6.apps.googleusercontent.com",
+        '1051030268726-9pi97gjvih8e7g7iq01nrnofi5otnhtl.apps.googleusercontent.com',
+        // "1021629025840-1p1nm5k4ptqvea3lpfeup4tk0g1mlpo6.apps.googleusercontent.com",
+
     });
   }, []);
 
   const handleGoogleSignIn = async () => {
+    console.log('hi')
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoadingProvider("google");
     try {
+      console.log(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
       await GoogleSignin.hasPlayServices();
+      console.log("Google Play services available");
       const userInfo = await GoogleSignin.signIn();
+      console.log(userInfo);
 
       if (!userInfo.data)
         throw new Error("No user data received from Google Sign-In");
@@ -91,13 +107,40 @@ export default function LoginFlow({ onSuccess }: { onSuccess: () => void }) {
       if (!idToken) throw new Error("No idToken received from Google Sign-In");
 
       // Firebase Authentication using Google idToken
+      console.log("starting firebase registration")
       const firebaseResult = await firebaseGoogleSignInWithIdToken(idToken);
+      console.log("firebase registration done")
 
-      // Backend logic has been removed as requested.
-      // Set the token and proceed to the next step.
-      setGoogleFirebaseToken(firebaseResult.idToken);
-      showSuccessToast("Google verification successful");
-      onSuccess();
+      // Backend logic: Try logging in with just the Google token (for returning users)
+      try {
+        console.log("starting backend registration")
+        const response = await firebaseLogin(firebaseResult.idToken);
+        console.log("backend registration done")
+        
+        // If we reach here, user already exists and we got tokens!
+        setAccessToken(response.accessToken);
+        setRefreshToken(response.refreshToken);
+        setUser(response.user);
+        
+        showSuccessToast("Welcome back!");
+        
+        // Route based on onboardingStep
+        if (response.user.onboardingStep === 'CATEGORY_DONE') {
+          router.replace('/(tabs)/home');
+        } else if (response.user.onboardingStep === 'DETAILS_DONE') {
+          router.replace('/category');
+        } else {
+          router.replace('/details'); // PHONE_VERIFIED
+        }
+      } catch (backendError: any) {
+        if (backendError.message.includes('PHONE_REQUIRED')) {
+          // New user! Needs phone verification.
+          setGoogleFirebaseToken(firebaseResult.idToken);
+          onSuccess(); // Go to OTP step
+        } else {
+          throw backendError;
+        }
+      }
     } catch (error: any) {
       showErrorToast(error.message || "Google sign-in failed");
     } finally {
