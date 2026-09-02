@@ -5,38 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import theme from "@/theme/theme";
 import { SocialPostCard, Post } from "@/components/social/SocialPostCard";
-
-const MOCK_POST: Post = {
-  id: "p1",
-  authorName: "Ananya",
-  authorAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-  isAnonymous: false,
-  title: "How do you politely decline a second date?",
-  body: "I went on a date yesterday and he was nice, but there was absolutely zero spark. He just texted me asking to meet up again this weekend. What's the best way to let him down easy without ghosting?",
-  upvotes: 245,
-  commentCount: 84,
-  timeAgo: "2h ago",
-  date: "2026-06-24",
-  topic: "Advice",
-  userVote: null,
-};
-
-const MOCK_COMMENTS = [
-  {
-    id: "c1",
-    authorName: "Priya",
-    authorAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80",
-    text: "Just be honest! Tell him you had a nice time but didn't feel a romantic connection.",
-    timeAgo: "1h ago",
-  },
-  {
-    id: "c2",
-    authorName: "Anonymous",
-    authorAvatar: null,
-    text: "I usually say something like 'Hey! It was great meeting you, but I don't see this going further. Wishing you the best!' Simple and clear.",
-    timeAgo: "45m ago",
-  },
-];
+import { useSocialStore } from "@/hooks/useSocialStore";
 
 export default function PostDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -44,32 +13,42 @@ export default function PostDetailScreen() {
   const insets = useSafeAreaInsets();
   const t = (theme as any).onboarding;
 
-  const [post, setPost] = useState(MOCK_POST);
-  const [comments, setComments] = useState(MOCK_COMMENTS);
+  const { activePost, fetchPostDetails, upvotePost, downvotePost, addComment, loading } = useSocialStore();
+
+  React.useEffect(() => {
+    if (id) {
+      fetchPostDetails(id as string);
+    }
+  }, [id]);
+
   const [commentText, setCommentText] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
 
-  const handleUpvote = () => {
-    const offset = post.userVote === "up" ? -1 : (post.userVote === "down" ? 2 : 1);
-    setPost({ ...post, userVote: post.userVote === "up" ? null : "up", upvotes: post.upvotes + offset });
-  };
-  const handleDownvote = () => {
-    const offset = post.userVote === "down" ? -1 : (post.userVote === "up" ? 2 : 1);
-    setPost({ ...post, userVote: post.userVote === "down" ? null : "down", upvotes: post.upvotes - offset });
-  };
-
-  const handleSendComment = () => {
+  const handleSendComment = async () => {
     if (!commentText.trim()) return;
-    const newComment = {
-      id: Date.now().toString(),
-      authorName: "You",
-      authorAvatar: null,
-      text: commentText.trim(),
-      timeAgo: "Just now",
-    };
-    setComments([...comments, newComment]);
-    setPost({ ...post, commentCount: comments.length + 1 });
+    await addComment({
+      postId: id as string,
+      body: commentText.trim(),
+      isAnonymous
+    });
     setCommentText("");
   };
+
+  if (!activePost && loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: t.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: t.textPrimary }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (!activePost) {
+    return (
+      <View style={[styles.container, { backgroundColor: t.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ color: t.textPrimary }}>Post not found.</Text>
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView 
@@ -85,21 +64,21 @@ export default function PostDetailScreen() {
       </View>
 
       <FlatList
-        data={comments}
-        keyExtractor={(item) => item.id}
+        data={(activePost as any).comments || []}
+        keyExtractor={(item: any) => item.id}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
         ListHeaderComponent={
           <View style={{ paddingTop: 16 }}>
             <SocialPostCard
               theme={t}
-              post={post}
-              onUpvote={handleUpvote}
-              onDownvote={handleDownvote}
+              post={activePost}
+              onUpvote={() => upvotePost(activePost.id)}
+              onDownvote={() => downvotePost(activePost.id)}
               onComment={() => {}}
             />
             <Text style={[styles.commentsTitle, { color: t.textPrimary, borderBottomColor: t.border }]}>
-              Comments ({comments.length})
+              Comments ({activePost.commentCount})
             </Text>
           </View>
         }
@@ -114,7 +93,7 @@ export default function PostDetailScreen() {
                 <Text style={[styles.commentAuthor, { color: t.textPrimary }]}>{item.authorName || "Anonymous User"}</Text>
                 <Text style={[styles.commentTime, { color: t.textSecondary }]}>{item.timeAgo}</Text>
               </View>
-              <Text style={[styles.commentText, { color: t.textSecondary }]}>{item.text}</Text>
+              <Text style={[styles.commentText, { color: t.textSecondary }]}>{item.body}</Text>
             </View>
           </View>
         )}

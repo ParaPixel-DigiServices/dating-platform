@@ -1,11 +1,8 @@
-import React, { useRef } from "react";
+import React from "react";
 import {
   View,
-  Animated,
-  PanResponder,
   StyleSheet,
   TouchableOpacity,
-  Text,
 } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
 
@@ -13,21 +10,23 @@ interface Props {
   primaryColor: string;
   secondary:    string;
   textPrimary:  string;
+  category?:    string; // 'LOVE' | 'MARRIAGE'
   onDislike:    () => void;
   onLike:       () => void;
   onSpark:      () => void;
 }
 
-const UP_THRESHOLD = 50;
-
 export function ActionButtons({
   primaryColor,
   secondary,
   textPrimary,
+  category,
   onDislike,
   onLike,
   onSpark,
 }: Props) {
+  const isMarriage = String(category || '').toUpperCase() === 'MARRIAGE';
+
   return (
     <View style={styles.row}>
 
@@ -49,13 +48,21 @@ export function ActionButtons({
         <Ionicons name="heart-outline" size={25} color={primaryColor} />
       </TouchableOpacity>
 
-      {/* ── Spark (Zap) ─────────────────────────── */}
+      {/* ── Spark (Love) / Super Like (Marriage) ─── */}
       <TouchableOpacity
-        style={[styles.btn, styles.btnLarge, { backgroundColor: primaryColor }]}
+        style={[
+          styles.btn,
+          styles.btnLarge,
+          { backgroundColor: primaryColor },
+          isMarriage && styles.superLikeGlow,
+        ]}
         onPress={onSpark}
         activeOpacity={0.8}
       >
-        <Feather name="zap" size={34} color="#2D211C" />
+        {isMarriage
+          ? <Ionicons name="star" size={34} color="#2D211C" />
+          : <Feather name="zap" size={34} color="#2D211C" />
+        }
       </TouchableOpacity>
 
     </View>
@@ -83,4 +90,10 @@ const styles = StyleSheet.create({
   },
   btnSmall: { width: 58, height: 58 },
   btnLarge: { width: 76, height: 76 },
+  superLikeGlow: {
+    // Extra glow on the star to differentiate Super Like from Spark
+    elevation:    10,
+    shadowOpacity: 0.5,
+    shadowRadius:  18,
+  },
 });

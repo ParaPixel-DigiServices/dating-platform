@@ -13,7 +13,7 @@ export interface Post {
   commentCount: number;
   timeAgo: string;
   date: string; // YYYY-MM-DD
-  topic: string;
+  topic: any;
   userVote: "up" | "down" | null;
 }
 

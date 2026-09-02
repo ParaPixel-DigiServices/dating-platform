@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -99,6 +99,15 @@ export default function DetailsScreen() {
   const yearRef = useRef<TextInput>(null);
 
   // Store
+  const { accessToken } = useAuthStore();
+  const setBootstrapping = useAuthStore((state) => state.setBootstrapping);
+
+  useEffect(() => {
+    // Failsafe: if somehow the user reached here without a token, kick them back to landing.
+    if (!accessToken) {
+      router.replace('/landing');
+    }
+  }, [accessToken, router]);
   const setOnboardingStep = useAuthStore((state) => state.setOnboardingStep);
   const updateAuthUser = useAuthStore((state) => state.updateAuthUser);
   const setFirstName = useOnboardingStore((state) => state.setFirstName);
@@ -135,6 +144,8 @@ export default function DetailsScreen() {
         parseInt(data.day, 10)
       );
 
+      console.log("Data:", data);
+
       console.log("Constructed DOB:", dob);
       const mappedGender = mapGenderToBackend(data.gender);
 
@@ -144,6 +155,8 @@ export default function DetailsScreen() {
         dateOfBirth: dob.toISOString(),
         gender: mappedGender as any,
       });
+
+      console.log("Response:", response);
 
       // Update local states
       setFirstName(data.firstName.trim());
@@ -375,7 +388,7 @@ export default function DetailsScreen() {
                       (formState.errors.day ||
                         formState.errors.month ||
                         formState.errors.year) &&
-                        styles.inputErrorBorder,
+                      styles.inputErrorBorder,
                     ]}
                   >
                     <Feather
@@ -471,12 +484,12 @@ export default function DetailsScreen() {
                   {(formState.errors.day ||
                     formState.errors.month ||
                     formState.errors.year) && (
-                    <Text style={styles.errorText}>
-                      {formState.errors.year?.message ||
-                        formState.errors.day?.message ||
-                        formState.errors.month?.message}
-                    </Text>
-                  )}
+                      <Text style={styles.errorText}>
+                        {formState.errors.year?.message ||
+                          formState.errors.day?.message ||
+                          formState.errors.month?.message}
+                      </Text>
+                    )}
                 </View>
 
                 {/* Gender Custom Dropdown */}
@@ -511,7 +524,7 @@ export default function DetailsScreen() {
                             color={casualTheme.primary}
                             style={styles.inputIcon}
                           />
-                        fcontin  <Text
+                          <Text
                             style={[
                               styles.textInput,
                               field.value

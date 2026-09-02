@@ -1,0 +1,1357 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// AUTH ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+enum VerificationType {
+  PHONE
+  EMAIL
+  SELFIE
+  GOVERNMENT_ID
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  firebaseUid  String     @unique
+  phoneNumber  String?    @unique
+  email        String?    @unique
+  role         UserRole   @default(USER)
+  status       UserStatus @default(ACTIVE)
+  lastActiveAt DateTime?
+
+  devices               Device[]
+  sessions              Session[]
+  verifications         UserVerification[] @relation("UserVerifications")
+  verificationsReviewed UserVerification[] @relation("VerificationReviewer")
+  profile               Profile?
+
+  moderationActionsReceived  ModerationAction[] @relation("UserModerationActions")
+  moderationActionsPerformed ModerationAction[] @relation("AdminModerationActions")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([status])
+  @@index([lastActiveAt])
+}
+
+model Device {
+  id             String         @id @default(uuid()) @db.Uuid
+  userId         String         @db.Uuid
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientDeviceId String
+  deviceName     String?
+  platform       DevicePlatform
+  appVersion     String?
+  pushToken      String?        @unique
+  lastActiveAt   DateTime?
+  sessions       Session[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, clientDeviceId])
+  @@index([userId])
+}
+
+model Session {
+  id               String    @id @default(uuid()) @db.Uuid
+  userId           String    @db.Uuid
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId         String    @db.Uuid
+  device           Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  ipAddress        String?
+  userAgent        String?
+  expiresAt        DateTime
+  lastUsedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  revokedAt        DateTime?
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model UserVerification {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @db.Uuid
+  user            User               @relation("UserVerifications", fields: [userId], references: [id], onDelete: Restrict)
+  type            VerificationType
+  status          VerificationStatus @default(PENDING)
+  rejectionReason String?
+  verifiedAt      DateTime?
+  // The admin/moderator who reviewed this verification
+  reviewedById    String?            @db.Uuid
+  reviewedBy      User?              @relation("VerificationReviewer", fields: [reviewedById], references: [id])
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([userId, type])
+  @@index([status])
+  @@index([reviewedById])
+}
+
+// ─────────────────────────────────────────────
+// PROFILE ENUMS
+// ─────────────────────────────────────────────
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum EducationLevel {
+  HIGH_SCHOOL
+  DIPLOMA
+  BACHELORS
+  MASTERS
+  PHD
+  OTHER
+}
+
+enum DietPreference {
+  VEGETARIAN
+  NON_VEGETARIAN
+  EGGETARIAN
+  VEGAN
+  OTHER
+}
+
+enum SmokingHabit {
+  NEVER
+  OCCASIONALLY
+  REGULARLY
+}
+
+enum DrinkingHabit {
+  NEVER
+  OCCASIONALLY
+  REGULARLY
+}
+
+// Consolidated: replaces both ImportanceLevel and PreferenceLevel (both were LOW/MEDIUM/HIGH)
+enum ImportanceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum PersonalityType {
+  INTROVERT
+  EXTROVERT
+  AMBIVERT
+}
+
+enum SleepPreference {
+  MORNING_PERSON
+  NIGHT_OWL
+}
+
+enum SocialLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+enum CleanlinessLevel {
+  LOW
+  MODERATE
+  HIGH
+}
+
+// ─────────────────────────────────────────────
+// RELIGION & CASTE (Lookup tables)
+// ─────────────────────────────────────────────
+
+model Religion {
+  id           String    @id @default(uuid()) @db.Uuid
+  name         String    @unique
+  displayOrder Int?
+  isActive     Boolean   @default(true)
+  castes       Caste[]
+  profiles     Profile[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Caste {
+  id            String   @id @default(uuid()) @db.Uuid
+  religionId    String   @db.Uuid
+  religion      Religion @relation(fields: [religionId], references: [id])
+  name          String
+  parentCasteId String?  @db.Uuid
+  parentCaste   Caste?   @relation("CasteHierarchy", fields: [parentCasteId], references: [id])
+  childCastes   Caste[]  @relation("CasteHierarchy")
+  state         String?
+  displayOrder  Int?
+  isActive      Boolean  @default(true)
+
+  profiles                 Profile[]
+  preferredByPartnerCastes PartnerPreferredCaste[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([religionId, name])
+  @@index([religionId, state])
+}
+
+// ─────────────────────────────────────────────
+// PROFILE
+// ─────────────────────────────────────────────
+
+model Profile {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  // Identity
+  firstName   String
+  lastName    String
+  dateOfBirth DateTime @db.Date
+  gender      Gender
+  bio         String?
+  heightCm    Int? // User's height in centimetres
+
+  // Category — set during onboarding.
+  // INVARIANT (enforced by backend, not DB):
+  //   LOVE    → LoveProfile MUST exist,    MarriageProfile MUST NOT
+  //   MARRIAGE → MarriageProfile MUST exist, LoveProfile MUST NOT
+  category CategoryType?
+
+  // Location — lat/lng for proximity queries; city/state/country for display.
+  // Resolved via Google Maps API; stored provider-agnostically.
+  // For radius queries use a bounding-box pre-filter on lat/lng.
+  latitude  Float?
+  longitude Float?
+  city      String?
+  state     String?
+  country   String?
+
+  // Education & Career
+  educationLevel EducationLevel?
+  college        String?
+  occupation     String?
+
+  // Financial
+  annualIncome   Decimal? @db.Decimal(15, 2)
+  familyIncome   Decimal? @db.Decimal(15, 2)
+  incomeCurrency String?  @default("INR")
+  assets         String?
+
+  // Cultural
+  religionId   String?   @db.Uuid
+  religion     Religion? @relation(fields: [religionId], references: [id])
+  casteId      String?   @db.Uuid
+  caste        Caste?    @relation(fields: [casteId], references: [id])
+  motherTongue String?
+
+  // Lifestyle
+  dietPreference    DietPreference?
+  smokingHabit      SmokingHabit?
+  drinkingHabit     DrinkingHabit?
+  fitnessImportance ImportanceLevel?
+  petsPreference    ImportanceLevel?
+
+  // Personality
+  personalityType         PersonalityType?
+  sleepPreference         SleepPreference?
+  communicationStyle      String?
+  conflictResolutionStyle String?
+  socialLevel             SocialLevel?
+  cleanlinessLevel        CleanlinessLevel?
+
+  // Completion
+  completionPercentage Int     @default(0)
+  isCompleted          Boolean @default(false)
+
+  // Relations
+  photos            ProfilePhoto[]
+  languages         UserLanguage[]
+  interests         UserInterest[]
+  userAnswers       UserAnswer[]
+  loveProfile       LoveProfile?
+  marriageProfile   MarriageProfile?
+  partnerPreference PartnerPreference?
+
+  sentInteractions     ProfileInteraction[] @relation("InteractionSender")
+  receivedInteractions ProfileInteraction[] @relation("InteractionReceiver")
+  matchesAsProfileOne  Match[]              @relation("MatchProfileOne")
+  matchesAsProfileTwo  Match[]              @relation("MatchProfileTwo")
+  messagesSent         Message[]
+  blocksCreated        Block[]              @relation("ProfileBlocks")
+  blockedBy            Block[]              @relation("BlockedByProfiles")
+  reportsCreated       Report[]             @relation("ReportsCreated")
+  reportsReceived      Report[]             @relation("ReportsReceived")
+
+  // Love feature back-relations
+  sparkSubmissionsSent    SparkSubmission[] @relation("SparksSent")
+  // InsightReport is per-subject (shared across all viewers); no requester back-relation
+  insightReportsAsSubject InsightReport[]   @relation("InsightSubject")
+  syncReportsAsA          SyncReport[]      @relation("SyncProfileA")
+  syncReportsAsB          SyncReport[]      @relation("SyncProfileB")
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([category])
+  @@index([latitude, longitude])
+  @@index([city, state, country])
+  @@index([gender])
+  @@index([religionId])
+  @@index([casteId])
+  @@index([religionId, state])
+}
+
+// ─────────────────────────────────────────────
+// PROFILE PHOTOS
+// ─────────────────────────────────────────────
+
+enum PhotoModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model ProfilePhoto {
+  id               String                @id @default(uuid()) @db.Uuid
+  profileId        String                @db.Uuid
+  profile          Profile               @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  storageKey       String
+  cdnUrl           String
+  displayOrder     Int
+  isPrimary        Boolean               @default(false)
+  moderationStatus PhotoModerationStatus @default(PENDING)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([profileId])
+}
+
+// ─────────────────────────────────────────────
+// LANGUAGE & INTERESTS (Lookup + Join tables)
+// ─────────────────────────────────────────────
+
+model Language {
+  id                          String                     @id @default(uuid()) @db.Uuid
+  name                        String                     @unique
+  code                        String                     @unique
+  displayOrder                Int?
+  isActive                    Boolean                    @default(true)
+  users                       UserLanguage[]
+  preferredByPartnerLanguages PartnerPreferredLanguage[]
+  createdAt                   DateTime                   @default(now())
+  updatedAt                   DateTime                   @updatedAt
+}
+
+enum LanguageProficiency {
+  BASIC
+  CONVERSATIONAL
+  FLUENT
+  NATIVE
+}
+
+model UserLanguage {
+  id          String               @id @default(uuid()) @db.Uuid
+  profileId   String               @db.Uuid
+  languageId  String               @db.Uuid
+  profile     Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  language    Language             @relation(fields: [languageId], references: [id])
+  proficiency LanguageProficiency?
+  createdAt   DateTime             @default(now())
+
+  @@unique([profileId, languageId])
+}
+
+model Interest {
+  id                          String                     @id @default(uuid()) @db.Uuid
+  name                        String                     @unique
+  category                    String?
+  displayOrder                Int?
+  isActive                    Boolean                    @default(true)
+  users                       UserInterest[]
+  preferredByPartnerInterests PartnerPreferredInterest[]
+  createdAt                   DateTime                   @default(now())
+  updatedAt                   DateTime                   @updatedAt
+}
+
+model UserInterest {
+  id         String   @id @default(uuid()) @db.Uuid
+  profileId  String   @db.Uuid
+  interestId String   @db.Uuid
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  interest   Interest @relation(fields: [interestId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([profileId, interestId])
+}
+
+// ─────────────────────────────────────────────
+// MCQ PROFILE COMPLETION ANSWERS
+// Persists the 25-question answers from useProfileCompletionStore.
+// Keys match frontend: "go_1","go_2","go_3","p_1"..."p_22"
+// ─────────────────────────────────────────────
+
+model UserAnswer {
+  id          String   @id @default(uuid()) @db.Uuid
+  profileId   String   @db.Uuid
+  profile     Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  questionKey String
+  answer      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([profileId, questionKey])
+  @@index([profileId])
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY
+// Category is now a simple enum field on Profile.
+// Category/SubCategory/UserCategory tables removed.
+// Marriage religion is captured via Profile.religionId
+// and the religion-specific MarriageProfile sub-table.
+// ─────────────────────────────────────────────
+
+enum CategoryType {
+  LOVE
+  MARRIAGE
+}
+
+// ─────────────────────────────────────────────
+// LOVE PROFILE
+// ─────────────────────────────────────────────
+
+enum RelationshipIntent {
+  LONG_TERM
+  OPEN_TO_MARRIAGE
+  UNDECIDED
+}
+
+model LoveProfile {
+  id        String  @id @default(uuid()) @db.Uuid
+  profileId String  @unique @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  voiceIntroUrl String?
+  videoIntroUrl String?
+
+  // Compatibility preferences (merged from deprecated LoveCompatibility table)
+  relationshipIntent      RelationshipIntent?
+  wantsChildren           Boolean?
+  openToRelocation        Boolean?
+  comfortableLongDistance Boolean?
+
+  sparkProfile SparkProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// SPARK FEATURE  (Love users only)
+//
+// Versioning model:
+//   SparkProfile       — config + pointer to active version
+//   SparkProfileVersion — immutable snapshot of a question set
+//   SparkQuestion      — belongs to a version; never mutated
+//   SparkSubmission    — references the exact version answered
+//   SparkAnswer        — answer to one question in that version
+//   SparkAIReport      — AI output for one submission
+//
+// To publish new questions: create a new SparkProfileVersion with
+// new SparkQuestion rows, then set SparkProfile.activeVersionId.
+// Old submissions remain tied to their original version.
+// ─────────────────────────────────────────────
+
+model SparkProfile {
+  id            String      @id @default(uuid()) @db.Uuid
+  loveProfileId String      @unique @db.Uuid
+  loveProfile   LoveProfile @relation(fields: [loveProfileId], references: [id], onDelete: Cascade)
+  isActive      Boolean     @default(true)
+
+  // Configuration — not hardcoded in the backend
+  maxQuestions      Int     @default(5)
+  isPublic          Boolean @default(true)
+  allowResubmission Boolean @default(false)
+
+  // The currently live version. Null until first version is published.
+  activeVersionId String?              @unique @db.Uuid
+  activeVersion   SparkProfileVersion? @relation("ActiveSparkVersion", fields: [activeVersionId], references: [id])
+
+  versions    SparkProfileVersion[] @relation("SparkVersions")
+  submissions SparkSubmission[]     @relation("SparkTarget")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Immutable snapshot of a question set at a point in time.
+// Never mutate rows in this table — create a new version instead.
+model SparkProfileVersion {
+  id             String       @id @default(uuid()) @db.Uuid
+  sparkProfileId String       @db.Uuid
+  sparkProfile   SparkProfile @relation("SparkVersions", fields: [sparkProfileId], references: [id], onDelete: Cascade)
+  versionNumber  Int // Monotonically increasing per SparkProfile
+
+  questions   SparkQuestion[]
+  submissions SparkSubmission[] @relation("SubmissionVersion")
+
+  // Back-relation for SparkProfile.activeVersionId
+  activeForProfile SparkProfile? @relation("ActiveSparkVersion")
+
+  createdAt DateTime @default(now())
+
+  @@unique([sparkProfileId, versionNumber])
+  @@index([sparkProfileId])
+}
+
+// Immutable: belongs to a SparkProfileVersion, not the SparkProfile directly.
+// Do not add updatedAt — question text must never change after creation.
+model SparkQuestion {
+  id                    String              @id @default(uuid()) @db.Uuid
+  sparkProfileVersionId String              @db.Uuid
+  sparkProfileVersion   SparkProfileVersion @relation(fields: [sparkProfileVersionId], references: [id], onDelete: Cascade)
+  text                  String              @db.Text
+  displayOrder          Int
+  isRequired            Boolean             @default(true)
+  answers               SparkAnswer[]
+  createdAt             DateTime            @default(now())
+
+  @@index([sparkProfileVersionId])
+}
+
+enum SparkSubmissionStatus {
+  DRAFT // Sender opened Spark screen, has not submitted yet
+  SUBMITTED // Answers submitted; AI job queued
+  COMPLETED // AI report ready for SparkProfile owner
+  FAILED // AI generation failed; eligible for retry
+}
+
+model SparkSubmission {
+  id String @id @default(uuid()) @db.Uuid
+
+  // The specific immutable version the sender answered
+  sparkProfileVersionId String              @db.Uuid
+  sparkProfileVersion   SparkProfileVersion @relation("SubmissionVersion", fields: [sparkProfileVersionId], references: [id])
+
+  // Denormalized from sparkProfileVersion.sparkProfileId for efficient querying
+  // and for enforcing one-submission-per-profile-pair uniqueness.
+  sparkProfileId String       @db.Uuid
+  sparkProfile   SparkProfile @relation("SparkTarget", fields: [sparkProfileId], references: [id])
+
+  senderProfileId String  @db.Uuid
+  senderProfile   Profile @relation("SparksSent", fields: [senderProfileId], references: [id])
+
+  status SparkSubmissionStatus @default(DRAFT)
+
+  // Viewed as a flag, not a status enum value
+  isViewedByOwner Boolean   @default(false)
+  viewedAt        DateTime?
+
+  answers     SparkAnswer[]
+  aiReport    SparkAIReport?
+  interaction ProfileInteraction?
+
+  submittedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  // Uniqueness semantics depend on allowResubmission (SparkProfile config):
+  //
+  //   allowResubmission = false:
+  //     Backend rejects any new submission where a prior row exists for this pair
+  //     (regardless of deletedAt). Enforced in the service layer.
+  //
+  //   allowResubmission = true:
+  //     Backend soft-deletes (sets deletedAt) the previous submission, then inserts
+  //     a new one. All historical submissions are preserved for audit/AI history.
+  //     The DB carries no unique constraint here — the service owns this invariant.
+  //
+  // Active submission query pattern:
+  //   WHERE sparkProfileId = ? AND senderProfileId = ? AND deletedAt IS NULL
+  //
+  @@index([sparkProfileId, senderProfileId]) // query active submission for a pair
+  @@index([sparkProfileVersionId])
+  @@index([sparkProfileId])
+  @@index([senderProfileId])
+  @@index([status])
+}
+
+model SparkAnswer {
+  id           String          @id @default(uuid()) @db.Uuid
+  submissionId String          @db.Uuid
+  submission   SparkSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId   String          @db.Uuid
+  question     SparkQuestion   @relation(fields: [questionId], references: [id])
+  answer       String          @db.Text
+  createdAt    DateTime        @default(now())
+
+  @@unique([submissionId, questionId])
+  @@index([submissionId])
+}
+
+model SparkAIReport {
+  id           String          @id @default(uuid()) @db.Uuid
+  submissionId String          @unique @db.Uuid
+  submission   SparkSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  data         Json // Full AI output (tone, compatibility signals, personality observations)
+  aiJobId      String?         @unique @db.Uuid
+  aiJob        AIJob?          @relation(fields: [aiJobId], references: [id])
+  generatedAt  DateTime        @default(now())
+}
+
+// ─────────────────────────────────────────────
+// INSIGHT REPORT  (Love users only)
+//
+// One shared report per subject profile.
+// All viewers of profile B see the same cached Insight.
+// Marked STALE when the subject updates their MCQ answers.
+// Regenerated on next request after going STALE.
+// ─────────────────────────────────────────────
+
+enum InsightReportStatus {
+  PENDING // AI generation queued
+  COMPLETED // Report ready
+  FAILED // AI failed; can retry
+  STALE // Subject updated MCQ answers; needs regeneration
+}
+
+model InsightReport {
+  id               String              @id @default(uuid()) @db.Uuid
+  // The profile being analyzed. One report per subject (shared across all viewers).
+  subjectProfileId String              @unique @db.Uuid
+  subjectProfile   Profile             @relation("InsightSubject", fields: [subjectProfileId], references: [id], onDelete: Cascade)
+  status           InsightReportStatus @default(PENDING)
+  data             Json? // personality, values, love language, strengths, red/green flags
+  aiJobId          String?             @unique @db.Uuid
+  aiJob            AIJob?              @relation(fields: [aiJobId], references: [id])
+  version          Int                 @default(1)
+  generatedAt      DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  deletedAt        DateTime?
+
+  // @@index([subjectProfileId]) omitted — subjectProfileId @unique already creates the index
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// SYNC REPORT  (Love users only)
+// AI compatibility report between two profiles.
+// profileAId/profileBId stored in canonical order (lower UUID first) — enforced at API layer.
+// Marked STALE if either profile updates their MCQ answers.
+// ─────────────────────────────────────────────
+
+enum SyncReportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  STALE
+}
+
+// IMPORTANT: profileAId must always be the lexicographically smaller UUID.
+// The API layer must enforce this before every insert/query to prevent duplicate pairs.
+model SyncReport {
+  id           String           @id @default(uuid()) @db.Uuid
+  profileAId   String           @db.Uuid
+  profileA     Profile          @relation("SyncProfileA", fields: [profileAId], references: [id], onDelete: Cascade)
+  profileBId   String           @db.Uuid
+  profileB     Profile          @relation("SyncProfileB", fields: [profileBId], references: [id], onDelete: Cascade)
+  status       SyncReportStatus @default(PENDING)
+  overallScore Int? // 0-100 extracted for fast sorting without JSON parsing
+  data         Json? // compatibility breakdown, strengths, weak areas, recommendations
+  aiJobId      String?          @unique @db.Uuid
+  aiJob        AIJob?           @relation(fields: [aiJobId], references: [id])
+  version      Int              @default(1)
+  generatedAt  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([profileAId, profileBId])
+  @@index([profileAId])
+  @@index([profileBId])
+}
+
+// ─────────────────────────────────────────────
+// AI JOB  (Centralised AI generation queue)
+// One AIJob per AI report. Handles queueing, retries,
+// provider metadata, token usage, and cost tracking.
+// ─────────────────────────────────────────────
+
+enum AIJobType {
+  SPARK_REPORT
+  INSIGHT_REPORT
+  SYNC_REPORT
+}
+
+enum AIJobStatus {
+  QUEUED // Waiting to be picked up
+  PROCESSING // Currently being generated
+  COMPLETED // Generation succeeded
+  FAILED // All retries exhausted
+}
+
+model AIJob {
+  id     String      @id @default(uuid()) @db.Uuid
+  type   AIJobType
+  status AIJobStatus @default(QUEUED)
+
+  // AI provider metadata
+  provider         String? // "openai" | "anthropic" | "gemini"
+  model            String? // "gpt-4o" | "claude-3-5-sonnet" | "gemini-2.0-flash"
+  promptTokens     Int?
+  completionTokens Int?
+  tokensUsed       Int? // total (promptTokens + completionTokens)
+  generationTimeMs Int?
+  costUsd          Decimal? @db.Decimal(10, 6)
+
+  // Retry tracking
+  retryCount Int     @default(0)
+  maxRetries Int     @default(3)
+  lastError  String? @db.Text
+
+  // Timestamps
+  queuedAt    DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Back-relations to report tables (one AIJob → one report)
+  sparkReport   SparkAIReport?
+  insightReport InsightReport?
+  syncReport    SyncReport?
+
+  @@index([status])
+  @@index([type])
+  @@index([type, status])
+}
+
+// ─────────────────────────────────────────────
+// MARRIAGE ENUMS
+// ─────────────────────────────────────────────
+
+enum MarriageTimeline {
+  IMMEDIATE
+  WITHIN_ONE_YEAR
+  FAMILY_SEARCHING
+  EXPLORING_SERIOUSLY
+  REMARRIAGE
+}
+
+enum FamilyType {
+  JOINT
+  NUCLEAR
+}
+
+enum MaritalStatus {
+  NEVER_MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum RelocationPreference {
+  DOMESTIC
+  ABROAD
+  BOTH
+  NOT_WILLING
+}
+
+enum PracticeFrequency {
+  NEVER
+  OCCASIONALLY
+  MONTHLY
+  WEEKLY
+  DAILY
+}
+
+enum LifestyleType {
+  MODERN
+  TRADITIONAL
+  BALANCED
+}
+
+enum WeddingType {
+  SIMPLE
+  TRADITIONAL
+  LUXURY
+  DESTINATION
+  TEMPLE
+  CHURCH
+  MOSQUE
+  GURDWARA
+  MINIMAL
+}
+
+// ─────────────────────────────────────────────
+// MARRIAGE PROFILE
+// ─────────────────────────────────────────────
+
+model MarriageProfile {
+  id        String  @id @default(uuid()) @db.Uuid
+  profileId String  @unique @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  lookingFor              String?
+  marriageTimeline        MarriageTimeline?
+  residence               String?
+  maritalStatus           MaritalStatus?
+  hasChildren             Boolean?
+  childrenCount           Int?
+  siblingsCount           Int?
+  familyType              FamilyType?
+  parentalConsentRequired Boolean?
+  wantsChildren           Boolean?
+  relocationPreference    RelocationPreference?
+  partnerExpectations     String?
+  dealBreakers            String?
+  financialResponsibility ImportanceLevel?
+  angerManagement         ImportanceLevel?
+  travelInterest          ImportanceLevel?
+
+  hinduProfile     HinduMarriageProfile?
+  muslimProfile    MuslimMarriageProfile?
+  christianProfile ChristianMarriageProfile?
+  sikhProfile      SikhMarriageProfile?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// HINDU MARRIAGE PROFILE
+// ─────────────────────────────────────────────
+
+model HinduMarriageProfile {
+  id                String          @id @default(uuid()) @db.Uuid
+  marriageProfileId String          @unique @db.Uuid
+  marriageProfile   MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  // Faith & Astrology
+  religionImportance        ImportanceLevel?
+  kundliRequired            Boolean?
+  doshaImportance           ImportanceLevel?
+  horoscopeMismatchAccepted Boolean?
+  hasSpiritualGuru          Boolean?
+
+  // Rituals
+  poojaFrequency       PracticeFrequency?
+  templeVisitFrequency PracticeFrequency?
+  fastingPreferences   String[]
+  ritualPreferences    String[]
+  touchesElderFeet     Boolean?
+
+  // Lifestyle
+  nonVegAtHomeAccepted           Boolean?
+  alcoholAcceptance              ImportanceLevel?
+  smokingAcceptance              ImportanceLevel?
+  dressingStyle                  LifestyleType?
+  genderRolePreference           LifestyleType?
+  tattooAccepted                 Boolean?
+  clubbingAccepted               Boolean?
+  oppositeGenderFriendAcceptance ImportanceLevel?
+
+  // Marriage & Household
+  casteConscious             Boolean?
+  intercasteMarriageAccepted Boolean?
+  sameFamilyStatusExpected   Boolean?
+  workingPartnerPreference   ImportanceLevel?
+  acceptDivorcee             Boolean?
+  weddingPreference          WeddingType?
+  wearsThali                 Boolean?
+  vastuImportance            ImportanceLevel?
+  separatePoojaRoom          Boolean?
+  livingNearTemplePreference Boolean?
+  hinduSymbolsAtHome         Boolean?
+  childrenLearnSanskrit      Boolean?
+  templeDonationImportance   ImportanceLevel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// MUSLIM MARRIAGE PROFILE
+// ─────────────────────────────────────────────
+
+model MuslimSect {
+  id           String                  @id @default(uuid()) @db.Uuid
+  name         String                  @unique
+  description  String?
+  displayOrder Int?
+  isActive     Boolean                 @default(true)
+  communities  MuslimCommunity[]
+  profiles     MuslimMarriageProfile[]
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+}
+
+model MuslimCommunity {
+  id           String                  @id @default(uuid()) @db.Uuid
+  sectId       String?                 @db.Uuid
+  sect         MuslimSect?             @relation(fields: [sectId], references: [id])
+  name         String                  @unique
+  description  String?
+  displayOrder Int?
+  isActive     Boolean                 @default(true)
+  profiles     MuslimMarriageProfile[]
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+}
+
+model MuslimMarriageProfile {
+  id                String          @id @default(uuid()) @db.Uuid
+  marriageProfileId String          @unique @db.Uuid
+  marriageProfile   MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  sectId      String?          @db.Uuid
+  sect        MuslimSect?      @relation(fields: [sectId], references: [id])
+  communityId String?          @db.Uuid
+  community   MuslimCommunity? @relation(fields: [communityId], references: [id])
+
+  // Practice
+  prayerFrequency    PracticeFrequency?
+  fastsDuringRamadan Boolean?
+  performsHajj       Boolean?
+  halalLifestyle     ImportanceLevel?
+  quranReadFrequency PracticeFrequency?
+
+  // Appearance & Lifestyle
+  hijabPreference        ImportanceLevel?
+  beardPreference        ImportanceLevel?
+  modestDressingRequired Boolean?
+  mixedGatheringComfort  ImportanceLevel?
+
+  // Marriage
+  polygamyAccepted     Boolean?
+  moreWivesDiscussion  Boolean?
+  acceptDivorcee       Boolean?
+  acceptWidow          Boolean?
+  weddingPreference    WeddingType?
+  mehramTravelRequired Boolean?
+  islamicMarriageOnly  Boolean?
+
+  // Household
+  islamicChildrearing     ImportanceLevel?
+  arabicForChildren       Boolean?
+  islamicSchoolPreference Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// CHRISTIAN MARRIAGE PROFILE
+// ─────────────────────────────────────────────
+
+model ChristianDenomination {
+  id           String                     @id @default(uuid()) @db.Uuid
+  name         String                     @unique
+  description  String?
+  displayOrder Int?
+  isActive     Boolean                    @default(true)
+  profiles     ChristianMarriageProfile[]
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+}
+
+model ChristianMarriageProfile {
+  id                String          @id @default(uuid()) @db.Uuid
+  marriageProfileId String          @unique @db.Uuid
+  marriageProfile   MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  denominationId String?                @db.Uuid
+  denomination   ChristianDenomination? @relation(fields: [denominationId], references: [id])
+
+  // Practice
+  churchAttendance      PracticeFrequency?
+  bibleReadingFrequency PracticeFrequency?
+  prayerFrequency       PracticeFrequency?
+  fasting               Boolean?
+  tithing               Boolean?
+
+  // Lifestyle & Marriage
+  modestDressing        ImportanceLevel?
+  alcoholAcceptance     ImportanceLevel?
+  smokingAcceptance     ImportanceLevel?
+  sameChurchRequired    Boolean?
+  acceptDivorcee        Boolean?
+  acceptWidow           Boolean?
+  weddingPreference     WeddingType?
+  interfaithAccepted    Boolean?
+  christianChildrearing ImportanceLevel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// SIKH MARRIAGE PROFILE
+// ─────────────────────────────────────────────
+
+model SikhReligiousStatus {
+  id           String                @id @default(uuid()) @db.Uuid
+  name         String                @unique
+  description  String?
+  displayOrder Int?
+  isActive     Boolean               @default(true)
+  profiles     SikhMarriageProfile[]
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+}
+
+model SikhMarriageProfile {
+  id                String          @id @default(uuid()) @db.Uuid
+  marriageProfileId String          @unique @db.Uuid
+  marriageProfile   MarriageProfile @relation(fields: [marriageProfileId], references: [id], onDelete: Cascade)
+
+  religiousStatusId String?              @db.Uuid
+  religiousStatus   SikhReligiousStatus? @relation(fields: [religiousStatusId], references: [id])
+
+  // Practice
+  nitnemFrequency    PracticeFrequency?
+  gurduaraAttendance PracticeFrequency?
+  ardaasFrequency    PracticeFrequency?
+
+  // Appearance
+  turbanRequired      Boolean?
+  unshornHairRequired Boolean?
+  dastarRequired      Boolean?
+
+  // Lifestyle
+  vegetarianRequired Boolean?
+  alcoholFree        Boolean?
+  tobaccoFree        Boolean?
+
+  // Marriage
+  anandKarajRequired Boolean?
+  weddingPreference  WeddingType?
+  acceptDivorcee     Boolean?
+  sikhChildrearing   ImportanceLevel?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// PARTNER PREFERENCES (Discovery filters)
+// ─────────────────────────────────────────────
+
+model PartnerPreference {
+  id        String  @id @default(uuid()) @db.Uuid
+  profileId String  @unique @db.Uuid
+  profile   Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // Hard filters
+  minAge        Int?
+  maxAge        Int?
+  minHeightCm   Int?
+  maxHeightCm   Int?
+  maxDistanceKm Int?
+  minIncome     Decimal? @db.Decimal(15, 2)
+  maxIncome     Decimal? @db.Decimal(15, 2)
+
+  // Soft preference weights (0–100)
+  valuesWeight    Int? @default(50)
+  lifestyleWeight Int? @default(50)
+  looksWeight     Int? @default(50)
+  careerWeight    Int? @default(50)
+  familyWeight    Int? @default(50)
+
+  // Enum preferences
+  genderPreference Gender[]
+  educationLevels  EducationLevel[]
+  dietPreferences  DietPreference[]
+  smokingHabits    SmokingHabit[]
+  drinkingHabits   DrinkingHabit[]
+
+  // Relational preferences
+  preferredCastes    PartnerPreferredCaste[]
+  preferredLanguages PartnerPreferredLanguage[]
+  preferredInterests PartnerPreferredInterest[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PartnerPreferredCaste {
+  id                  String            @id @default(uuid()) @db.Uuid
+  partnerPreferenceId String            @db.Uuid
+  partnerPreference   PartnerPreference @relation(fields: [partnerPreferenceId], references: [id], onDelete: Cascade)
+  casteId             String            @db.Uuid
+  caste               Caste             @relation(fields: [casteId], references: [id])
+
+  @@unique([partnerPreferenceId, casteId])
+}
+
+model PartnerPreferredLanguage {
+  id                  String            @id @default(uuid()) @db.Uuid
+  partnerPreferenceId String            @db.Uuid
+  partnerPreference   PartnerPreference @relation(fields: [partnerPreferenceId], references: [id], onDelete: Cascade)
+  languageId          String            @db.Uuid
+  language            Language          @relation(fields: [languageId], references: [id])
+
+  @@unique([partnerPreferenceId, languageId])
+}
+
+model PartnerPreferredInterest {
+  id                  String            @id @default(uuid()) @db.Uuid
+  partnerPreferenceId String            @db.Uuid
+  partnerPreference   PartnerPreference @relation(fields: [partnerPreferenceId], references: [id], onDelete: Cascade)
+  interestId          String            @db.Uuid
+  interest            Interest          @relation(fields: [interestId], references: [id])
+
+  @@unique([partnerPreferenceId, interestId])
+}
+
+// ─────────────────────────────────────────────
+// INTERACTIONS
+//
+// Represents CURRENT interaction state (A → B).
+// One row per directional pair. Use upsert to change state.
+//
+// Interaction matrix (enforced at API layer):
+// ┌────────────┬──────┬──────────┬───────────────┬────────────────────┐
+// │ Type       │ Love │ Marriage │ Creates Match?│ Extra Data         │
+// ├────────────┼──────┼──────────┼───────────────┼────────────────────┤
+// │ LIKE       │  ✓   │    ✓     │ If mutual     │ —                  │
+// │ PASS       │  ✓   │    ✓     │ Never         │ —                  │
+// │ SUPER_LIKE │  ✗   │    ✓     │ If other LIKE │ —                  │
+// │ SPARK      │  ✓   │    ✗     │ Never         │ sparkSubmissionId  │
+// └────────────┴──────┴──────────┴───────────────┴────────────────────┘
+//
+// Match creation rules:
+//   LIKE + LIKE = Match
+//   SUPER_LIKE + LIKE = Match (the other party must LIKE back)
+//   SPARK never creates a Match
+// ─────────────────────────────────────────────
+
+enum InteractionType {
+  LIKE
+  PASS
+  SUPER_LIKE // Marriage users only
+  SPARK // Love users only — never creates a Match
+}
+
+model ProfileInteraction {
+  id              String          @id @default(uuid()) @db.Uuid
+  fromProfileId   String          @db.Uuid
+  fromProfile     Profile         @relation("InteractionSender", fields: [fromProfileId], references: [id], onDelete: Cascade)
+  toProfileId     String          @db.Uuid
+  toProfile       Profile         @relation("InteractionReceiver", fields: [toProfileId], references: [id], onDelete: Cascade)
+  interactionType InteractionType
+
+  // Populated only when interactionType = SPARK.
+  // Links to the full Spark workflow object.
+  sparkSubmissionId String?          @unique @db.Uuid
+  sparkSubmission   SparkSubmission? @relation(fields: [sparkSubmissionId], references: [id])
+
+  // updatedAt tracks when the state last changed (e.g. PASS → LIKE on second chance)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One current-state row per directional pair. Use upsert to change.
+  @@unique([fromProfileId, toProfileId])
+  @@index([toProfileId, interactionType])
+  @@index([fromProfileId])
+  @@index([toProfileId])
+  @@index([interactionType])
+}
+
+// ─────────────────────────────────────────────
+// MATCH
+// Created automatically when LIKE + LIKE occurs.
+// SUPER_LIKE requires the other party to LIKE back.
+// SPARK never creates a Match.
+//
+// CANONICAL ORDERING (enforced by backend before every insert/query):
+//   profileOneId = lexicographically smaller UUID
+//   profileTwoId = lexicographically larger UUID
+// This prevents duplicate (A,B) and (B,A) records.
+// @@unique([profileOneId, profileTwoId]) enforces at DB level.
+// ─────────────────────────────────────────────
+
+model Match {
+  id           String    @id @default(uuid()) @db.Uuid
+  profileOneId String    @db.Uuid // always the lexicographically smaller UUID
+  profileOne   Profile   @relation("MatchProfileOne", fields: [profileOneId], references: [id], onDelete: Cascade)
+  profileTwoId String    @db.Uuid // always the lexicographically larger UUID
+  profileTwo   Profile   @relation("MatchProfileTwo", fields: [profileTwoId], references: [id], onDelete: Cascade)
+  chat         Chat?
+  unmatchedAt  DateTime? // soft-delete; preserves chat history
+  createdAt    DateTime  @default(now())
+
+  @@unique([profileOneId, profileTwoId])
+  @@index([profileOneId])
+  @@index([profileTwoId])
+}
+
+// ─────────────────────────────────────────────
+// CHAT & MESSAGES
+// ─────────────────────────────────────────────
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VOICE
+  VIDEO
+}
+
+model Chat {
+  id        String    @id @default(uuid()) @db.Uuid
+  matchId   String    @unique @db.Uuid
+  match     Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id              String      @id @default(uuid()) @db.Uuid
+  chatId          String      @db.Uuid
+  chat            Chat        @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderProfileId String      @db.Uuid
+  senderProfile   Profile     @relation(fields: [senderProfileId], references: [id])
+  type            MessageType @default(TEXT)
+  content         String?     @db.Text
+  mediaUrl        String?
+  isRead          Boolean     @default(false)
+  readAt          DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  deletedAt       DateTime?
+
+  @@index([chatId])
+  @@index([senderProfileId])
+  @@index([chatId, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// TRUST & SAFETY
+// ─────────────────────────────────────────────
+
+model Block {
+  id               String   @id @default(uuid()) @db.Uuid
+  blockerProfileId String   @db.Uuid
+  blockerProfile   Profile  @relation("ProfileBlocks", fields: [blockerProfileId], references: [id], onDelete: Cascade)
+  blockedProfileId String   @db.Uuid
+  blockedProfile   Profile  @relation("BlockedByProfiles", fields: [blockedProfileId], references: [id], onDelete: Cascade)
+  reason           String?
+  createdAt        DateTime @default(now())
+
+  @@unique([blockerProfileId, blockedProfileId])
+  @@index([blockerProfileId])
+  @@index([blockedProfileId])
+}
+
+enum ReportReason {
+  FAKE_PROFILE
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  SPAM
+  SCAM
+  UNDERAGE
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+model Report {
+  id                String           @id @default(uuid()) @db.Uuid
+  reporterProfileId String           @db.Uuid
+  reporterProfile   Profile          @relation("ReportsCreated", fields: [reporterProfileId], references: [id], onDelete: Cascade)
+  reportedProfileId String           @db.Uuid
+  reportedProfile   Profile          @relation("ReportsReceived", fields: [reportedProfileId], references: [id], onDelete: Cascade)
+  reason            ReportReason
+  description       String?          @db.Text
+  status            ReportStatus     @default(PENDING)
+  evidence          ReportEvidence[]
+  resolvedAt        DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([reportedProfileId])
+  @@index([status])
+}
+
+model ReportEvidence {
+  id        String   @id @default(uuid()) @db.Uuid
+  reportId  String   @db.Uuid
+  report    Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  mediaUrl  String
+  mediaType String? // "image" | "video" | "screenshot"
+  createdAt DateTime @default(now())
+
+  @@index([reportId])
+}
+
+enum ModerationActionType {
+  WARNING
+  TEMP_SUSPENSION
+  PERMANENT_BAN
+  CONTENT_REMOVAL
+  PROFILE_RESET
+}
+
+model ModerationAction {
+  id         String               @id @default(uuid()) @db.Uuid
+  userId     String               @db.Uuid
+  user       User                 @relation("UserModerationActions", fields: [userId], references: [id], onDelete: Cascade)
+  adminId    String               @db.Uuid
+  admin      User                 @relation("AdminModerationActions", fields: [adminId], references: [id])
+  actionType ModerationActionType
+  reason     String               @db.Text
+  expiresAt  DateTime? // For temp suspensions
+  createdAt  DateTime             @default(now())
+
+  @@index([userId])
+  @@index([adminId])
+}

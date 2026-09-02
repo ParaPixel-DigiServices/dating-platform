@@ -6,13 +6,17 @@ import { Feather } from "@expo/vector-icons";
 import { useSocialStore } from "@/hooks/useSocialStore";
 import theme from "@/theme/theme";
 
-const TOPICS = ["Advice", "Experiences", "Safety", "Relationships", "Venting", "Questions"];
+
 
 export default function CreatePostScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const t = (theme as any).onboarding;
-  const { addPost } = useSocialStore();
+  const { addPost, topics, fetchTopics } = useSocialStore();
+
+  React.useEffect(() => {
+    if (topics.length === 0) fetchTopics();
+  }, []);
 
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -21,14 +25,12 @@ export default function CreatePostScreen() {
 
   const isValid = title.trim().length > 0 && body.trim().length > 0 && selectedTopic;
 
-  const handlePost = () => {
-    addPost({
+  const handlePost = async () => {
+    await addPost({
       title: title.trim(),
       body: body.trim(),
-      topic: selectedTopic,
+      topicId: selectedTopic, // now holds the ID
       isAnonymous: isAnonymous,
-      authorName: "You",
-      authorAvatar: null,
     });
     router.back();
   };
@@ -56,11 +58,11 @@ export default function CreatePostScreen() {
         {/* Topic Selector */}
         <Text style={[styles.label, { color: t.textPrimary }]}>Select Topic</Text>
         <View style={styles.topicGrid}>
-          {TOPICS.map(topic => {
-            const isActive = topic === selectedTopic;
+          {topics.map(topic => {
+            const isActive = topic.id === selectedTopic;
             return (
               <TouchableOpacity
-                key={topic}
+                key={topic.id}
                 style={[
                   styles.topicChip,
                   {
@@ -68,7 +70,7 @@ export default function CreatePostScreen() {
                     borderColor: isActive ? t.primary : t.border,
                   }
                 ]}
-                onPress={() => setSelectedTopic(topic)}
+                onPress={() => setSelectedTopic(topic.id)}
               >
                 <Text
                   style={{
@@ -77,7 +79,7 @@ export default function CreatePostScreen() {
                     fontSize: 13,
                   }}
                 >
-                  {topic}
+                  {topic.name}
                 </Text>
               </TouchableOpacity>
             );

@@ -30,7 +30,7 @@ interface Props {
   profile: Profile;
   isTop: boolean;
   theme: any; // Using the 'onboarding' theme object
-  onSwipe: () => void;
+  onSwipe: (direction: 'LIKE' | 'PASS') => void;
 }
 
 export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
@@ -43,21 +43,21 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
 
-    const handleSwipeComplete = () => {
-      onSwipe();
+    const handleSwipeComplete = (direction: 'LIKE' | 'PASS') => {
+      onSwipe(direction);
     };
 
     useImperativeHandle(ref, () => ({
       swipeLeft: () => {
         triggerHaptic();
         translateX.value = withTiming(-SCREEN_WIDTH * 1.5, { duration: 800, easing: Easing.out(Easing.cubic) }, () => {
-          runOnJS(handleSwipeComplete)();
+          runOnJS(handleSwipeComplete)('PASS');
         });
       },
       swipeRight: () => {
         triggerHaptic();
         translateX.value = withTiming(SCREEN_WIDTH * 1.5, { duration: 800, easing: Easing.out(Easing.cubic) }, () => {
-          runOnJS(handleSwipeComplete)();
+          runOnJS(handleSwipeComplete)('LIKE');
         });
       },
     }));
@@ -78,13 +78,13 @@ export const SwipeableProfileCard = forwardRef<SwipeableProfileCardRef, Props>(
           // Swipe Right (Like)
           runOnJS(triggerHaptic)();
           translateX.value = withSpring(SCREEN_WIDTH * 1.5, { velocity: event.velocityX }, () => {
-            runOnJS(handleSwipeComplete)();
+            runOnJS(handleSwipeComplete)('LIKE');
           });
         } else if (event.translationX < -SWIPE_THRESHOLD) {
           // Swipe Left (Reject)
           runOnJS(triggerHaptic)();
           translateX.value = withSpring(-SCREEN_WIDTH * 1.5, { velocity: event.velocityX }, () => {
-            runOnJS(handleSwipeComplete)();
+            runOnJS(handleSwipeComplete)('PASS');
           });
         } else {
           // Snap back with minimal wobble

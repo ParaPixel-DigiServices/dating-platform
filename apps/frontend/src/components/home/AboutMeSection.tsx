@@ -26,6 +26,11 @@ export function AboutMeSection({ profile, primaryColor, textPrimary, background,
   return (
     <View style={[styles.container, { backgroundColor: secondary }]}>
       <Text style={[styles.title, { color: textPrimary }]}>About me</Text>
+      
+      {profile.about ? (
+        <Text style={[styles.bioText, { color: textPrimary }]}>{profile.about}</Text>
+      ) : null}
+      
       <View style={styles.pillsContainer}>
         {renderPill("ruler", profile.height, MaterialCommunityIcons)}
         {renderPill("school-outline", profile.education, Ionicons)}
@@ -50,7 +55,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontFamily: "Lato_700Bold",
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  bioText: {
+    fontSize: 16,
+    fontFamily: "Lato_400Regular",
+    lineHeight: 24,
+    marginBottom: 20,
+    opacity: 0.9,
   },
   pillsContainer: {
     flexDirection: "row",

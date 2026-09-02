@@ -97,6 +97,14 @@ export default function LoginFlow({ onSuccess }: { onSuccess: () => void }) {
       console.log(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
       await GoogleSignin.hasPlayServices();
       console.log("Google Play services available");
+      
+      try {
+        // Force account picker by signing out first
+        await GoogleSignin.signOut();
+      } catch (e) {
+        // Ignore if already signed out
+      }
+
       const userInfo = await GoogleSignin.signIn();
       console.log(userInfo);
 
@@ -124,14 +132,8 @@ export default function LoginFlow({ onSuccess }: { onSuccess: () => void }) {
         
         showSuccessToast("Welcome back!");
         
-        // Route based on onboardingStep
-        if (response.user.onboardingStep === 'CATEGORY_DONE') {
-          router.replace('/(tabs)/home');
-        } else if (response.user.onboardingStep === 'DETAILS_DONE') {
-          router.replace('/category');
-        } else {
-          router.replace('/details'); // PHONE_VERIFIED
-        }
+        // Route based on onboardingStep using the single source of truth in index.tsx
+        router.replace('/');
       } catch (backendError: any) {
         if (backendError.message.includes('PHONE_REQUIRED')) {
           // New user! Needs phone verification.

@@ -53,10 +53,22 @@ CREATE TYPE "LanguageProficiency" AS ENUM ('BASIC', 'CONVERSATIONAL', 'FLUENT', 
 CREATE TYPE "CategoryType" AS ENUM ('LOVE', 'MARRIAGE');
 
 -- CreateEnum
-CREATE TYPE "UserJourneyStatus" AS ENUM ('ACTIVE', 'COMPLETED', 'SWITCHED');
+CREATE TYPE "RelationshipIntent" AS ENUM ('LONG_TERM', 'OPEN_TO_MARRIAGE', 'UNDECIDED');
 
 -- CreateEnum
-CREATE TYPE "RelationshipIntent" AS ENUM ('LONG_TERM', 'OPEN_TO_MARRIAGE', 'UNDECIDED');
+CREATE TYPE "SparkSubmissionStatus" AS ENUM ('DRAFT', 'SUBMITTED', 'COMPLETED', 'FAILED');
+
+-- CreateEnum
+CREATE TYPE "InsightReportStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED', 'STALE');
+
+-- CreateEnum
+CREATE TYPE "SyncReportStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED', 'STALE');
+
+-- CreateEnum
+CREATE TYPE "AIJobType" AS ENUM ('SPARK_REPORT', 'INSIGHT_REPORT', 'SYNC_REPORT');
+
+-- CreateEnum
+CREATE TYPE "AIJobStatus" AS ENUM ('QUEUED', 'PROCESSING', 'COMPLETED', 'FAILED');
 
 -- CreateEnum
 CREATE TYPE "MarriageTimeline" AS ENUM ('IMMEDIATE', 'WITHIN_ONE_YEAR', 'FAMILY_SEARCHING', 'EXPLORING_SERIOUSLY', 'REMARRIAGE');
@@ -71,9 +83,6 @@ CREATE TYPE "MaritalStatus" AS ENUM ('NEVER_MARRIED', 'DIVORCED', 'WIDOWED');
 CREATE TYPE "RelocationPreference" AS ENUM ('DOMESTIC', 'ABROAD', 'BOTH', 'NOT_WILLING');
 
 -- CreateEnum
-CREATE TYPE "PreferenceLevel" AS ENUM ('LOW', 'MEDIUM', 'HIGH');
-
--- CreateEnum
 CREATE TYPE "PracticeFrequency" AS ENUM ('NEVER', 'OCCASIONALLY', 'MONTHLY', 'WEEKLY', 'DAILY');
 
 -- CreateEnum
@@ -83,25 +92,19 @@ CREATE TYPE "LifestyleType" AS ENUM ('MODERN', 'TRADITIONAL', 'BALANCED');
 CREATE TYPE "WeddingType" AS ENUM ('SIMPLE', 'TRADITIONAL', 'LUXURY', 'DESTINATION', 'TEMPLE', 'CHURCH', 'MOSQUE', 'GURDWARA', 'MINIMAL');
 
 -- CreateEnum
-CREATE TYPE "InteractionType" AS ENUM ('LIKE', 'PASS', 'SUPER_LIKE');
+CREATE TYPE "InteractionType" AS ENUM ('LIKE', 'PASS', 'SUPER_LIKE', 'SPARK');
 
 -- CreateEnum
-CREATE TYPE "MatchStatus" AS ENUM ('ACTIVE', 'UNMATCHED');
+CREATE TYPE "MessageType" AS ENUM ('TEXT', 'IMAGE', 'VOICE', 'VIDEO');
 
 -- CreateEnum
-CREATE TYPE "MessageType" AS ENUM ('TEXT', 'IMAGE', 'VOICE', 'VIDEO', 'SYSTEM');
+CREATE TYPE "ReportReason" AS ENUM ('FAKE_PROFILE', 'HARASSMENT', 'INAPPROPRIATE_CONTENT', 'SPAM', 'SCAM', 'UNDERAGE', 'OTHER');
 
 -- CreateEnum
-CREATE TYPE "MessageStatus" AS ENUM ('SENT', 'DELIVERED', 'READ', 'DELETED');
+CREATE TYPE "ReportStatus" AS ENUM ('PENDING', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSED');
 
 -- CreateEnum
-CREATE TYPE "ReportReason" AS ENUM ('FAKE_PROFILE', 'INAPPROPRIATE_CONTENT', 'HARASSMENT', 'SPAM', 'SCAM', 'UNDERAGE', 'IMPERSONATION', 'OTHER');
-
--- CreateEnum
-CREATE TYPE "ReportStatus" AS ENUM ('PENDING', 'UNDER_REVIEW', 'RESOLVED', 'REJECTED');
-
--- CreateEnum
-CREATE TYPE "ModerationActionType" AS ENUM ('WARNING', 'TEMP_SUSPENSION', 'PERMANENT_BAN', 'SHADOW_BAN');
+CREATE TYPE "ModerationActionType" AS ENUM ('WARNING', 'TEMP_SUSPENSION', 'PERMANENT_BAN', 'CONTENT_REMOVAL', 'PROFILE_RESET');
 
 -- CreateTable
 CREATE TABLE "User" (
@@ -123,6 +126,7 @@ CREATE TABLE "User" (
 CREATE TABLE "Device" (
     "id" UUID NOT NULL,
     "userId" UUID NOT NULL,
+    "clientDeviceId" TEXT NOT NULL,
     "deviceName" TEXT,
     "platform" "DevicePlatform" NOT NULL,
     "appVersion" TEXT,
@@ -202,6 +206,10 @@ CREATE TABLE "Profile" (
     "dateOfBirth" DATE NOT NULL,
     "gender" "Gender" NOT NULL,
     "bio" TEXT,
+    "heightCm" INTEGER,
+    "category" "CategoryType",
+    "latitude" DOUBLE PRECISION,
+    "longitude" DOUBLE PRECISION,
     "city" TEXT,
     "state" TEXT,
     "country" TEXT,
@@ -298,42 +306,15 @@ CREATE TABLE "UserInterest" (
 );
 
 -- CreateTable
-CREATE TABLE "Category" (
-    "id" UUID NOT NULL,
-    "type" "CategoryType" NOT NULL,
-    "description" TEXT,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Category_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "SubCategory" (
-    "id" UUID NOT NULL,
-    "categoryId" UUID NOT NULL,
-    "name" TEXT NOT NULL,
-    "description" TEXT,
-    "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "SubCategory_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "UserCategory" (
+CREATE TABLE "UserAnswer" (
     "id" UUID NOT NULL,
     "profileId" UUID NOT NULL,
-    "categoryId" UUID NOT NULL,
-    "subCategoryId" UUID NOT NULL,
-    "isCurrent" BOOLEAN NOT NULL DEFAULT true,
-    "startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "endedAt" TIMESTAMP(3),
+    "questionKey" TEXT NOT NULL,
+    "answer" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "UserCategory_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "UserAnswer_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -342,6 +323,10 @@ CREATE TABLE "LoveProfile" (
     "profileId" UUID NOT NULL,
     "voiceIntroUrl" TEXT,
     "videoIntroUrl" TEXT,
+    "relationshipIntent" "RelationshipIntent",
+    "wantsChildren" BOOLEAN,
+    "openToRelocation" BOOLEAN,
+    "comfortableLongDistance" BOOLEAN,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -349,43 +334,136 @@ CREATE TABLE "LoveProfile" (
 );
 
 -- CreateTable
-CREATE TABLE "LovePrompt" (
+CREATE TABLE "SparkProfile" (
     "id" UUID NOT NULL,
-    "text" TEXT NOT NULL,
-    "displayOrder" INTEGER,
+    "loveProfileId" UUID NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "maxQuestions" INTEGER NOT NULL DEFAULT 5,
+    "isPublic" BOOLEAN NOT NULL DEFAULT true,
+    "allowResubmission" BOOLEAN NOT NULL DEFAULT false,
+    "activeVersionId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "LovePrompt_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "SparkProfile_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "LovePromptAnswer" (
+CREATE TABLE "SparkProfileVersion" (
     "id" UUID NOT NULL,
-    "loveProfileId" UUID NOT NULL,
-    "promptId" UUID NOT NULL,
-    "answer" TEXT NOT NULL,
+    "sparkProfileId" UUID NOT NULL,
+    "versionNumber" INTEGER NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SparkProfileVersion_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SparkQuestion" (
+    "id" UUID NOT NULL,
+    "sparkProfileVersionId" UUID NOT NULL,
+    "text" TEXT NOT NULL,
     "displayOrder" INTEGER NOT NULL,
+    "isRequired" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "LovePromptAnswer_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "SparkQuestion_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "LoveCompatibility" (
+CREATE TABLE "SparkSubmission" (
     "id" UUID NOT NULL,
-    "loveProfileId" UUID NOT NULL,
-    "relationshipIntent" "RelationshipIntent" NOT NULL,
-    "religiousCompatibilityImportance" INTEGER NOT NULL,
-    "wantsChildren" BOOLEAN,
-    "openToRelocation" BOOLEAN,
-    "comfortableLongDistance" BOOLEAN,
-    "comfortablePoliticalDiscussions" BOOLEAN,
+    "sparkProfileVersionId" UUID NOT NULL,
+    "sparkProfileId" UUID NOT NULL,
+    "senderProfileId" UUID NOT NULL,
+    "status" "SparkSubmissionStatus" NOT NULL DEFAULT 'DRAFT',
+    "isViewedByOwner" BOOLEAN NOT NULL DEFAULT false,
+    "viewedAt" TIMESTAMP(3),
+    "submittedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "SparkSubmission_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SparkAnswer" (
+    "id" UUID NOT NULL,
+    "submissionId" UUID NOT NULL,
+    "questionId" UUID NOT NULL,
+    "answer" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SparkAnswer_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SparkAIReport" (
+    "id" UUID NOT NULL,
+    "submissionId" UUID NOT NULL,
+    "data" JSONB NOT NULL,
+    "aiJobId" UUID,
+    "generatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "SparkAIReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "InsightReport" (
+    "id" UUID NOT NULL,
+    "subjectProfileId" UUID NOT NULL,
+    "status" "InsightReportStatus" NOT NULL DEFAULT 'PENDING',
+    "data" JSONB,
+    "aiJobId" UUID,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "generatedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
+
+    CONSTRAINT "InsightReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "SyncReport" (
+    "id" UUID NOT NULL,
+    "profileAId" UUID NOT NULL,
+    "profileBId" UUID NOT NULL,
+    "status" "SyncReportStatus" NOT NULL DEFAULT 'PENDING',
+    "overallScore" INTEGER,
+    "data" JSONB,
+    "aiJobId" UUID,
+    "version" INTEGER NOT NULL DEFAULT 1,
+    "generatedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "LoveCompatibility_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "SyncReport_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AIJob" (
+    "id" UUID NOT NULL,
+    "type" "AIJobType" NOT NULL,
+    "status" "AIJobStatus" NOT NULL DEFAULT 'QUEUED',
+    "provider" TEXT,
+    "model" TEXT,
+    "promptTokens" INTEGER,
+    "completionTokens" INTEGER,
+    "tokensUsed" INTEGER,
+    "generationTimeMs" INTEGER,
+    "costUsd" DECIMAL(10,6),
+    "retryCount" INTEGER NOT NULL DEFAULT 0,
+    "maxRetries" INTEGER NOT NULL DEFAULT 3,
+    "lastError" TEXT,
+    "queuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "startedAt" TIMESTAMP(3),
+    "completedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AIJob_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -405,9 +483,9 @@ CREATE TABLE "MarriageProfile" (
     "relocationPreference" "RelocationPreference",
     "partnerExpectations" TEXT,
     "dealBreakers" TEXT,
-    "financialResponsibility" "PreferenceLevel",
-    "angerManagement" "PreferenceLevel",
-    "travelInterest" "PreferenceLevel",
+    "financialResponsibility" "ImportanceLevel",
+    "angerManagement" "ImportanceLevel",
+    "travelInterest" "ImportanceLevel",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -418,9 +496,9 @@ CREATE TABLE "MarriageProfile" (
 CREATE TABLE "HinduMarriageProfile" (
     "id" UUID NOT NULL,
     "marriageProfileId" UUID NOT NULL,
-    "religionImportance" "PreferenceLevel",
+    "religionImportance" "ImportanceLevel",
     "kundliRequired" BOOLEAN,
-    "doshaImportance" "PreferenceLevel",
+    "doshaImportance" "ImportanceLevel",
     "horoscopeMismatchAccepted" BOOLEAN,
     "hasSpiritualGuru" BOOLEAN,
     "poojaFrequency" "PracticeFrequency",
@@ -429,26 +507,26 @@ CREATE TABLE "HinduMarriageProfile" (
     "ritualPreferences" TEXT[],
     "touchesElderFeet" BOOLEAN,
     "nonVegAtHomeAccepted" BOOLEAN,
-    "alcoholAcceptance" "PreferenceLevel",
-    "smokingAcceptance" "PreferenceLevel",
+    "alcoholAcceptance" "ImportanceLevel",
+    "smokingAcceptance" "ImportanceLevel",
     "dressingStyle" "LifestyleType",
     "genderRolePreference" "LifestyleType",
     "tattooAccepted" BOOLEAN,
     "clubbingAccepted" BOOLEAN,
-    "oppositeGenderFriendAcceptance" "PreferenceLevel",
+    "oppositeGenderFriendAcceptance" "ImportanceLevel",
     "casteConscious" BOOLEAN,
     "intercasteMarriageAccepted" BOOLEAN,
     "sameFamilyStatusExpected" BOOLEAN,
-    "workingPartnerPreference" "PreferenceLevel",
+    "workingPartnerPreference" "ImportanceLevel",
     "acceptDivorcee" BOOLEAN,
     "weddingPreference" "WeddingType",
     "wearsThali" BOOLEAN,
-    "vastuImportance" "PreferenceLevel",
+    "vastuImportance" "ImportanceLevel",
     "separatePoojaRoom" BOOLEAN,
     "livingNearTemplePreference" BOOLEAN,
     "hinduSymbolsAtHome" BOOLEAN,
     "childrenLearnSanskrit" BOOLEAN,
-    "templeDonationImportance" "PreferenceLevel",
+    "templeDonationImportance" "ImportanceLevel",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -473,7 +551,7 @@ CREATE TABLE "MuslimCommunity" (
     "id" UUID NOT NULL,
     "sectId" UUID,
     "name" TEXT NOT NULL,
-    "region" TEXT,
+    "description" TEXT,
     "displayOrder" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -488,24 +566,25 @@ CREATE TABLE "MuslimMarriageProfile" (
     "marriageProfileId" UUID NOT NULL,
     "sectId" UUID,
     "communityId" UUID,
-    "practiceLevel" "PreferenceLevel",
     "prayerFrequency" "PracticeFrequency",
-    "tahajjudPractice" BOOLEAN,
-    "quranReadingFrequency" "PracticeFrequency",
-    "ramadanObservance" "PreferenceLevel",
-    "zakatImportance" "PreferenceLevel",
-    "hajjUmrahPlan" TEXT,
-    "followsScholar" BOOLEAN,
-    "hijabPreference" "PreferenceLevel",
-    "beardPreference" "PreferenceLevel",
-    "halalLifestyleRequired" BOOLEAN,
-    "interestFreeLifeImportance" "PreferenceLevel",
-    "westernFestivalAcceptance" BOOLEAN,
-    "nikahPreference" "WeddingType",
-    "mehrImportance" "PreferenceLevel",
-    "polygamyAcceptance" BOOLEAN,
-    "womanWorkingAfterMarriage" "PreferenceLevel",
+    "fastsDuringRamadan" BOOLEAN,
+    "performsHajj" BOOLEAN,
+    "halalLifestyle" "ImportanceLevel",
+    "quranReadFrequency" "PracticeFrequency",
+    "hijabPreference" "ImportanceLevel",
+    "beardPreference" "ImportanceLevel",
+    "modestDressingRequired" BOOLEAN,
+    "mixedGatheringComfort" "ImportanceLevel",
+    "polygamyAccepted" BOOLEAN,
+    "moreWivesDiscussion" BOOLEAN,
     "acceptDivorcee" BOOLEAN,
+    "acceptWidow" BOOLEAN,
+    "weddingPreference" "WeddingType",
+    "mehramTravelRequired" BOOLEAN,
+    "islamicMarriageOnly" BOOLEAN,
+    "islamicChildrearing" "ImportanceLevel",
+    "arabicForChildren" BOOLEAN,
+    "islamicSchoolPreference" BOOLEAN,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -530,42 +609,20 @@ CREATE TABLE "ChristianMarriageProfile" (
     "id" UUID NOT NULL,
     "marriageProfileId" UUID NOT NULL,
     "denominationId" UUID,
-    "churchAttendanceFrequency" "PracticeFrequency",
+    "churchAttendance" "PracticeFrequency",
     "bibleReadingFrequency" "PracticeFrequency",
-    "prayerRoutines" TEXT[],
-    "fastingRetreatImportance" "PreferenceLevel",
-    "pastorGuidanceImportance" "PreferenceLevel",
-    "churchServiceParticipation" BOOLEAN,
-    "choirParticipation" BOOLEAN,
-    "churchCharityImportance" "PreferenceLevel",
-    "modestDressingPreference" "PreferenceLevel",
-    "porkAcceptance" BOOLEAN,
-    "alcoholAcceptance" "PreferenceLevel",
-    "smokingAcceptance" "PreferenceLevel",
-    "clubbingAcceptance" BOOLEAN,
-    "livingNearChurchImportance" "PreferenceLevel",
-    "religiousSymbolsAtHome" BOOLEAN,
-    "entertainmentIndustryAcceptance" BOOLEAN,
-    "phonePasswordSharingPreference" "PreferenceLevel",
-    "pdaComfortLevel" "PreferenceLevel",
-    "tattooAcceptance" BOOLEAN,
-    "socialMediaModestyImportance" "PreferenceLevel",
-    "therapyAcceptance" BOOLEAN,
-    "churchMarriageRequired" BOOLEAN,
-    "premaritalCounsellingRequired" BOOLEAN,
-    "weddingPreference" "WeddingType",
-    "interDenominationAcceptance" BOOLEAN,
-    "husbandSpiritualHeadPreference" "PreferenceLevel",
-    "purityBeforeMarriageImportance" "PreferenceLevel",
-    "childrenBaptismPreference" BOOLEAN,
-    "christianSchoolPreference" BOOLEAN,
-    "familyValuesOrientation" "LifestyleType",
-    "parentingStyle" "PreferenceLevel",
-    "adoptionAcceptance" BOOLEAN,
+    "prayerFrequency" "PracticeFrequency",
+    "fasting" BOOLEAN,
+    "tithing" BOOLEAN,
+    "modestDressing" "ImportanceLevel",
+    "alcoholAcceptance" "ImportanceLevel",
+    "smokingAcceptance" "ImportanceLevel",
+    "sameChurchRequired" BOOLEAN,
     "acceptDivorcee" BOOLEAN,
-    "anniversaryImportance" "PreferenceLevel",
-    "financialTransparencyImportance" "PreferenceLevel",
-    "savingMoneyImportance" "PreferenceLevel",
+    "acceptWidow" BOOLEAN,
+    "weddingPreference" "WeddingType",
+    "interfaithAccepted" BOOLEAN,
+    "christianChildrearing" "ImportanceLevel",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -591,18 +648,18 @@ CREATE TABLE "SikhMarriageProfile" (
     "marriageProfileId" UUID NOT NULL,
     "religiousStatusId" UUID,
     "nitnemFrequency" "PracticeFrequency",
-    "gurdwaraVisitFrequency" "PracticeFrequency",
-    "turbanPreference" "PreferenceLevel",
-    "keshImportance" "PreferenceLevel",
-    "sevaParticipationImportance" "PreferenceLevel",
-    "dietPreference" "DietPreference",
-    "alcoholAcceptance" "PreferenceLevel",
-    "smokingAcceptance" "PreferenceLevel",
-    "lifestyleOrientation" "LifestyleType",
-    "casteConscious" BOOLEAN,
-    "anandKarajPreference" "WeddingType",
-    "interCasteAcceptance" BOOLEAN,
-    "workingPartnerPreference" "PreferenceLevel",
+    "gurduaraAttendance" "PracticeFrequency",
+    "ardaasFrequency" "PracticeFrequency",
+    "turbanRequired" BOOLEAN,
+    "unshornHairRequired" BOOLEAN,
+    "dastarRequired" BOOLEAN,
+    "vegetarianRequired" BOOLEAN,
+    "alcoholFree" BOOLEAN,
+    "tobaccoFree" BOOLEAN,
+    "anandKarajRequired" BOOLEAN,
+    "weddingPreference" "WeddingType",
+    "acceptDivorcee" BOOLEAN,
+    "sikhChildrearing" "ImportanceLevel",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -613,28 +670,23 @@ CREATE TABLE "SikhMarriageProfile" (
 CREATE TABLE "PartnerPreference" (
     "id" UUID NOT NULL,
     "profileId" UUID NOT NULL,
-    "ageFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
     "minAge" INTEGER,
     "maxAge" INTEGER,
-    "heightFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
     "minHeightCm" INTEGER,
     "maxHeightCm" INTEGER,
-    "distanceFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
     "maxDistanceKm" INTEGER,
-    "casteFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "languageFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "educationFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "minimumEducationLevel" "EducationLevel",
-    "incomeFilterEnabled" BOOLEAN NOT NULL DEFAULT false,
-    "minimumAnnualIncome" DECIMAL(15,2),
-    "valuesWeight" INTEGER NOT NULL DEFAULT 100,
-    "lifestyleWeight" INTEGER NOT NULL DEFAULT 90,
-    "communicationWeight" INTEGER NOT NULL DEFAULT 90,
-    "conflictResolutionWeight" INTEGER NOT NULL DEFAULT 90,
-    "familyWeight" INTEGER NOT NULL DEFAULT 95,
-    "interestsWeight" INTEGER NOT NULL DEFAULT 60,
-    "careerWeight" INTEGER NOT NULL DEFAULT 40,
-    "personalityWeight" INTEGER NOT NULL DEFAULT 85,
+    "minIncome" DECIMAL(15,2),
+    "maxIncome" DECIMAL(15,2),
+    "valuesWeight" INTEGER DEFAULT 50,
+    "lifestyleWeight" INTEGER DEFAULT 50,
+    "looksWeight" INTEGER DEFAULT 50,
+    "careerWeight" INTEGER DEFAULT 50,
+    "familyWeight" INTEGER DEFAULT 50,
+    "genderPreference" "Gender"[],
+    "educationLevels" "EducationLevel"[],
+    "dietPreferences" "DietPreference"[],
+    "smokingHabits" "SmokingHabit"[],
+    "drinkingHabits" "DrinkingHabit"[],
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -646,7 +698,6 @@ CREATE TABLE "PartnerPreferredCaste" (
     "id" UUID NOT NULL,
     "partnerPreferenceId" UUID NOT NULL,
     "casteId" UUID NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PartnerPreferredCaste_pkey" PRIMARY KEY ("id")
 );
@@ -656,7 +707,6 @@ CREATE TABLE "PartnerPreferredLanguage" (
     "id" UUID NOT NULL,
     "partnerPreferenceId" UUID NOT NULL,
     "languageId" UUID NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PartnerPreferredLanguage_pkey" PRIMARY KEY ("id")
 );
@@ -666,7 +716,6 @@ CREATE TABLE "PartnerPreferredInterest" (
     "id" UUID NOT NULL,
     "partnerPreferenceId" UUID NOT NULL,
     "interestId" UUID NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "PartnerPreferredInterest_pkey" PRIMARY KEY ("id")
 );
@@ -677,7 +726,9 @@ CREATE TABLE "ProfileInteraction" (
     "fromProfileId" UUID NOT NULL,
     "toProfileId" UUID NOT NULL,
     "interactionType" "InteractionType" NOT NULL,
+    "sparkSubmissionId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "ProfileInteraction_pkey" PRIMARY KEY ("id")
 );
@@ -687,10 +738,8 @@ CREATE TABLE "Match" (
     "id" UUID NOT NULL,
     "profileOneId" UUID NOT NULL,
     "profileTwoId" UUID NOT NULL,
-    "status" "MatchStatus" NOT NULL DEFAULT 'ACTIVE',
-    "matchedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "unmatchedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Match_pkey" PRIMARY KEY ("id")
 );
@@ -699,7 +748,6 @@ CREATE TABLE "Match" (
 CREATE TABLE "Chat" (
     "id" UUID NOT NULL,
     "matchId" UUID NOT NULL,
-    "lastMessageAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -713,14 +761,12 @@ CREATE TABLE "Message" (
     "senderProfileId" UUID NOT NULL,
     "type" "MessageType" NOT NULL DEFAULT 'TEXT',
     "content" TEXT,
-    "attachmentUrl" TEXT,
-    "status" "MessageStatus" NOT NULL DEFAULT 'SENT',
-    "sentAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "isEdited" BOOLEAN NOT NULL DEFAULT false,
-    "editedAt" TIMESTAMP(3),
-    "deletedAt" TIMESTAMP(3),
+    "mediaUrl" TEXT,
+    "isRead" BOOLEAN NOT NULL DEFAULT false,
+    "readAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
@@ -744,7 +790,6 @@ CREATE TABLE "Report" (
     "reason" "ReportReason" NOT NULL,
     "description" TEXT,
     "status" "ReportStatus" NOT NULL DEFAULT 'PENDING',
-    "assignedAdminId" UUID,
     "resolvedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -756,8 +801,8 @@ CREATE TABLE "Report" (
 CREATE TABLE "ReportEvidence" (
     "id" UUID NOT NULL,
     "reportId" UUID NOT NULL,
-    "storageKey" TEXT NOT NULL,
-    "fileUrl" TEXT NOT NULL,
+    "mediaUrl" TEXT NOT NULL,
+    "mediaType" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "ReportEvidence_pkey" PRIMARY KEY ("id")
@@ -798,6 +843,9 @@ CREATE UNIQUE INDEX "Device_pushToken_key" ON "Device"("pushToken");
 CREATE INDEX "Device_userId_idx" ON "Device"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Device_userId_clientDeviceId_key" ON "Device"("userId", "clientDeviceId");
+
+-- CreateIndex
 CREATE INDEX "Session_userId_idx" ON "Session"("userId");
 
 -- CreateIndex
@@ -813,6 +861,9 @@ CREATE INDEX "Session_revokedAt_idx" ON "Session"("revokedAt");
 CREATE INDEX "UserVerification_status_idx" ON "UserVerification"("status");
 
 -- CreateIndex
+CREATE INDEX "UserVerification_reviewedById_idx" ON "UserVerification"("reviewedById");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "UserVerification_userId_type_key" ON "UserVerification"("userId", "type");
 
 -- CreateIndex
@@ -826,6 +877,12 @@ CREATE UNIQUE INDEX "Caste_religionId_name_key" ON "Caste"("religionId", "name")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Profile_userId_key" ON "Profile"("userId");
+
+-- CreateIndex
+CREATE INDEX "Profile_category_idx" ON "Profile"("category");
+
+-- CreateIndex
+CREATE INDEX "Profile_latitude_longitude_idx" ON "Profile"("latitude", "longitude");
 
 -- CreateIndex
 CREATE INDEX "Profile_city_state_country_idx" ON "Profile"("city", "state", "country");
@@ -861,28 +918,85 @@ CREATE UNIQUE INDEX "Interest_name_key" ON "Interest"("name");
 CREATE UNIQUE INDEX "UserInterest_profileId_interestId_key" ON "UserInterest"("profileId", "interestId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Category_type_key" ON "Category"("type");
+CREATE INDEX "UserAnswer_profileId_idx" ON "UserAnswer"("profileId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "SubCategory_categoryId_name_key" ON "SubCategory"("categoryId", "name");
-
--- CreateIndex
-CREATE INDEX "UserCategory_profileId_idx" ON "UserCategory"("profileId");
-
--- CreateIndex
-CREATE INDEX "UserCategory_isCurrent_idx" ON "UserCategory"("isCurrent");
-
--- CreateIndex
-CREATE INDEX "UserCategory_profileId_isCurrent_idx" ON "UserCategory"("profileId", "isCurrent");
+CREATE UNIQUE INDEX "UserAnswer_profileId_questionKey_key" ON "UserAnswer"("profileId", "questionKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "LoveProfile_profileId_key" ON "LoveProfile"("profileId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "LovePromptAnswer_loveProfileId_promptId_key" ON "LovePromptAnswer"("loveProfileId", "promptId");
+CREATE UNIQUE INDEX "SparkProfile_loveProfileId_key" ON "SparkProfile"("loveProfileId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "LoveCompatibility_loveProfileId_key" ON "LoveCompatibility"("loveProfileId");
+CREATE UNIQUE INDEX "SparkProfile_activeVersionId_key" ON "SparkProfile"("activeVersionId");
+
+-- CreateIndex
+CREATE INDEX "SparkProfileVersion_sparkProfileId_idx" ON "SparkProfileVersion"("sparkProfileId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SparkProfileVersion_sparkProfileId_versionNumber_key" ON "SparkProfileVersion"("sparkProfileId", "versionNumber");
+
+-- CreateIndex
+CREATE INDEX "SparkQuestion_sparkProfileVersionId_idx" ON "SparkQuestion"("sparkProfileVersionId");
+
+-- CreateIndex
+CREATE INDEX "SparkSubmission_sparkProfileId_senderProfileId_idx" ON "SparkSubmission"("sparkProfileId", "senderProfileId");
+
+-- CreateIndex
+CREATE INDEX "SparkSubmission_sparkProfileVersionId_idx" ON "SparkSubmission"("sparkProfileVersionId");
+
+-- CreateIndex
+CREATE INDEX "SparkSubmission_sparkProfileId_idx" ON "SparkSubmission"("sparkProfileId");
+
+-- CreateIndex
+CREATE INDEX "SparkSubmission_senderProfileId_idx" ON "SparkSubmission"("senderProfileId");
+
+-- CreateIndex
+CREATE INDEX "SparkSubmission_status_idx" ON "SparkSubmission"("status");
+
+-- CreateIndex
+CREATE INDEX "SparkAnswer_submissionId_idx" ON "SparkAnswer"("submissionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SparkAnswer_submissionId_questionId_key" ON "SparkAnswer"("submissionId", "questionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SparkAIReport_submissionId_key" ON "SparkAIReport"("submissionId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SparkAIReport_aiJobId_key" ON "SparkAIReport"("aiJobId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InsightReport_subjectProfileId_key" ON "InsightReport"("subjectProfileId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InsightReport_aiJobId_key" ON "InsightReport"("aiJobId");
+
+-- CreateIndex
+CREATE INDEX "InsightReport_status_idx" ON "InsightReport"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SyncReport_aiJobId_key" ON "SyncReport"("aiJobId");
+
+-- CreateIndex
+CREATE INDEX "SyncReport_profileAId_idx" ON "SyncReport"("profileAId");
+
+-- CreateIndex
+CREATE INDEX "SyncReport_profileBId_idx" ON "SyncReport"("profileBId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SyncReport_profileAId_profileBId_key" ON "SyncReport"("profileAId", "profileBId");
+
+-- CreateIndex
+CREATE INDEX "AIJob_status_idx" ON "AIJob"("status");
+
+-- CreateIndex
+CREATE INDEX "AIJob_type_idx" ON "AIJob"("type");
+
+-- CreateIndex
+CREATE INDEX "AIJob_type_status_idx" ON "AIJob"("type", "status");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MarriageProfile_profileId_key" ON "MarriageProfile"("profileId");
@@ -915,25 +1029,16 @@ CREATE UNIQUE INDEX "SikhMarriageProfile_marriageProfileId_key" ON "SikhMarriage
 CREATE UNIQUE INDEX "PartnerPreference_profileId_key" ON "PartnerPreference"("profileId");
 
 -- CreateIndex
-CREATE INDEX "PartnerPreference_profileId_idx" ON "PartnerPreference"("profileId");
-
--- CreateIndex
-CREATE INDEX "PartnerPreferredCaste_casteId_idx" ON "PartnerPreferredCaste"("casteId");
-
--- CreateIndex
 CREATE UNIQUE INDEX "PartnerPreferredCaste_partnerPreferenceId_casteId_key" ON "PartnerPreferredCaste"("partnerPreferenceId", "casteId");
-
--- CreateIndex
-CREATE INDEX "PartnerPreferredLanguage_languageId_idx" ON "PartnerPreferredLanguage"("languageId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PartnerPreferredLanguage_partnerPreferenceId_languageId_key" ON "PartnerPreferredLanguage"("partnerPreferenceId", "languageId");
 
 -- CreateIndex
-CREATE INDEX "PartnerPreferredInterest_interestId_idx" ON "PartnerPreferredInterest"("interestId");
+CREATE UNIQUE INDEX "PartnerPreferredInterest_partnerPreferenceId_interestId_key" ON "PartnerPreferredInterest"("partnerPreferenceId", "interestId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "PartnerPreferredInterest_partnerPreferenceId_interestId_key" ON "PartnerPreferredInterest"("partnerPreferenceId", "interestId");
+CREATE UNIQUE INDEX "ProfileInteraction_sparkSubmissionId_key" ON "ProfileInteraction"("sparkSubmissionId");
 
 -- CreateIndex
 CREATE INDEX "ProfileInteraction_toProfileId_interactionType_idx" ON "ProfileInteraction"("toProfileId", "interactionType");
@@ -957,22 +1062,22 @@ CREATE INDEX "Match_profileOneId_idx" ON "Match"("profileOneId");
 CREATE INDEX "Match_profileTwoId_idx" ON "Match"("profileTwoId");
 
 -- CreateIndex
-CREATE INDEX "Match_status_idx" ON "Match"("status");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Match_profileOneId_profileTwoId_key" ON "Match"("profileOneId", "profileTwoId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Chat_matchId_key" ON "Chat"("matchId");
 
 -- CreateIndex
-CREATE INDEX "Chat_lastMessageAt_idx" ON "Chat"("lastMessageAt");
-
--- CreateIndex
-CREATE INDEX "Message_chatId_sentAt_idx" ON "Message"("chatId", "sentAt" DESC);
+CREATE INDEX "Message_chatId_idx" ON "Message"("chatId");
 
 -- CreateIndex
 CREATE INDEX "Message_senderProfileId_idx" ON "Message"("senderProfileId");
+
+-- CreateIndex
+CREATE INDEX "Message_chatId_createdAt_idx" ON "Message"("chatId", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Block_blockerProfileId_idx" ON "Block"("blockerProfileId");
 
 -- CreateIndex
 CREATE INDEX "Block_blockedProfileId_idx" ON "Block"("blockedProfileId");
@@ -982,9 +1087,6 @@ CREATE UNIQUE INDEX "Block_blockerProfileId_blockedProfileId_key" ON "Block"("bl
 
 -- CreateIndex
 CREATE INDEX "Report_reportedProfileId_idx" ON "Report"("reportedProfileId");
-
--- CreateIndex
-CREATE INDEX "Report_reporterProfileId_idx" ON "Report"("reporterProfileId");
 
 -- CreateIndex
 CREATE INDEX "Report_status_idx" ON "Report"("status");
@@ -998,9 +1100,6 @@ CREATE INDEX "ModerationAction_userId_idx" ON "ModerationAction"("userId");
 -- CreateIndex
 CREATE INDEX "ModerationAction_adminId_idx" ON "ModerationAction"("adminId");
 
--- CreateIndex
-CREATE INDEX "ModerationAction_actionType_idx" ON "ModerationAction"("actionType");
-
 -- AddForeignKey
 ALTER TABLE "Device" ADD CONSTRAINT "Device_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
@@ -1012,6 +1111,9 @@ ALTER TABLE "Session" ADD CONSTRAINT "Session_deviceId_fkey" FOREIGN KEY ("devic
 
 -- AddForeignKey
 ALTER TABLE "UserVerification" ADD CONSTRAINT "UserVerification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserVerification" ADD CONSTRAINT "UserVerification_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Caste" ADD CONSTRAINT "Caste_religionId_fkey" FOREIGN KEY ("religionId") REFERENCES "Religion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -1044,28 +1146,58 @@ ALTER TABLE "UserInterest" ADD CONSTRAINT "UserInterest_profileId_fkey" FOREIGN 
 ALTER TABLE "UserInterest" ADD CONSTRAINT "UserInterest_interestId_fkey" FOREIGN KEY ("interestId") REFERENCES "Interest"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SubCategory" ADD CONSTRAINT "SubCategory_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserCategory" ADD CONSTRAINT "UserCategory_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserCategory" ADD CONSTRAINT "UserCategory_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "UserCategory" ADD CONSTRAINT "UserCategory_subCategoryId_fkey" FOREIGN KEY ("subCategoryId") REFERENCES "SubCategory"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "UserAnswer" ADD CONSTRAINT "UserAnswer_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "LoveProfile" ADD CONSTRAINT "LoveProfile_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "LovePromptAnswer" ADD CONSTRAINT "LovePromptAnswer_loveProfileId_fkey" FOREIGN KEY ("loveProfileId") REFERENCES "LoveProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SparkProfile" ADD CONSTRAINT "SparkProfile_loveProfileId_fkey" FOREIGN KEY ("loveProfileId") REFERENCES "LoveProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "LovePromptAnswer" ADD CONSTRAINT "LovePromptAnswer_promptId_fkey" FOREIGN KEY ("promptId") REFERENCES "LovePrompt"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "SparkProfile" ADD CONSTRAINT "SparkProfile_activeVersionId_fkey" FOREIGN KEY ("activeVersionId") REFERENCES "SparkProfileVersion"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "LoveCompatibility" ADD CONSTRAINT "LoveCompatibility_loveProfileId_fkey" FOREIGN KEY ("loveProfileId") REFERENCES "LoveProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "SparkProfileVersion" ADD CONSTRAINT "SparkProfileVersion_sparkProfileId_fkey" FOREIGN KEY ("sparkProfileId") REFERENCES "SparkProfile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkQuestion" ADD CONSTRAINT "SparkQuestion_sparkProfileVersionId_fkey" FOREIGN KEY ("sparkProfileVersionId") REFERENCES "SparkProfileVersion"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkSubmission" ADD CONSTRAINT "SparkSubmission_sparkProfileVersionId_fkey" FOREIGN KEY ("sparkProfileVersionId") REFERENCES "SparkProfileVersion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkSubmission" ADD CONSTRAINT "SparkSubmission_sparkProfileId_fkey" FOREIGN KEY ("sparkProfileId") REFERENCES "SparkProfile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkSubmission" ADD CONSTRAINT "SparkSubmission_senderProfileId_fkey" FOREIGN KEY ("senderProfileId") REFERENCES "Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkAnswer" ADD CONSTRAINT "SparkAnswer_submissionId_fkey" FOREIGN KEY ("submissionId") REFERENCES "SparkSubmission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkAnswer" ADD CONSTRAINT "SparkAnswer_questionId_fkey" FOREIGN KEY ("questionId") REFERENCES "SparkQuestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkAIReport" ADD CONSTRAINT "SparkAIReport_submissionId_fkey" FOREIGN KEY ("submissionId") REFERENCES "SparkSubmission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SparkAIReport" ADD CONSTRAINT "SparkAIReport_aiJobId_fkey" FOREIGN KEY ("aiJobId") REFERENCES "AIJob"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "InsightReport" ADD CONSTRAINT "InsightReport_subjectProfileId_fkey" FOREIGN KEY ("subjectProfileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "InsightReport" ADD CONSTRAINT "InsightReport_aiJobId_fkey" FOREIGN KEY ("aiJobId") REFERENCES "AIJob"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SyncReport" ADD CONSTRAINT "SyncReport_profileAId_fkey" FOREIGN KEY ("profileAId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SyncReport" ADD CONSTRAINT "SyncReport_profileBId_fkey" FOREIGN KEY ("profileBId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SyncReport" ADD CONSTRAINT "SyncReport_aiJobId_fkey" FOREIGN KEY ("aiJobId") REFERENCES "AIJob"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MarriageProfile" ADD CONSTRAINT "MarriageProfile_profileId_fkey" FOREIGN KEY ("profileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1125,6 +1257,9 @@ ALTER TABLE "ProfileInteraction" ADD CONSTRAINT "ProfileInteraction_fromProfileI
 ALTER TABLE "ProfileInteraction" ADD CONSTRAINT "ProfileInteraction_toProfileId_fkey" FOREIGN KEY ("toProfileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "ProfileInteraction" ADD CONSTRAINT "ProfileInteraction_sparkSubmissionId_fkey" FOREIGN KEY ("sparkSubmissionId") REFERENCES "SparkSubmission"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Match" ADD CONSTRAINT "Match_profileOneId_fkey" FOREIGN KEY ("profileOneId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -1146,16 +1281,16 @@ ALTER TABLE "Block" ADD CONSTRAINT "Block_blockerProfileId_fkey" FOREIGN KEY ("b
 ALTER TABLE "Block" ADD CONSTRAINT "Block_blockedProfileId_fkey" FOREIGN KEY ("blockedProfileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Report" ADD CONSTRAINT "Report_reporterProfileId_fkey" FOREIGN KEY ("reporterProfileId") REFERENCES "Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Report" ADD CONSTRAINT "Report_reporterProfileId_fkey" FOREIGN KEY ("reporterProfileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Report" ADD CONSTRAINT "Report_reportedProfileId_fkey" FOREIGN KEY ("reportedProfileId") REFERENCES "Profile"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Report" ADD CONSTRAINT "Report_reportedProfileId_fkey" FOREIGN KEY ("reportedProfileId") REFERENCES "Profile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReportEvidence" ADD CONSTRAINT "ReportEvidence_reportId_fkey" FOREIGN KEY ("reportId") REFERENCES "Report"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ModerationAction" ADD CONSTRAINT "ModerationAction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ModerationAction" ADD CONSTRAINT "ModerationAction_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ModerationAction" ADD CONSTRAINT "ModerationAction_adminId_fkey" FOREIGN KEY ("adminId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

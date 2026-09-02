@@ -38,9 +38,8 @@ const LOVE_PREFERENCES: PrefSection[] = [
   {
     title: "Basic Preferences",
     items: [
-      { type: "row", label: "Gender Preference", options: ["Men", "Women", "Everyone"] },
-      { type: "slider", label: "Age Range", min: 18, max: 60, value: 24, unit: "yrs" },
-      { type: "slider", label: "Distance", min: 5, max: 100, value: 20, unit: "km" },
+      { type: "slider", label: "Max Age", min: 19, max: 50, value: 24, unit: "yrs" },
+      { type: "slider", label: "Max Distance", min: 5, max: 100, value: 20, unit: "km" },
     ],
   },
   {
@@ -109,9 +108,8 @@ const MARRIAGE_PREFERENCES: PrefSection[] = [
   {
     title: "Basic Preferences",
     items: [
-      { type: "row", label: "Gender Preference", options: ["Men", "Women", "Everyone"] },
-      { type: "slider", label: "Age Range", min: 18, max: 60, value: 24, unit: "yrs" },
-      { type: "slider", label: "Distance", min: 5, max: 100, value: 20, unit: "km" },
+      { type: "slider", label: "Max Age", min: 19, max: 50, value: 24, unit: "yrs" },
+      { type: "slider", label: "Max Distance", min: 5, max: 100, value: 20, unit: "km" },
     ],
   },
   {
@@ -196,15 +194,32 @@ const MARRIAGE_PREFERENCES: PrefSection[] = [
   },
 ];
 
+import { getUserProfile, updatePreferences } from "@/services/backendService";
+
 export default function PreferencesScreen() {
   const router = useRouter();
   const category = useOnboardingStore((s) => s.category);
-  const { preferences, setPreference } = useUserProfileStore();
+  const [preferences, setPreferences] = React.useState<Record<string, any>>({});
   const insets = useSafeAreaInsets();
   const preferencesList = category === "Marriage" ? MARRIAGE_PREFERENCES : LOVE_PREFERENCES;
 
   const [selectedItem, setSelectedItem] = React.useState<PrefItem | null>(null);
   const [inputValue, setInputValue] = React.useState("");
+
+  React.useEffect(() => {
+    getUserProfile().then((data) => {
+      if (data?.data?.profile?.partnerPreference) {
+        const p = data.data.profile.partnerPreference;
+        setPreferences({
+          "Max Age": p.maxAge || 24,
+          "Max Distance": p.maxDistanceKm || 20,
+          "Smoking Preference": p.smokingHabits?.[0] || "",
+          "Drinking Preference": p.drinkingHabits?.[0] || "",
+          "Diet Preference": p.dietPreferences?.[0] || "",
+        });
+      }
+    }).catch(console.error);
+  }, []);
 
   const handleRowPress = (item: PrefItem) => {
     setSelectedItem(item);
@@ -215,11 +230,43 @@ export default function PreferencesScreen() {
     }
   };
 
-  const saveOption = (val: string) => {
+  const handleSliderChange = async (label: string, value: number) => {
+    const newPrefs = { ...preferences, [label]: value };
+    setPreferences(newPrefs);
+    await saveToBackend(newPrefs);
+  };
+
+  const saveOption = async (val: string) => {
     if (selectedItem?.type === "row") {
-      setPreference(selectedItem.label, val);
+      const newPrefs = { ...preferences, [selectedItem.label]: val };
+      setPreferences(newPrefs);
+      await saveToBackend(newPrefs);
     }
     setSelectedItem(null);
+  };
+
+  const saveToBackend = async (prefs: Record<string, any>) => {
+    try {
+      const payload: any = {};
+      if (prefs["Max Age"]) payload.maxAge = prefs["Max Age"];
+      if (prefs["Max Distance"]) payload.maxDistanceKm = prefs["Max Distance"];
+      
+      const mapEnum = (val: string) => {
+        if (!val) return undefined;
+        if (val === "Vegan") return "VEGAN";
+        if (val === "Vegetarian") return "VEGETARIAN";
+        if (val === "Omnivore") return "NON_VEGETARIAN";
+        return val.toUpperCase();
+      };
+      
+      if (prefs["Smoking Preference"]) payload.smokingHabits = [mapEnum(prefs["Smoking Preference"])];
+      if (prefs["Drinking Preference"]) payload.drinkingHabits = [mapEnum(prefs["Drinking Preference"])];
+      if (prefs["Diet Preference"]) payload.dietPreferences = [mapEnum(prefs["Diet Preference"])];
+
+      await updatePreferences(payload);
+    } catch (error) {
+      console.error("Failed to save preferences", error);
+    }
   };
 
   return (
@@ -252,14 +299,16 @@ export default function PreferencesScreen() {
                     <View style={styles.sliderHeader}>
                       <Text style={styles.rowText}>{item.label}</Text>
                       <Text style={[styles.rowText, { color: t.primary, fontFamily: "PlayfairDisplay_700Bold" }]}>
-                        {item.value} {item.unit}
+                        {preferences[item.label] || item.value} {item.unit}
                       </Text>
                     </View>
                     <Slider
                       style={{ width: "100%", height: 40 }}
                       minimumValue={item.min}
                       maximumValue={item.max}
-                      value={item.value}
+                      value={preferences[item.label] || item.value}
+                      step={1}
+                      onSlidingComplete={(val) => handleSliderChange(item.label, val)}
                       minimumTrackTintColor={t.primary}
                       maximumTrackTintColor={t.border}
                       thumbTintColor={t.primary}

@@ -1,74 +1,126 @@
 import { create } from "zustand";
-import { Post } from "@/components/social/SocialPostCard";
+import { getSocialTopics, getSocialPosts, getSocialPost, createSocialPost, createSocialComment, voteSocial } from "@/services/backendService";
 
-interface SocialStore {
-  posts: Post[];
-  addPost: (post: Omit<Post, "id" | "upvotes" | "commentCount" | "timeAgo" | "date" | "userVote">) => void;
-  upvotePost: (id: string) => void;
-  downvotePost: (id: string) => void;
+export interface Post {
+  id: string;
+  authorName: string;
+  authorAvatar: string | null;
+  authorId: string | null;
+  isAnonymous: boolean;
+  title: string;
+  body: string;
+  upvotes: number;     // Now mapped to voteCount
+  commentCount: number;
+  timeAgo: string;
+  date: string;
+  topic: any;          // Full topic object from backend
+  userVote: "up" | "down" | null;
 }
 
-const INITIAL_POSTS: Post[] = [
-  {
-    id: "p1",
-    authorName: "Ananya",
-    authorAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
-    isAnonymous: false,
-    title: "How do you politely decline a second date?",
-    body: "I went on a date yesterday and he was nice, but there was absolutely zero spark. He just texted me asking to meet up again this weekend. What's the best way to let him down easy without ghosting?",
-    upvotes: 245,
-    commentCount: 84,
-    timeAgo: "2h ago",
-    date: "2026-06-24",
-    topic: "Advice",
-    userVote: null,
-  },
-  {
-    id: "p2",
-    authorName: "Anonymous",
-    authorAvatar: null,
-    isAnonymous: true,
-    title: "Red flags or am I overthinking?",
-    body: "We've been talking for two weeks and he's super sweet, but he refuses to share any details about his work or where he lives. He says he's just 'private'. Is this normal or a huge red flag?",
-    upvotes: 892,
-    commentCount: 213,
-    timeAgo: "5h ago",
-    date: "2026-06-24",
-    topic: "Safety",
-    userVote: "up",
-  },
-  {
-    id: "p3",
-    authorName: "Meera",
-    authorAvatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80",
-    isAnonymous: false,
-    title: "Safety tips for first dates?",
-    body: "Meeting someone from an app for the first time tomorrow. We're getting coffee in the afternoon. Any specific safety rituals you ladies swear by?",
-    upvotes: 534,
-    commentCount: 112,
-    timeAgo: "1d ago",
-    date: "2026-06-23",
-    topic: "Safety",
-    userVote: null,
-  },
-];
+export interface Comment {
+  id: string;
+  authorName: string;
+  authorAvatar: string | null;
+  isAnonymous: boolean;
+  body: string;
+  voteCount: number;
+  timeAgo: string;
+  date: string;
+  userVote: "up" | "down" | null;
+}
 
-export const useSocialStore = create<SocialStore>((set) => ({
-  posts: INITIAL_POSTS,
-  addPost: (postData) =>
-    set((state) => {
-      const newPost: Post = {
-        ...postData,
-        id: Date.now().toString(),
-        upvotes: 0,
-        commentCount: 0,
-        timeAgo: "Just now",
-        date: new Date().toISOString().split("T")[0],
-        userVote: null,
+interface SocialStore {
+  topics: any[];
+  posts: Post[];
+  activePost: Post | null;
+  loading: boolean;
+  
+  fetchTopics: () => Promise<void>;
+  fetchPosts: (topicId?: string, search?: string) => Promise<void>;
+  fetchPostDetails: (id: string) => Promise<void>;
+  
+  addPost: (post: { topicId: string; title: string; body: string; isAnonymous: boolean }) => Promise<void>;
+  addComment: (data: { postId: string; parentId?: string; body: string; isAnonymous: boolean }) => Promise<void>;
+  
+  upvotePost: (id: string) => Promise<void>;
+  downvotePost: (id: string) => Promise<void>;
+  
+  // Quick local optimistic updates for comment votes inside activePost
+  upvoteComment: (id: string) => Promise<void>;
+  downvoteComment: (id: string) => Promise<void>;
+}
+
+export const useSocialStore = create<SocialStore>((set, get) => ({
+  topics: [],
+  posts: [],
+  activePost: null,
+  loading: false,
+
+  fetchTopics: async () => {
+    try {
+      const topics = await getSocialTopics();
+      set({ topics });
+    } catch (e) {
+      console.error("Failed to fetch topics", e);
+    }
+  },
+
+  fetchPosts: async (topicId, search) => {
+    set({ loading: true });
+    try {
+      const rawPosts = await getSocialPosts(topicId, search);
+      // Map to match frontend Post interface
+      const mappedPosts = rawPosts.map((p: any) => ({
+        ...p,
+        upvotes: p.voteCount,
+      }));
+      set({ posts: mappedPosts, loading: false });
+    } catch (e) {
+      console.error("Failed to fetch posts", e);
+      set({ loading: false });
+    }
+  },
+
+  fetchPostDetails: async (id) => {
+    set({ loading: true });
+    try {
+      const rawPost = await getSocialPost(id);
+      const mappedPost = {
+        ...rawPost,
+        upvotes: rawPost.voteCount,
+        comments: rawPost.comments?.map((c: any) => ({
+          ...c,
+        })) || []
       };
-      return { posts: [newPost, ...state.posts] };
-    }),
-  upvotePost: (id) =>
+      set({ activePost: mappedPost, loading: false });
+    } catch (e) {
+      console.error("Failed to fetch post details", e);
+      set({ loading: false });
+    }
+  },
+
+  addPost: async (postData) => {
+    try {
+      await createSocialPost(postData);
+      // Simply refetch posts to get the newly created post with correct DB values
+      await get().fetchPosts();
+    } catch (e) {
+      console.error("Failed to create post", e);
+    }
+  },
+
+  addComment: async (data) => {
+    try {
+      await createSocialComment(data);
+      // Refetch post details
+      await get().fetchPostDetails(data.postId);
+    } catch (e) {
+      console.error("Failed to create comment", e);
+    }
+  },
+
+  upvotePost: async (id) => {
+    // Optimistic UI update
     set((state) => ({
       posts: state.posts.map((p) => {
         if (p.id === id) {
@@ -78,8 +130,23 @@ export const useSocialStore = create<SocialStore>((set) => ({
         }
         return p;
       }),
-    })),
-  downvotePost: (id) =>
+      activePost: state.activePost?.id === id ? (() => {
+        const p = state.activePost;
+        if (p.userVote === "up") return { ...p, userVote: null, upvotes: p.upvotes - 1 };
+        const offset = p.userVote === "down" ? 2 : 1;
+        return { ...p, userVote: "up", upvotes: p.upvotes + offset };
+      })() : state.activePost
+    }));
+
+    try {
+      await voteSocial({ targetType: 'POST', targetId: id, value: 1 });
+    } catch (e) {
+      // Revert omitted for brevity
+      console.error("Vote failed", e);
+    }
+  },
+
+  downvotePost: async (id) => {
     set((state) => ({
       posts: state.posts.map((p) => {
         if (p.id === id) {
@@ -89,5 +156,54 @@ export const useSocialStore = create<SocialStore>((set) => ({
         }
         return p;
       }),
-    })),
+      activePost: state.activePost?.id === id ? (() => {
+        const p = state.activePost;
+        if (p.userVote === "down") return { ...p, userVote: null, upvotes: p.upvotes + 1 };
+        const offset = p.userVote === "up" ? 2 : 1;
+        return { ...p, userVote: "down", upvotes: p.upvotes - offset };
+      })() : state.activePost
+    }));
+
+    try {
+      await voteSocial({ targetType: 'POST', targetId: id, value: -1 });
+    } catch (e) {
+      console.error("Vote failed", e);
+    }
+  },
+
+  upvoteComment: async (id) => {
+    set((state) => {
+      if (!state.activePost) return state;
+      const newComments = (state.activePost as any).comments.map((c: any) => {
+        if (c.id === id) {
+          if (c.userVote === "up") return { ...c, userVote: null, voteCount: c.voteCount - 1 };
+          const offset = c.userVote === "down" ? 2 : 1;
+          return { ...c, userVote: "up", voteCount: c.voteCount + offset };
+        }
+        return c;
+      });
+      return { activePost: { ...state.activePost, comments: newComments } };
+    });
+    try {
+      await voteSocial({ targetType: 'COMMENT', targetId: id, value: 1 });
+    } catch (e) {}
+  },
+
+  downvoteComment: async (id) => {
+    set((state) => {
+      if (!state.activePost) return state;
+      const newComments = (state.activePost as any).comments.map((c: any) => {
+        if (c.id === id) {
+          if (c.userVote === "down") return { ...c, userVote: null, voteCount: c.voteCount + 1 };
+          const offset = c.userVote === "up" ? 2 : 1;
+          return { ...c, userVote: "down", voteCount: c.voteCount - offset };
+        }
+        return c;
+      });
+      return { activePost: { ...state.activePost, comments: newComments } };
+    });
+    try {
+      await voteSocial({ targetType: 'COMMENT', targetId: id, value: -1 });
+    } catch (e) {}
+  }
 }));

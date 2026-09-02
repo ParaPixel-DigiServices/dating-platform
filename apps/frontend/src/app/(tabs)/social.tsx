@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, StyleSheet, FlatList, StatusBar, Platform, TouchableOpacity, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -18,13 +18,19 @@ export default function SocialScreen() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Best"); // For the scroll chips
-  const { posts, upvotePost, downvotePost } = useSocialStore();
+  const { posts, topics, fetchPosts, fetchTopics, upvotePost, downvotePost } = useSocialStore();
+
+  useEffect(() => {
+    fetchTopics();
+    fetchPosts();
+  }, []);
 
   // Advanced Filters
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState<any>({});
 
-  const filters = ["Best", "New", "Advice", "Experiences", "Safety"];
+  // Dynamic filters from backend topics
+  const filters = ["Best", "New", ...topics.map((t: any) => t.name)];
 
   // Filter posts based on Search, Chip Filters, and Advanced Filters
   const filteredPosts = posts.filter(p => {
@@ -34,12 +40,12 @@ export default function SocialScreen() {
     }
 
     // 2. Chip Filters (Simple)
-    if (["Advice", "Experiences", "Safety"].includes(activeFilter) && p.topic !== activeFilter) {
+    if (activeFilter !== "Best" && activeFilter !== "New" && p.topic?.name !== activeFilter) {
       return false;
     }
 
     // 3. Advanced Filters (Topic)
-    if (advancedFilters.topic && p.topic !== advancedFilters.topic) {
+    if (advancedFilters.topic && p.topic?.name !== advancedFilters.topic) {
       return false;
     }
 

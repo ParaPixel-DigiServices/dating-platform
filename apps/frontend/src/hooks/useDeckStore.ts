@@ -16,7 +16,11 @@ interface DeckStore {
   filters: FilterState;
   unreadCount: number;
 
+  isLoading: boolean;
+  
   // Actions
+  fetchDeck: () => Promise<void>;
+  swipeApi: (targetProfileId: string, type: 'LIKE' | 'PASS' | 'SUPER_LIKE') => Promise<{ matched: boolean; matchId?: string }>;
   setMasterProfiles: (profiles: Profile[]) => void;
   setActiveTab: (tab: string) => void;
   setFilters: (filters: FilterState) => void;
@@ -25,14 +29,42 @@ interface DeckStore {
   applyFilters: () => void;
 }
 
-import { MOCK_PROFILES } from '@/utils/mockData';
+import apiClient from '../services/backendService';
 
 export const useDeckStore = create<DeckStore>((set, get) => ({
-  masterProfiles: MOCK_PROFILES,
-  profiles: MOCK_PROFILES,
+  masterProfiles: [],
+  profiles: [],
   activeTab: "For You",
   filters: {},
-  unreadCount: 3,
+  unreadCount: 0,
+  isLoading: false,
+
+  fetchDeck: async () => {
+    set({ isLoading: true });
+    try {
+      const res = await apiClient.get('/deck');
+      const payload = res.data?.data || res.data;
+      if (payload && Array.isArray(payload)) {
+        set({ masterProfiles: payload });
+        get().applyFilters();
+      }
+    } catch (error) {
+      console.error('Failed to fetch deck:', error);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  swipeApi: async (targetProfileId, type) => {
+    try {
+      const res = await apiClient.post('/interaction/swipe', { targetProfileId, type });
+      const payload = res.data?.data || res.data;
+      return payload;
+    } catch (error) {
+      console.error('Failed to register swipe API:', error);
+      return { matched: false };
+    }
+  },
 
   setMasterProfiles: (profiles) => {
     set({ masterProfiles: profiles });
@@ -65,13 +97,7 @@ export const useDeckStore = create<DeckStore>((set, get) => ({
     
     let filtered = [...masterProfiles];
 
-    // 1. Tab Filtering
-    if (activeTab === "Liked You") {
-      filtered = filtered.filter(p => p.liked === true);
-    } else if (activeTab === "Recently Active") {
-      filtered = filtered.filter(p => p.recentlyActive === true);
-    }
-    // "For You" includes everyone
+    // 1. Tab Filtering removed as per user request (keep all tabs same)
 
     // 2. Modal Filtering
     if (filters.gender && filters.gender !== "Everyone") {

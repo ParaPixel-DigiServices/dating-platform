@@ -13,34 +13,52 @@ import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 export default function IndexScreen() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const user = useAuthStore((s) => s.user);
-  const firstName   = useOnboardingStore((s) => s.firstName);
-  const category    = useOnboardingStore((s) => s.category);
+  const firstName = useOnboardingStore((s) => s.firstName);
+  const category = useOnboardingStore((s) => s.category);
 
-  // Step 1: Onboarding fully completed locally (firstName + category persisted).
-  // Check this FIRST so the app works even when there is no live backend session.
-  
-  if (firstName && category) {
+  const marriageProgress = useOnboardingStore((s) => s.marriageProgress);
+
+  // 1. If backend says we are fully onboarded, go to home
+  if (user?.onboardingStep === 'COMPLETED') {
     return <Redirect href="/(tabs)/home" />;
   }
 
-  // Step 2: Not authenticated and onboarding not complete — go to landing
-  if (!accessToken && !user) {
-    console.log("Redirecting to landing because user is not authenticated");
-    return <Redirect href="/(onboarding)/landing" />;
-    // return <Redirect href="/(tabs)/home" />;
+  // 2. If category is selected but flow is not completed
+  if (user?.onboardingStep === 'CATEGORY_DONE') {
+    const isMarriage = category === 'MARRIAGE' || user?.category === 'MARRIAGE';
+    const isLove = category === 'LOVE' || user?.category === 'LOVE';
 
-  }
-
-  // Step 3: Authenticated but hasn't entered basic details yet
-  if (!firstName) {
-    return <Redirect href="/(onboarding)/details" />;
-  }
-
-  // Step 4: Has auth + details but hasn't chosen a category yet
-  if (!category) {
+    if (isLove) return <Redirect href="/(tabs)/home" />;
+    
+    if (isMarriage) {
+      if (marriageProgress === 'INTERESTS') {
+        return <Redirect href="/(onboarding)/marriage-interests" />;
+      }
+      return <Redirect href="/(onboarding)/marriage-details" />;
+    }
+    
+    // Fallback if category somehow isn't known
     return <Redirect href="/(onboarding)/category" />;
   }
 
-  // Step 5: Fully set up — go straight to the main app
-  return <Redirect href="/(tabs)/home" />;
+  // 3. If backend says details are done but category isn't
+  if (user?.onboardingStep === 'DETAILS_DONE') {
+    return <Redirect href="/(onboarding)/category" />;
+  }
+
+
+
+  // 4. Not authenticated at all
+  if (!accessToken && !user) {
+    console.log("Redirecting to landing because user is not authenticated");
+    return <Redirect href="/(onboarding)/landing" />;
+  }
+
+  // 5. Authenticated (PHONE_VERIFIED) but details not done
+  if (user?.onboardingStep === 'PHONE_VERIFIED' || !firstName) {
+    return <Redirect href="/(onboarding)/details" />;
+  }
+
+  // 6. Fallback
+  return <Redirect href="/(onboarding)/category" />;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   View,
   Text,
@@ -17,7 +17,9 @@ import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDeckStore } from "@/hooks/useDeckStore";
-import { useProfileCompletionStore, DEFAULT_SPARK_QUESTIONS } from "@/hooks/useProfileCompletionStore";
+import { DEFAULT_SPARK_QUESTIONS } from "@/hooks/useProfileCompletionStore";
+import { getPublicProfile } from "@/services/backendService";
+import { ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 
 const COLORS = {
@@ -35,14 +37,33 @@ export default function SparkScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const masterProfiles = useDeckStore((s) => s.masterProfiles);
-  const { sparkQuestions } = useProfileCompletionStore();
+  const deckProfile = useMemo(() => masterProfiles.find((p) => p.id === userId), [userId, masterProfiles]);
+  const [fetchedProfile, setFetchedProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(!deckProfile);
 
-  const profile = useMemo(() => masterProfiles.find((p) => p.id === userId), [userId, masterProfiles]);
+  useEffect(() => {
+    if (!deckProfile && userId) {
+      setLoading(true);
+      getPublicProfile(userId as string)
+        .then((data) => {
+          setFetchedProfile(data.data || data);
+        })
+        .catch((err) => console.error("Failed to fetch profile", err))
+        .finally(() => setLoading(false));
+    }
+  }, [userId, deckProfile]);
+
+  const profile = deckProfile || fetchedProfile;
+
+  const targetQuestions = profile?.sparkQuestions || {};
+  const fallbackQ1 = profile?.name ? `What is one thing you'd love to tell ${profile.name}?` : DEFAULT_SPARK_QUESTIONS.q1;
+  const fallbackQ2 = profile?.name ? `If you could take ${profile.name} anywhere, where would it be?` : DEFAULT_SPARK_QUESTIONS.q2;
+  const fallbackQ3 = profile?.name ? `What do you think ${profile.name} is deeply passionate about?` : DEFAULT_SPARK_QUESTIONS.q3;
 
   const questions = [
-    sparkQuestions.q1 || DEFAULT_SPARK_QUESTIONS.q1,
-    sparkQuestions.q2 || DEFAULT_SPARK_QUESTIONS.q2,
-    sparkQuestions.q3 || DEFAULT_SPARK_QUESTIONS.q3,
+    targetQuestions.q1 || fallbackQ1,
+    targetQuestions.q2 || fallbackQ2,
+    targetQuestions.q3 || fallbackQ3,
   ];
 
   const [answers, setAnswers] = useState(["", "", ""]);
@@ -65,6 +86,14 @@ export default function SparkScreen() {
   };
 
   const handleBack = () => router.back();
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center", backgroundColor: COLORS.bgBase }]}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   if (!profile) {
     return (

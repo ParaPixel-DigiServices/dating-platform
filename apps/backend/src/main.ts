@@ -37,6 +37,7 @@ async function bootstrap() {
     new ResponseInterceptor(),
   );
 
+  app.setGlobalPrefix('api');
 
   const config = app.get(AppConfigService);
 

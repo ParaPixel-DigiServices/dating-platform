@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, StatusBar, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -73,9 +73,18 @@ export default function CoinShopScreen() {
   
   const balance = useWalletStore((state) => state.balance);
   const addCoins = useWalletStore((state) => state.addCoins);
+  const fetchWallet = useWalletStore((state) => state.fetchWallet);
+
+  React.useEffect(() => {
+    fetchWallet();
+  }, []);
 
   const handlePurchase = (coins: number) => {
-    addCoins(coins);
+    Alert.alert("Coming Soon", "Currently not available");
+  };
+
+  const handleWatchAd = () => {
+    Alert.alert("Coming Soon", "Currently not available");
   };
 
   return (
@@ -133,7 +142,7 @@ export default function CoinShopScreen() {
           <TouchableOpacity 
             style={[styles.adButton, { backgroundColor: t.primaryLight }]} 
             activeOpacity={0.8}
-            onPress={() => handlePurchase(20)}
+            onPress={handleWatchAd}
           >
             <Text style={styles.adButtonText}>Watch Ad <Ionicons name="play" size={12} /></Text>
           </TouchableOpacity>

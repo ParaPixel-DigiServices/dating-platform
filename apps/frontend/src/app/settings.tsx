@@ -16,6 +16,9 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { useAuthStore } from "@/hooks/useAuthStore";
 import theme from "@/theme/theme";
+import { logout as apiLogout } from "@/services/backendService";
+import { firebaseSignOut } from "@/services/firebaseAuthService";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 
 // ── Types ────────────────────────────────────────────────────
 type RowItem =
@@ -52,10 +55,71 @@ export default function SettingsScreen() {
         {
           text: "Log out",
           style: "destructive",
-          onPress: () => {
-            logout();   // clears auth store (AsyncStorage)
-            reset();    // clears onboarding store (AsyncStorage)
-            router.replace("/(onboarding)/landing" as any);
+          onPress: async () => {
+            try {
+              // 1. Invalidate backend session token
+              await apiLogout().catch(console.warn);
+
+              // 2. Sign out of Firebase
+              await firebaseSignOut().catch(console.warn);
+
+              // 3. Clear Google Sign-In session (if any)
+              try {
+                const isSignedIn = await GoogleSignin.hasPlayServices();
+                if (isSignedIn) {
+                  await GoogleSignin.signOut();
+                }
+              } catch (e) {
+                console.warn("Google Signout Error", e);
+              }
+
+            } finally {
+              // 4. Clear local Zustand stores and redirect
+              logout();   // clears auth store (AsyncStorage)
+              reset();    // clears onboarding store (AsyncStorage)
+              router.replace("/(onboarding)/landing" as any);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to permanently delete your account? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // 1. Delete account on backend
+              const { deleteAccount } = require("@/services/backendService");
+              await deleteAccount();
+
+              // 2. Sign out of Firebase
+              await firebaseSignOut().catch(console.warn);
+
+              // 3. Clear Google Sign-In session
+              try {
+                const isSignedIn = await GoogleSignin.hasPlayServices();
+                if (isSignedIn) {
+                  await GoogleSignin.signOut();
+                }
+              } catch (e) {
+                console.warn("Google Signout Error", e);
+              }
+            } catch (error: any) {
+              Alert.alert("Error", error.message || "Failed to delete account");
+            } finally {
+              // 4. Clear local stores and redirect
+              logout();
+              reset();
+              router.replace("/(onboarding)/landing" as any);
+            }
           },
         },
       ]
@@ -205,18 +269,28 @@ export default function SettingsScreen() {
           </View>
         ))}
 
-        {/* ── LOGOUT BUTTON ─────────────────────────────────── */}
+        {/* ── ACTION BUTTONS ─────────────────────────────────── */}
         <View style={styles.logoutSection}>
           <TouchableOpacity
             style={[styles.logoutBtn, { borderColor: "#E53E3E" }]}
+            onPress={handleDeleteAccount}
+            activeOpacity={0.8}
+          >
+            <Feather name="trash-2" size={18} color="#E53E3E" style={{ marginRight: 10 }} />
+            <Text style={styles.logoutText}>Delete Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.logoutBtn, { borderColor: t.secondary }]}
             onPress={handleLogout}
             activeOpacity={0.8}
           >
-            <Feather name="log-out" size={18} color="#E53E3E" style={{ marginRight: 10 }} />
-            <Text style={styles.logoutText}>Log Out</Text>
+            <Feather name="log-out" size={18} color={t.textPrimary} style={{ marginRight: 10 }} />
+            <Text style={[styles.logoutText, { color: t.textPrimary }]}>Log Out</Text>
           </TouchableOpacity>
+
           <Text style={[styles.logoutHint, { color: t.textSecondary }]}>
-            This will remove all your data from this device.
+            Logging out will remove your data from this device.
           </Text>
         </View>
       </ScrollView>

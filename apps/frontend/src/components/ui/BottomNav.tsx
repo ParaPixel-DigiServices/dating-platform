@@ -14,7 +14,7 @@ import theme from "@/theme/theme";
 // ── Tab definitions ──────────────────────────────────────────
 const TABS = [
   { name: "Home",    route: "/(tabs)/home",    iconActive: "home",           iconInactive: "home"           },
-  { name: "Explore", route: "/(tabs)/explore",  iconActive: "compass",        iconInactive: "compass"        },
+  { name: "Activity", route: "/(tabs)/activity",  iconActive: "bell",        iconInactive: "bell"        },
   { name: "Social",  route: "/(tabs)/social",   iconActive: "users",          iconInactive: "users"          },
   { name: "Chat",    route: "/(tabs)/chat",     iconActive: "message-circle", iconInactive: "message-circle" },
   { name: "Profile", route: "/(tabs)/profile",  iconActive: "user",           iconInactive: "user"           },

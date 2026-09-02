@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1051030268726",
+    "project_id": "amora-5308b",
+    "storage_bucket": "amora-5308b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1051030268726:android:5928a94c8fe88f05f32197",
+        "android_client_info": {
+          "package_name": "com.parapixel.amora"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1051030268726-rs499f3q1ehcprqu5b1vf3sdq7kdo5t3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.parapixel.amora",
+            "certificate_hash": "0d5e398ab6088ce757f32b5a08e314e458080f3a"
+          }
+        },
+        {
+          "client_id": "1051030268726-9pi97gjvih8e7g7iq01nrnofi5otnhtl.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDwdKwjz4MMDPzbYovlnR7Jw7fqgdO-cDc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1051030268726-9pi97gjvih8e7g7iq01nrnofi5otnhtl.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

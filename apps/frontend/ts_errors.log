@@ -1,0 +1,75 @@
+src/app/(onboarding)/category.tsx(189,23): error TS2345: Argument of type '"LOVE"' is not assignable to parameter of type 'CategoryKey | null'.
+src/app/(onboarding)/category.tsx(214,21): error TS2345: Argument of type '"MARRIAGE"' is not assignable to parameter of type 'CategoryKey | null'.
+src/app/(onboarding)/category_old.tsx(20,10): error TS2614: Module '"@/components/onboarding/CategoryCard"' has no exported member 'CategoryCard'. Did you mean to use 'import CategoryCard from "@/components/onboarding/CategoryCard"' instead?
+src/app/(onboarding)/category_old.tsx(80,64): error TS2339: Property 'setOnboardingCompleted' does not exist on type 'AuthStore'.
+src/app/(onboarding)/category_old.tsx(88,24): error TS7053: Element implicitly has an 'any' type because expression of type 'CategoryKey' can't be used to index type '{ onboarding: { themeName: string; primary: string; primaryLight: string; secondary: string; secondaryLight: string; background: string; warmIvory: string; textPrimary: string; textSecondary: string; border: string; divider: string; buttonText: string; }; coins: { ...; }; }'.
+  Property 'Casual' does not exist on type '{ onboarding: { themeName: string; primary: string; primaryLight: string; secondary: string; secondaryLight: string; background: string; warmIvory: string; textPrimary: string; textSecondary: string; border: string; divider: string; buttonText: string; }; coins: { ...; }; }'.
+src/app/(onboarding)/category_old.tsx(123,9): error TS2322: Type '{ step: number; primaryColor: any; textColor: any; secondaryText: any; onBack: () => void; rightSlot: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'primaryColor' does not exist on type 'IntrinsicAttributes & Props'.
+src/app/(onboarding)/profile-completion.tsx(180,38): error TS7006: Parameter 'option' implicitly has an 'any' type.
+src/app/(onboarding)/profile-completion.tsx(180,46): error TS7006: Parameter 'idx' implicitly has an 'any' type.
+src/app/(tabs)/_layout.tsx(63,33): error TS2339: Property 'callType' does not exist on type '{ overlayContainer: { flex: number; backgroundColor: string; justifyContent: "flex-start"; paddingTop: number; alignItems: "center"; }; callCard: { width: "90%"; backgroundColor: string; borderRadius: number; ... 8 more ...; borderColor: string; }; avatarPlaceholder: { ...; }; callerName: { ...; }; actions: { ...; }...'.
+src/app/(tabs)/activity.tsx(24,18): error TS2367: This comparison appears to be unintentional because the types 'CategoryKey' and '"LOVE"' have no overlap.
+src/app/(tabs)/profile.tsx(50,16): error TS2322: Type '"icon"' is not assignable to type '"map" | "filter" | "search" | "repeat" | "anchor" | "bold" | "link" | "user" | "key" | "delete" | "inbox" | "type" | "image" | "menu" | "radio" | "arrow-down" | "arrow-up" | "bar-chart" | ... 269 more ... | undefined'.
+src/app/chat/[id].tsx(21,24): error TS2307: Cannot find module 'date-fns' or its corresponding type declarations.
+src/app/chat/[id].tsx(76,18): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ImageProps): Image', gave the following error.
+    Type '{ uri: string | null; }' is not assignable to type 'ImageSourcePropType | undefined'.
+      Types of property 'uri' are incompatible.
+        Type 'string | null' is not assignable to type 'string | undefined'.
+          Type 'null' is not assignable to type 'string | undefined'.
+  Overload 2 of 2, '(props: ImageProps, context: any): Image', gave the following error.
+    Type '{ uri: string | null; }' is not assignable to type 'ImageSourcePropType | undefined'.
+      Types of property 'uri' are incompatible.
+        Type 'string | null' is not assignable to type 'string | undefined'.
+          Type 'null' is not assignable to type 'string | undefined'.
+src/app/notifications.tsx(58,20): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/profile/edit-profile.tsx(333,44): error TS2345: Argument of type '"/(onboarding)/quiz/insight"' is not assignable to parameter of type '"/chat" | RelativePathString | ExternalPathString | "/coins" | `/coins?${string}` | `/coins#${string}` | "/" | `/?${string}` | `/#${string}` | "/notifications" | ... 126 more ... | { ...; }'.
+src/app/profile/edit-profile.tsx(379,44): error TS2345: Argument of type '"/(onboarding)/quiz/sync"' is not assignable to parameter of type '"/chat" | RelativePathString | ExternalPathString | "/coins" | `/coins?${string}` | `/coins#${string}` | "/" | `/?${string}` | `/#${string}` | "/notifications" | ... 126 more ... | { ...; }'.
+src/app/user/[id].tsx(75,22): error TS2345: Argument of type '"/(tabs)/explore"' is not assignable to parameter of type '"/chat" | RelativePathString | ExternalPathString | "/coins" | `/coins?${string}` | `/coins#${string}` | "/" | `/?${string}` | `/#${string}` | "/notifications" | ... 126 more ... | { ...; }'.
+src/components/home/AboutMeSection.tsx(35,30): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/AboutMeSection.tsx(36,39): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/AboutMeSection.tsx(37,42): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/AboutMeSection.tsx(38,37): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/AboutMeSection.tsx(39,36): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/AboutMeSection.tsx(40,38): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/AboutMeSection.tsx(41,37): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/home/SwipeDeck.tsx(173,14): error TS2741: Property 'background' is missing in type '{ profile: Profile; primaryColor: string; textPrimary: string; textSecondary: string; secondary: string; }' but required in type 'Props'.
+src/components/home/SwipeDeck.tsx(199,12): error TS2741: Property 'background' is missing in type '{ profile: Profile; primaryColor: string; textPrimary: string; textSecondary: string; secondary: string; likeOpacity: AnimatedInterpolation<string | number>; nopeOpacity: AnimatedInterpolation<...>; superOpacity: AnimatedInterpolation<...>; }' but required in type 'Props'.
+src/components/onboarding/CategoryCard.tsx(40,40): error TS7031: Binding element 'item' implicitly has an 'any' type.
+src/components/onboarding/CategoryCard.tsx(40,46): error TS7031: Binding element 'isSelected' implicitly has an 'any' type.
+src/components/onboarding/CategoryCard.tsx(40,58): error TS7031: Binding element 'onPress' implicitly has an 'any' type.
+src/components/onboarding/CategoryCard.tsx(40,67): error TS7031: Binding element 'index' implicitly has an 'any' type.
+src/components/onboarding/CategoryCard.tsx(40,74): error TS7031: Binding element 'cardHeight' implicitly has an 'any' type.
+src/components/onboarding/OtpFlow.tsx(95,5): error TS2339: Property 'setOnboardingStatus' does not exist on type 'AuthStore'.
+src/components/onboarding/OtpFlow.tsx(174,19): error TS2345: Argument of type '{ id: string; email: null; phoneNumber: string; displayName: null; photoURL: null; }' is not assignable to parameter of type 'User'.
+  Property 'onboardingStep' is missing in type '{ id: string; email: null; phoneNumber: string; displayName: null; photoURL: null; }' but required in type 'User'.
+src/lib/firebase.ts(2,26): error TS2305: Module '"firebase/auth"' has no exported member 'getReactNativePersistence'.
+src/services/webrtcService.ts(207,43): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/services/webrtcService.ts(213,52): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/services/webrtcService.ts(222,36): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/services/webrtcService.ts(227,31): error TS2345: Argument of type 'MediaStream | null' is not assignable to parameter of type 'MediaStream'.
+  Type 'null' is not assignable to type 'MediaStream'.
+src/utils/mockData.ts(5,603): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(6,573): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(7,557): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(8,386): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(9,376): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(10,378): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(11,362): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(12,394): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(13,422): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(14,382): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(15,423): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(16,405): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(17,401): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/mockData.ts(18,429): error TS2353: Object literal may only specify known properties, and 'preferences' does not exist in type 'Profile'.
+src/utils/validateOnboarding.ts(15,17): error TS2339: Property 'onboardingCompleted' does not exist on type 'AuthStore'.

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { socketService } from '../services/socketService';
 
 export type OnboardingStep = 'PHONE_VERIFIED' | 'DETAILS_DONE' | 'CATEGORY_DONE';
 
@@ -11,6 +12,7 @@ export interface User {
   displayName: string | null;
   photoURL: string | null;
   onboardingStep: OnboardingStep;
+  category?: string | null;
 }
 
 interface AuthStore {
@@ -58,21 +60,30 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
       setAccessToken: (token) => set({ accessToken: token }),
-      setRefreshToken: (token) =>set({ refreshToken: token }),
-      setGoogleFirebaseToken: (token) => set({googleFirebaseToken: token}),
+      setRefreshToken: (token) => set({ refreshToken: token }),
+      setGoogleFirebaseToken: (token) => set({ googleFirebaseToken: token }),
       setLoading: (loading) => set({ isLoading: loading }),
-      setOnboardingStep: (step) => set({ onboardingStep: step }),
+      setOnboardingStep: (step) => {
+        const currentUser = get().user;
+        set({
+          onboardingStep: step,
+          user: currentUser ? { ...currentUser, onboardingStep: step! } : null
+        });
+      },
       setError: (error) => set({ error }),
       setBootstrapping: (value) => set({ isBootstrapping: value }),
-      logout: () => set({
-        user: null,
-        accessToken: null,
-        refreshToken: null,
-        googleFirebaseToken: null,
-        isAuthenticated: false,
-        onboardingStep: null,  // Reset so stale status never drives routing after logout
-        error: null,
-      }),
+      logout: () => {
+        socketService.disconnect();
+        set({
+          user: null,
+          accessToken: null,
+          refreshToken: null,
+          googleFirebaseToken: null,
+          isAuthenticated: false,
+          onboardingStep: null,  // Reset so stale status never drives routing after logout
+          error: null,
+        });
+      },
     }),
     {
       name: 'auth-storage-v3',

@@ -25,7 +25,7 @@ import Animated, {
   SlideOutRight,
 } from "react-native-reanimated";
 import "@react-native-firebase/app";
-import rnAuth from "@react-native-firebase/auth";
+import { getAuth, signInWithPhoneNumber } from "@react-native-firebase/auth";
 import { useRouter } from "expo-router";
 
 // Functional Imports
@@ -39,7 +39,7 @@ import { firebaseLogin } from "@/services/backendService";
 import theme from "@/theme/theme";
 
 // --- DEV MODE FLAG ---
-const DEV_MODE = true;
+const DEV_MODE = false;
 const DEV_OTP = "898989";
 
 // --- Schemas ---
@@ -142,7 +142,8 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
       }
 
       console.log("Sending OTP to:", fullPhoneNumber);
-      const result = await rnAuth().signInWithPhoneNumber(fullPhoneNumber);
+      const auth = getAuth();
+      const result = await signInWithPhoneNumber(auth, fullPhoneNumber);
 
       setConfirmationResult(result);
       phoneAuthStore.setCodeSent(true);
@@ -196,6 +197,7 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
       const userCredential = await confirmationResult.confirm(data.otp);
 
       console.log("OTP verified with Firebase. User credential obtained.");
+      console.log("userCredential", userCredential);
 
       if(!userCredential.user){
         throw new Error(
@@ -216,6 +218,8 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
       console.log("Exchanging Firebase tokens with backend...");
       const response = await firebaseLogin(googleFirebaseToken, phoneIdToken);
 
+      console.log("response", response)
+
       setAccessToken(response.accessToken);
       setRefreshToken(response.refreshToken);
       setUser(response.user);
@@ -224,19 +228,17 @@ export const OtpFlow = forwardRef<OtpFlowRef, Props>(({ onSuccess, onBack }, ref
       showSuccessToast("Phone verified successfully!");
       onSuccess();
       
-      // Route based on onboardingStep
-      if (response.user.onboardingStep === 'CATEGORY_DONE') {
-        router.replace('/(tabs)/home');
-      } else if (response.user.onboardingStep === 'DETAILS_DONE') {
-        router.replace('/category');
-      } else {
-        router.replace('/details'); // PHONE_VERIFIED
-      }
+      // Route based on onboardingStep using single source of truth
+      router.replace('/');
     } catch (error) {
-      const message =
+      let message =
         error instanceof Error
           ? error.message
           : "Failed to verify OTP";
+          
+      if (message === "PHONE_ALREADY_IN_USE") {
+        message = "This phone number is already registered to another account.";
+      }
 
       showErrorToast(message);
       phoneAuthStore.setError(message);

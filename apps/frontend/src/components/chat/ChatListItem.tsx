@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { getFallbackImage } from "@/utils/fallbackImage";
 
 export type ConnectionStatus = "new_match" | "liked_you" | "messaged_you" | "chat" | "request" | "social";
 
@@ -8,7 +9,8 @@ export interface ChatListItemProps {
   id: string;
   name: string;
   age: number;
-  avatar: string;
+  avatar: string | null;
+  gender?: string;
   statusType: ConnectionStatus;
   statusText?: string; // e.g. "New match", "Liked you", "Messaged you"
   unreadCount?: number;
@@ -22,6 +24,7 @@ export function ChatListItem({
   name,
   age,
   avatar,
+  gender,
   statusType,
   statusText,
   unreadCount,
@@ -76,7 +79,17 @@ export function ChatListItem({
       onPress={onPress}
     >
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: avatar }} style={styles.avatar} />
+        {avatar ? (
+          <Image source={{ uri: avatar }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, { backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center' }]}>
+            <Image
+              source={getFallbackImage(gender)}
+              style={{ width: '60%', height: '60%', opacity: 0.8 }}
+              resizeMode="contain"
+            />
+          </View>
+        )}
       </View>
       
       <View style={styles.contentContainer}>

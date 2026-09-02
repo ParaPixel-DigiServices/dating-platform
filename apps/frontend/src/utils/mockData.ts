@@ -1,5 +1,5 @@
 import { Profile } from "@/components/home/MatchCard";
-const DUMMY = require("../../assets/images/demo_post.png");
+const DUMMY = require("../../assets/images/fallback_img.png");
 
 export const MOCK_PROFILES: Profile[] = [
   { id: "1", name: "Priya", age: 21, gender: "Female", distance: "18 km away", distanceNum: 18, liked: true, recentlyActive: false, religion: "Hindu", location: "Kolkata", match: 75, interests: ["Hiking","Gaming","Coffee","Meditation","Photography"], main_photo: DUMMY, photos: [DUMMY, DUMMY, DUMMY], verified: true, occupation: "Designer", tagline: "Just looking for someone to share hiking and gaming with", about: "Hi, I'm Priya — passionate about design and always exploring new things. Let's talk about coffee and see where it goes!", height: "5'4\"", zodiac: "Scorpio", education: "B.Tech, NIT", preferences: ["Non-smoker", "Dog lover", "Vegetarian"] },

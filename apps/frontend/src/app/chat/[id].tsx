@@ -17,21 +17,8 @@ import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import theme from "@/theme/theme";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 
-// Mock user profiles to fetch details based on ID
-const MOCK_PROFILES: Record<string, { name: string; avatar: string }> = {
-  "1": { name: "Ananya", avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80" },
-  "2": { name: "Karan", avatar: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80" },
-  "3": { name: "Meera", avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80" },
-  "4": { name: "Arjun", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80" },
-  "5": { name: "Sneha", avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80" },
-};
-
-// Mock conversation history
-const INITIAL_MESSAGES = [
-  { id: "msg_1", text: "Hey! How are you doing?", isSender: false, timestamp: "10:30 AM" },
-  { id: "msg_2", text: "I'm good, thanks! How about you?", isSender: true, timestamp: "10:32 AM" },
-  { id: "msg_3", text: "Doing great. Loved your profile pics!", isSender: false, timestamp: "10:35 AM" },
-];
+import { useChatStore } from "@/hooks/useChatStore";
+import { format } from "date-fns"; // We'll just use raw JS date for now if date-fns isn't installed. Actually JS Dates are fine.
 
 export default function ChatDetailScreen() {
   const router = useRouter();
@@ -39,23 +26,40 @@ export default function ChatDetailScreen() {
   const insets = useSafeAreaInsets();
   const activeTheme = (theme as any).onboarding;
 
-  const profile = MOCK_PROFILES[id as string] || { name: "Match", avatar: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80" };
+  const { inbox, activeChatMessages, fetchMessages, sendMessage, joinChatRoom, leaveChatRoom, setActiveMatchId } = useChatStore();
+  
+  // Find profile info from inbox
+  const chatInfo = inbox.find(c => c.matchId === id);
+  const profile = chatInfo ? chatInfo.otherProfile : { name: "Match", avatar: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80", id: "" };
 
-  const [messages, setMessages] = useState(INITIAL_MESSAGES);
   const [inputText, setInputText] = useState("");
+
+  React.useEffect(() => {
+    if (id) {
+      const matchId = id as string;
+      setActiveMatchId(matchId);
+      joinChatRoom(matchId);
+      fetchMessages(matchId);
+      if (useChatStore.getState().inbox.length === 0) {
+        useChatStore.getState().fetchInbox();
+      }
+
+      return () => {
+        leaveChatRoom(matchId);
+        setActiveMatchId(null);
+      };
+    }
+  }, [id]);
 
   const handleSend = () => {
     if (inputText.trim() === "") return;
-    
-    const newMessage = {
-      id: `msg_${Date.now()}`,
-      text: inputText.trim(),
-      isSender: true,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages([...messages, newMessage]);
+    sendMessage(id as string, inputText.trim());
     setInputText("");
+  };
+
+  const formatTime = (isoString: string) => {
+    const d = new Date(isoString);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -94,13 +98,14 @@ export default function ChatDetailScreen() {
 
         {/* MESSAGES LIST */}
         <FlatList
-          data={messages}
-          keyExtractor={(item) => item.id}
+          data={activeChatMessages}
+          keyExtractor={(item) => item.clientMessageId || item.id}
+          inverted
           renderItem={({ item }) => (
             <MessageBubble
-              text={item.text}
-              isSender={item.isSender}
-              timestamp={item.timestamp}
+              text={item.content}
+              isSender={item.senderProfileId?.toLowerCase() !== profile.id?.toLowerCase()}
+              timestamp={formatTime(item.createdAt)}
               theme={activeTheme}
             />
           )}

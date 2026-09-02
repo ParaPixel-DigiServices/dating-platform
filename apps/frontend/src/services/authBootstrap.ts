@@ -25,6 +25,7 @@ export const restoreSession = async () => {
         displayName: user.displayName ?? null,
         photoURL: user.photoURL ?? null,
         onboardingStep: user.onboardingStep ?? null,
+        category: user.category ?? null,
       });
       return user;
     }

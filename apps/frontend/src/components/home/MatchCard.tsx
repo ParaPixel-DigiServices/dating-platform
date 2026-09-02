@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
+import { getFallbackImage } from "@/utils/fallbackImage";
 
 const { width, height } = Dimensions.get("window");
 
@@ -70,6 +71,10 @@ export interface Profile {
     question: string;
     answer: string;
   };
+  category?: string;
+  annualIncome?: string;
+  relocationPreference?: string;
+  familyType?: string;
 }
 
 interface Props {
@@ -101,11 +106,21 @@ export function MatchCard({
   return (
     <View style={[styles.card, { borderColor: `${primaryColor}40` }]}>
       <View style={styles.imageSection}>
-        <Image
-          source={typeof profile.main_photo === "string" ? { uri: profile.main_photo } : profile.main_photo}
-          style={styles.photo}
-          resizeMode="cover"
-        />
+        {profile.main_photo ? (
+          <Image
+            source={typeof profile.main_photo === "string" ? { uri: profile.main_photo } : profile.main_photo}
+            style={styles.photo}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.photo, { backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center' }]}>
+            <Image
+              source={getFallbackImage(profile.gender)}
+              style={{ width: '50%', height: '50%', opacity: 0.8 }}
+              resizeMode="contain"
+            />
+          </View>
+        )}
 
         {/* Match badge ── top left */}
         <View style={[styles.matchBadge, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
@@ -181,12 +196,29 @@ export function MatchCard({
             <Text style={styles.detailsText}>{profile.location || profile.distance}</Text>
           </View>
 
-          {/* Occupation */}
-          {(profile.occupation || profile.education) && (
+          {/* Education / Occupation */}
+          {profile.category === 'MARRIAGE' ? (
             <View style={styles.occupationRow}>
-              <Feather name="briefcase" size={12} color="rgba(255,255,255,0.85)" style={{ marginRight: 6 }} />
-              <Text style={styles.occupationText}>{profile.occupation || profile.education}</Text>
+              {profile.education && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginRight: 12 }}>
+                  <Ionicons name="school-outline" size={12} color="rgba(255,255,255,0.85)" style={{ marginRight: 6 }} />
+                  <Text style={styles.occupationText}>{profile.education}</Text>
+                </View>
+              )}
+              {profile.annualIncome && (
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Feather name="briefcase" size={12} color="rgba(255,255,255,0.85)" style={{ marginRight: 6 }} />
+                  <Text style={styles.occupationText}>{profile.annualIncome.replace(/_/g, ' ')}</Text>
+                </View>
+              )}
             </View>
+          ) : (
+            (profile.occupation || profile.education) && (
+              <View style={styles.occupationRow}>
+                <Feather name="briefcase" size={12} color="rgba(255,255,255,0.85)" style={{ marginRight: 6 }} />
+                <Text style={styles.occupationText}>{profile.occupation || profile.education}</Text>
+              </View>
+            )
           )}
 
           {/* Tagline / Bio */}
@@ -196,20 +228,43 @@ export function MatchCard({
             </Text>
           )}
 
-          {/* Interest Pills */}
-          <View style={styles.previewTags}>
-            {previewTags.map((tag) => (
-              <View key={tag} style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
-                {getInterestIcon(tag, primaryColor)}
-                <Text style={styles.previewTagText}>{tag}</Text>
-              </View>
-            ))}
-            {remainTags.length > 0 && (
-              <View style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
-                <Text style={styles.previewTagText}>+{remainTags.length}</Text>
-              </View>
-            )}
-          </View>
+          {/* Bottom Pills */}
+          {profile.category === 'MARRIAGE' ? (
+             <View style={styles.previewTags}>
+               {profile.relocationPreference && (
+                 <View style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
+                   <Feather name="map" size={12} color={primaryColor} />
+                   <Text style={styles.previewTagText}>{profile.relocationPreference.replace(/_/g, ' ')}</Text>
+                 </View>
+               )}
+               {profile.familyType && (
+                 <View style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
+                   <Ionicons name="home-outline" size={12} color={primaryColor} />
+                   <Text style={styles.previewTagText}>{profile.familyType.replace(/_/g, ' ')}</Text>
+                 </View>
+               )}
+               {profile.religion && (
+                 <View style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
+                   <Feather name="star" size={12} color={primaryColor} />
+                   <Text style={styles.previewTagText}>{profile.religion}</Text>
+                 </View>
+               )}
+             </View>
+          ) : (
+            <View style={styles.previewTags}>
+              {previewTags.map((tag) => (
+                <View key={tag} style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
+                  {getInterestIcon(tag, primaryColor)}
+                  <Text style={styles.previewTagText}>{tag}</Text>
+                </View>
+              ))}
+              {remainTags.length > 0 && (
+                <View style={[styles.previewTag, { borderColor: `${primaryColor}40` }]}>
+                  <Text style={styles.previewTagText}>+{remainTags.length}</Text>
+                </View>
+              )}
+            </View>
+          )}
         </LinearGradient>
       </View>
     </View>

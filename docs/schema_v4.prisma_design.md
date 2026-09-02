@@ -1205,7 +1205,7 @@ Love
 Casual
 ```
 
-categories.
+.
 
 ---
 
@@ -2410,6 +2410,5 @@ The schema is considered frozen when:
 7. No new onboarding table should ever be required.
 
 ---
-
 
 

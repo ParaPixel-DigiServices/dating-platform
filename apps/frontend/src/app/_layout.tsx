@@ -106,19 +106,21 @@ export default function RootLayout() {
   const segments = useSegments();
   const router = useRouter();
   const navigationState = useRootNavigationState();
-  const accessToken   = useAuthStore((s) => s.accessToken);
-  const user          = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const user = useAuthStore((s) => s.user);
 
-  // Consider onboarding locally complete only when the step is CATEGORY_DONE.
-  const onboardingDone = user?.onboardingStep === 'CATEGORY_DONE';
+  // Consider onboarding locally complete when the step is CATEGORY_DONE or COMPLETED
+  const onboardingDone = user?.onboardingStep === 'CATEGORY_DONE' || user?.onboardingStep === 'COMPLETED';
 
   useEffect(() => {
     if (!hydrated || !fontsLoaded || isBootstrapping || !navigationState?.key) return;
 
     const inAuthGroup = segments[0] === '(onboarding)';
+    const isRootRoute = segments.length === 0;
 
     // Only allow access to protected routes if authenticated and fully onboarded
-    if ((!accessToken || !onboardingDone) && !inAuthGroup) {
+    // We allow inAuthGroup AND isRootRoute (because index.tsx acts as the master router)
+    if ((!accessToken || !onboardingDone) && !inAuthGroup && !isRootRoute) {
       router.replace('/(onboarding)/landing');
     }
   }, [accessToken, onboardingDone, segments, hydrated, fontsLoaded, isBootstrapping, navigationState?.key]);

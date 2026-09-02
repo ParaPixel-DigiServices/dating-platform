@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { View, Image, StyleSheet, Dimensions, StatusBar, ScrollView, TouchableOpacity, Text, Platform } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -9,11 +9,15 @@ import { BlurView } from "expo-blur";
 import theme from "@/theme/theme";
 
 import { useDeckStore } from "@/hooks/useDeckStore";
+import { getPublicProfile } from "@/services/backendService";
+import { ActivityIndicator } from "react-native";
+import { getFallbackImage } from "@/utils/fallbackImage";
 
 import { ProfileTabContent } from "@/components/profile/ProfileTabContent";
 import { PostsTabContent } from "@/components/profile/PostsTabContent";
 import { InsightTabContent } from "@/components/profile/InsightTabContent";
 import { SyncTabContent } from "@/components/profile/SyncTabContent";
+import { MarriageProfileView } from "@/components/profile/MarriageProfileView";
 
 const { height, width } = Dimensions.get("window");
 
@@ -27,9 +31,37 @@ export default function UserProfileScreen() {
   const t = themeObj[category] || themeObj.onboarding;
 
   const masterProfiles = useDeckStore((s) => s.masterProfiles);
-  const profile = useMemo(() => masterProfiles.find((p) => p.id === id), [id, masterProfiles]);
+  const deckProfile = useMemo(() => masterProfiles.find((p) => p.id === id), [id, masterProfiles]);
 
+  const [fetchedProfile, setFetchedProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(!deckProfile);
   const [activeTab, setActiveTab] = useState<"Profile" | "Insight" | "Sync" | "Posts">("Profile");
+
+  // Determine category from the viewed profile (not the viewer)
+  const profileCategory = fetchedProfile?.category ?? deckProfile?.category ?? null;
+  const isMarriageProfile = String(profileCategory || '').toUpperCase() === 'MARRIAGE';
+
+  useEffect(() => {
+    if (!deckProfile && id) {
+      setLoading(true);
+      getPublicProfile(id as string)
+        .then((data) => {
+          setFetchedProfile(data.data || data);
+        })
+        .catch((err) => console.error("Failed to fetch profile", err))
+        .finally(() => setLoading(false));
+    }
+  }, [id, deckProfile]);
+
+  const profile = deckProfile || fetchedProfile;
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center", backgroundColor: t.background }]}>
+        <ActivityIndicator size="large" color={t.primary} />
+      </View>
+    );
+  }
 
   if (!profile) {
     return (
@@ -54,8 +86,20 @@ export default function UserProfileScreen() {
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
       {/* Full Screen Image */}
-      <View style={StyleSheet.absoluteFillObject}>
-        <Image source={profile.main_photo} style={styles.image} resizeMode="cover" />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(255, 255, 255, 0.05)', justifyContent: 'center', alignItems: 'center' }]}>
+        {profile.main_photo ? (
+          <Image 
+            source={typeof profile.main_photo === "string" ? { uri: profile.main_photo } : profile.main_photo} 
+            style={[styles.image, { position: 'absolute' }]} 
+            resizeMode="cover" 
+          />
+        ) : (
+          <Image
+            source={getFallbackImage(profile.gender)}
+            style={{ width: '50%', height: '50%', opacity: 0.8, position: 'absolute' }}
+            resizeMode="contain"
+          />
+        )}
         <LinearGradient
           colors={["rgba(0,0,0,0.55)", "rgba(0,0,0,0.1)", "rgba(0,0,0,0.85)", t.background]}
           locations={[0, 0.25, 0.65, 1]}
@@ -132,57 +176,63 @@ export default function UserProfileScreen() {
           </View>
         </View>
 
-        {/* Tab System */}
-        <View style={styles.tabsContainer}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabSwitcher}>
-            {(["Profile", "Insight", "Sync", "Posts"] as const).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text style={[styles.tabText, { color: activeTab === tab ? t.textPrimary : t.textSecondary }]}>
-                  {tab === "Posts" ? "Social" : tab}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+        {/* Tab System — branched by category */}
+        {isMarriageProfile ? (
+          <MarriageProfileView profile={profile} t={t} />
+        ) : (
+          <>
+            <View style={styles.tabsContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabSwitcher}>
+                {(["Profile", "Insight", "Sync", "Posts"] as const).map((tab) => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
+                    onPress={() => setActiveTab(tab)}
+                  >
+                    <Text style={[styles.tabText, { color: activeTab === tab ? t.textPrimary : t.textSecondary }]}>
+                      {tab === "Posts" ? "Social" : tab}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-        {/* Dynamic Tab Content */}
-        {activeTab === "Profile" && (
-          <ProfileTabContent
-            profile={profile}
-            textPrimary={t.textPrimary}
-            textSecondary={t.textSecondary}
-            primaryColor={t.primaryLight}
-            background={t.background}
-            secondary={t.secondary}
-          />
-        )}
-        {activeTab === "Insight" && (
-          <InsightTabContent
-            textPrimary={t.textPrimary}
-            textSecondary={t.textSecondary}
-            primaryColor={t.primaryLight}
-            secondary={t.secondary}
-          />
-        )}
-        {activeTab === "Sync" && (
-          <SyncTabContent
-            textPrimary={t.textPrimary}
-            textSecondary={t.textSecondary}
-            primaryColor={t.primaryLight}
-            viewedUserName={profile.name}
-          />
-        )}
-        {activeTab === "Posts" && (
-          <PostsTabContent
-            textPrimary={t.textPrimary}
-            theme={t}
-            profileId={profile.id}
-            profileName={profile.name}
-          />
+            {/* Dynamic Tab Content */}
+            {activeTab === "Profile" && (
+              <ProfileTabContent
+                profile={profile}
+                textPrimary={t.textPrimary}
+                textSecondary={t.textSecondary}
+                primaryColor={t.primaryLight}
+                background={t.background}
+                secondary={t.secondary}
+              />
+            )}
+            {activeTab === "Insight" && (
+              <InsightTabContent
+                textPrimary={t.textPrimary}
+                textSecondary={t.textSecondary}
+                primaryColor={t.primaryLight}
+                secondary={t.secondary}
+              />
+            )}
+            {activeTab === "Sync" && (
+              <SyncTabContent
+                textPrimary={t.textPrimary}
+                textSecondary={t.textSecondary}
+                primaryColor={t.primaryLight}
+                viewedUserName={profile.name}
+              />
+            )}
+            {activeTab === "Posts" && (
+              <PostsTabContent
+                textPrimary={t.textPrimary}
+                theme={t}
+                profileId={profile.id}
+                profileName={profile.name}
+              />
+            )}
+          </>
         )}
 
       </ScrollView>

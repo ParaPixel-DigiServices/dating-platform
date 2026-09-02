@@ -16,6 +16,8 @@ interface Props {
   secondary:     string;
   background:    string;
   onSearch:      (q: string) => void;
+  title?:        string;
+  subtitle?:     string;
 }
 
 export function ExploreHeader({
@@ -25,6 +27,8 @@ export function ExploreHeader({
   secondary,
   background,
   onSearch,
+  title = "Explore",
+  subtitle = "Discover people around you",
 }: Props) {
   const [query, setQuery] = useState("");
 
@@ -36,9 +40,9 @@ export function ExploreHeader({
   return (
     <View style={[styles.wrapper, { backgroundColor: background }]}>
       {/* Title */}
-      <Text style={[styles.title, { color: textPrimary }]}>Explore</Text>
+      <Text style={[styles.title, { color: textPrimary }]}>{title}</Text>
       <Text style={[styles.subtitle, { color: textSecondary }]}>
-        Discover people around you
+        {subtitle}
       </Text>
 
       {/* Search bar */}

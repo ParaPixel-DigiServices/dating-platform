@@ -5,22 +5,28 @@ import {
   IsString,
   MaxLength,
 } from 'class-validator';
-
-import { DevicePlatform } 
-from '../../common/enums/device-platform.enum';
+import { DevicePlatform } from '../../common/enums/device-platform.enum';
 
 export class FirebaseLoginDto {
+  /** Firebase ID token from Google Sign-In (verified by Firebase on the client) */
   @IsString()
   @IsNotEmpty()
-  idToken!: string;
+  googleIdToken!: string;
 
+  /** Firebase ID token from Phone OTP verification (optional for returning users) */
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
+  phoneIdToken?: string;
+
+  /** Optional — client device identifier. A UUID is generated server-side if omitted. */
+  @IsString()
+  @IsOptional()
   @MaxLength(255)
-  deviceId!: string;
+  deviceId?: string;
 
   @IsEnum(DevicePlatform)
-  platform!: DevicePlatform;
+  @IsOptional()
+  platform?: DevicePlatform;
 
   @IsString()
   @IsOptional()

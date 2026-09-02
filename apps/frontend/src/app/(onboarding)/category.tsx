@@ -36,6 +36,7 @@ import { useRouter } from "expo-router";
 
 import CategoryCard from "@/components/onboarding/CategoryCard";
 import { useAuthStore } from "@/hooks/useAuthStore";
+import { useOnboardingStore } from "@/hooks/useOnboardingStore";
 import { saveOnboardingCategory } from "@/services/backendService";
 import { showSuccessToast, showErrorToast } from "@/components/toast";
 import { OnboardingTopBar } from "@/components/onboarding/OnboardingTopBar";
@@ -153,6 +154,8 @@ const ContinueButton = ({
 export default function Landing() {
   const router = useRouter();
   const setOnboardingStep = useAuthStore((s) => s.setOnboardingStep);
+  const setCategory = useOnboardingStore((s) => s.setCategory);
+  const setSubCategory = useOnboardingStore((s) => s.setSubCategory);
 
   // Which step we're on
   const [step, setStep] = useState<"category" | "subCategory">("category");
@@ -184,6 +187,7 @@ export default function Landing() {
             category: "LOVE",
           });
           setOnboardingStep(response.onboardingStep);
+          setCategory("LOVE");
           showSuccessToast("Category saved");
           router.replace("/(tabs)/home" as any);
         } catch (error: any) {
@@ -208,8 +212,10 @@ export default function Landing() {
           subCategory: selectedSubItem.id, // e.g. "hindu", "muslim"
         });
         setOnboardingStep(response.onboardingStep);
+        setCategory("MARRIAGE");
+        setSubCategory(selectedSubItem.id);
         showSuccessToast("Category saved");
-        router.replace("/(tabs)/home" as any);
+        router.replace("/(onboarding)/marriage-details" as any);
       } catch (error: any) {
         showErrorToast(error?.message || "Failed to save category");
         setIsTransitioning(false);

@@ -7,9 +7,14 @@ import {
   StatusBar,
   Dimensions,
   Platform,
+  PermissionsAndroid,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import { RTCView, MediaStream } from "react-native-webrtc";
+import { webrtcService } from "@/services/webrtcService";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -118,6 +123,12 @@ export default function CallScreen() {
   // Cycle through status steps
   const [statusIdx, setStatusIdx] = useState(0);
   const [callDuration, setCallDuration] = useState<number | null>(null); // null = still connecting
+  const [callState, setCallState] = useState<'connecting' | 'connected' | 'ended' | 'rejected' | 'disconnected' | 'ringing' | 'incoming'>('connecting');
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+
+  // Parse if this is an incoming call we are answering
+  const { isAnswering, offerStr } = useLocalSearchParams<{ isAnswering?: string; offerStr?: string }>();
 
   useEffect(() => {
     // Advance status steps
@@ -125,24 +136,89 @@ export default function CallScreen() {
       setStatusIdx((i) => Math.min(i + 1, STATUS_STEPS.length - 1));
     }, 2000);
 
-    // Simulate "connected" after ~8s — just shows a timer
-    const connectedTimer = setTimeout(() => {
-      setCallDuration(0);
-      clearInterval(stepTimer);
-    }, 8000);
+    webrtcService.onCallStateChange = (state) => {
+      setCallState(state);
+      if (state === 'connected') {
+        setCallDuration(0);
+        clearInterval(stepTimer);
+      } else if (state === 'ended' || state === 'rejected' || state === 'disconnected') {
+        setTimeout(() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/');
+          }
+        }, 1500);
+      }
+    };
+
+    webrtcService.onRemoteStream = (stream) => {
+      setRemoteStream(stream);
+    };
+
+    webrtcService.onLocalStream = (stream) => {
+      setLocalStream(stream);
+    };
+
+    const requestPermissionsAndStartLocal = async () => {
+      if (Platform.OS === 'android') {
+        try {
+          const permissions = [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO];
+          if (isVideo) {
+            permissions.push(PermissionsAndroid.PERMISSIONS.CAMERA);
+          }
+          const granted = await PermissionsAndroid.requestMultiple(permissions);
+          const audioGranted = granted[PermissionsAndroid.PERMISSIONS.RECORD_AUDIO] === PermissionsAndroid.RESULTS.GRANTED;
+          const videoGranted = isVideo ? granted[PermissionsAndroid.PERMISSIONS.CAMERA] === PermissionsAndroid.RESULTS.GRANTED : true;
+          
+          if (!audioGranted || !videoGranted) {
+            Alert.alert("Permissions Required", "Audio and Camera permissions are needed for calls.");
+            if (router.canGoBack()) router.back();
+            else router.push("/");
+            return false;
+          }
+        } catch (err) {
+          console.warn(err);
+          return false;
+        }
+      }
+      await webrtcService.startLocalStream(isVideo);
+      return true;
+    };
+
+    const initCallFlow = async () => {
+      if (isAnswering === 'true') {
+        // We are answering an incoming call
+        const hasPermissions = await requestPermissionsAndStartLocal();
+        if (hasPermissions) {
+          webrtcService.setupAnswerStream(id as string, isVideo);
+        }
+      } else {
+        // We are initiating an outgoing call
+        const hasPermissions = await requestPermissionsAndStartLocal();
+        if (hasPermissions) {
+          webrtcService.onCallAccepted = () => {
+            webrtcService.initiateCall(id as string, isVideo);
+          };
+          webrtcService.inviteUser(id as string, isVideo, displayName);
+        }
+      }
+    };
+
+    initCallFlow();
 
     return () => {
       clearInterval(stepTimer);
-      clearTimeout(connectedTimer);
+      webrtcService.endCall();
     };
   }, []);
 
   // Tick the call duration once connected
   useEffect(() => {
-    if (callDuration === null) return;
+    if (callDuration === null || callState !== 'connected') return;
     const tick = setInterval(() => setCallDuration((d) => (d ?? 0) + 1), 1000);
     return () => clearInterval(tick);
-  }, [callDuration]);
+  }, [callDuration, callState]);
 
   const formatDuration = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, "0");
@@ -155,6 +231,14 @@ export default function CallScreen() {
   const [speakerOn, setSpeakerOn] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
 
+  useEffect(() => {
+    webrtcService.toggleMute(muted);
+  }, [muted]);
+
+  useEffect(() => {
+    webrtcService.toggleVideo(!videoOff);
+  }, [videoOff]);
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
@@ -165,12 +249,27 @@ export default function CallScreen() {
         style={StyleSheet.absoluteFill}
       />
 
+      {/* Full screen video: remote stream if available, otherwise local stream */}
+      {(remoteStream || localStream) && (
+        <RTCView
+          streamURL={remoteStream ? remoteStream.toURL() : localStream!.toURL()}
+          style={isVideo && !videoOff ? styles.videoView : styles.hiddenAudioView}
+          objectFit="cover"
+        />
+      )}
+
       {/* Subtle accent glow */}
       <View style={[styles.glow, { backgroundColor: t.primary + "18" }]} />
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: Math.max(insets.top, Platform.OS === "android" ? 40 : 20) }]}>
-        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.8}>
+        <TouchableOpacity onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.push('/');
+          }
+        }} activeOpacity={0.8}>
           <Feather name="chevron-down" size={28} color="rgba(255,255,255,0.7)" />
         </TouchableOpacity>
         <Text style={styles.callTypeLabel}>
@@ -199,21 +298,37 @@ export default function CallScreen() {
         </Animated.View>
 
         {/* Status */}
-        {callDuration === null ? (
+        {callState === 'ringing' ? (
+          <View style={styles.statusArea}>
+            <Text style={[styles.statusStep, { color: t.primary, fontSize: 18, fontFamily: "PlayfairDisplay_700Bold" }]}>Ringing...</Text>
+          </View>
+        ) : callState === 'incoming' ? (
+          <View style={styles.statusArea}>
+            <Text style={[styles.statusStep, { color: t.primary, fontSize: 18, fontFamily: "PlayfairDisplay_700Bold" }]}>Incoming Call...</Text>
+          </View>
+        ) : callState === 'connecting' ? (
           <View style={styles.statusArea}>
             <ConnectingDots />
-            <Text style={[styles.statusStep, { color: t.primary + "cc" }]}>
+            <Text style={[styles.statusStep, { color: t.primary + "cc", marginTop: 4 }]}>
+              Waiting for permissions...
+            </Text>
+            <Text style={[styles.statusStep, { color: t.primary + "88", marginTop: 2, fontSize: 11 }]}>
               {STATUS_STEPS[statusIdx]}
             </Text>
           </View>
+        ) : callState === 'ended' || callState === 'rejected' || callState === 'disconnected' ? (
+          <Animated.View entering={FadeIn.duration(500)} style={styles.statusArea}>
+            <Text style={[styles.durationText, { color: '#E63946' }]}>Call Ended</Text>
+          </Animated.View>
         ) : (
           <Animated.View entering={FadeIn.duration(500)} style={styles.statusArea}>
             <Text style={[styles.durationText, { color: t.primary }]}>
-              {formatDuration(callDuration)}
+              {formatDuration(callDuration || 0)}
             </Text>
             <Text style={styles.connectedLabel}>Connected · Secure</Text>
           </Animated.View>
         )}
+
       </View>
 
       {/* Controls */}
@@ -221,32 +336,26 @@ export default function CallScreen() {
         {/* Row 1: mute, speaker/video-off, end */}
         <View style={styles.controlRow}>
           {/* Mute */}
-          <TouchableOpacity
-            style={[styles.controlBtn, muted && styles.controlBtnActive]}
-            onPress={() => setMuted((v) => !v)}
-            activeOpacity={0.8}
-          >
-            <Feather name={muted ? "mic-off" : "mic"} size={22} color={muted ? "#fff" : "rgba(255,255,255,0.8)"} />
+          <TouchableOpacity onPress={() => setMuted((v) => !v)} activeOpacity={0.8} style={styles.controlBtnWrapper}>
+            <BlurView intensity={muted ? 40 : 20} tint="light" style={[styles.controlBtn, muted && styles.controlBtnActive]}>
+              <Feather name={muted ? "mic-off" : "mic"} size={26} color={muted ? "#fff" : "rgba(255,255,255,0.9)"} />
+            </BlurView>
             <Text style={styles.controlLabel}>{muted ? "Unmute" : "Mute"}</Text>
           </TouchableOpacity>
 
           {/* Speaker / Camera */}
           {isVideo ? (
-            <TouchableOpacity
-              style={[styles.controlBtn, videoOff && styles.controlBtnActive]}
-              onPress={() => setVideoOff((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <Feather name={videoOff ? "video-off" : "video"} size={22} color="rgba(255,255,255,0.8)" />
+            <TouchableOpacity onPress={() => setVideoOff((v) => !v)} activeOpacity={0.8} style={styles.controlBtnWrapper}>
+              <BlurView intensity={videoOff ? 40 : 20} tint="light" style={[styles.controlBtn, videoOff && styles.controlBtnActive]}>
+                <Feather name={videoOff ? "video-off" : "video"} size={26} color="rgba(255,255,255,0.9)" />
+              </BlurView>
               <Text style={styles.controlLabel}>{videoOff ? "Start Video" : "Stop Video"}</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity
-              style={[styles.controlBtn, speakerOn && styles.controlBtnActive]}
-              onPress={() => setSpeakerOn((v) => !v)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name={speakerOn ? "volume-high" : "volume-medium"} size={22} color="rgba(255,255,255,0.8)" />
+            <TouchableOpacity onPress={() => setSpeakerOn((v) => !v)} activeOpacity={0.8} style={styles.controlBtnWrapper}>
+              <BlurView intensity={speakerOn ? 40 : 20} tint="light" style={[styles.controlBtn, speakerOn && styles.controlBtnActive]}>
+                <Ionicons name={speakerOn ? "volume-high" : "volume-medium"} size={26} color="rgba(255,255,255,0.9)" />
+              </BlurView>
               <Text style={styles.controlLabel}>{speakerOn ? "Speaker On" : "Speaker"}</Text>
             </TouchableOpacity>
           )}
@@ -254,7 +363,14 @@ export default function CallScreen() {
           {/* End call */}
           <TouchableOpacity
             style={styles.endCallBtn}
-            onPress={() => router.back()}
+            onPress={() => {
+              webrtcService.endCall();
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.push('/');
+              }
+            }}
             activeOpacity={0.85}
           >
             <Feather name="phone-off" size={26} color="#fff" />
@@ -355,27 +471,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
+    paddingHorizontal: 20,
+  },
+  controlBtnWrapper: {
+    alignItems: "center",
+    justifyContent: "center",
+    width: 80,
   },
   controlBtn: {
     alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    justifyContent: "center",
     width: 72,
     height: 72,
     borderRadius: 36,
-    justifyContent: "center",
+    overflow: "hidden",
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
   },
   controlBtnActive: {
-    backgroundColor: "rgba(255,255,255,0.18)",
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderColor: "rgba(255,255,255,0.4)",
   },
   controlLabel: {
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 10,
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
     fontFamily: "Lato_400Regular",
-    position: "absolute",
-    bottom: -20,
+    marginTop: 12,
     textAlign: "center",
-    width: 80,
   },
   endCallBtn: {
     width: 72,
@@ -389,5 +512,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.5,
     shadowRadius: 12,
     elevation: 10,
+  },
+  videoView: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.8,
+  },
+  hiddenAudioView: {
+    width: 1,
+    height: 1,
+    opacity: 0,
   },
 });
