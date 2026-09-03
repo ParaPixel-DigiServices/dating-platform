@@ -35,11 +35,6 @@ export class ChatService {
       },
     });
 
-    console.log(`[getInbox] Found ${matches.length} matches for profile ${myProfileId}`);
-    if (matches.length > 0) {
-      console.log(`[getInbox] First match:`, JSON.stringify(matches[0], null, 2));
-    }
-
     // We can optimize the latest message fetch. For now, fetch latest 1 message per chat.
     const inbox = await Promise.all(matches.map(async (match) => {
       let latestMessage: any = null;
@@ -69,6 +64,7 @@ export class ChatService {
           id: otherProfile.id,
           name: otherProfile.firstName,
           avatar: otherProfile.photos?.[0]?.cdnUrl || null,
+          gender: otherProfile.gender,
         },
         latestMessage,
         unreadCount,

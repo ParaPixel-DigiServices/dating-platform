@@ -28,7 +28,8 @@ export default function ChatScreen() {
       id: c.matchId,
       name: c.otherProfile.name,
       age: 0, // Not typically used on this list design anyway
-      avatar: c.otherProfile.avatar || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80",
+      avatar: c.otherProfile.avatar || null,
+      gender: c.otherProfile.gender,
       statusType: "chat" as ConnectionStatus,
       statusText: c.latestMessage ? c.latestMessage.content : "New match!",
       unreadCount: c.unreadCount,
@@ -116,6 +117,7 @@ export default function ChatScreen() {
             name={item.name}
             age={item.statusType === "social" ? 0 : item.age}
             avatar={item.avatar}
+            gender={item.gender}
             statusType={item.statusType}
             statusText={item.statusText}
             unreadCount={item.unreadCount}

@@ -77,7 +77,7 @@ export default function UserProfileScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace("/(tabs)/activ");
+      router.replace("/(tabs)/activity");
     }
   };
 

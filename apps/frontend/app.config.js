@@ -11,5 +11,9 @@ module.exports = () => {
       ...expo.ios,
       bundleIdentifier: 'com.parapixel.amora',
     },
+    plugins: [
+      ...expo.plugins,
+      "expo-web-browser"
+    ]
   };
 };

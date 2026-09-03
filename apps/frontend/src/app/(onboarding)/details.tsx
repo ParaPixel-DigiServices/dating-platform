@@ -73,18 +73,16 @@ const detailsSchema = z
 
 type DetailsFormData = z.infer<typeof detailsSchema>;
 
-const GENDER_OPTIONS = ["Man", "Woman", "Other"];
+const GENDER_OPTIONS = ["Male", "Female"];
 
 const mapGenderToBackend = (gender: string) => {
   switch (gender) {
-    case "Man":
+    case "Male":
       return "MALE";
-
-    case "Woman":
+    case "Female":
       return "FEMALE";
-
     default:
-      return "NON-BINARY";
+      return "FEMALE";
   }
 };
 
@@ -414,8 +412,12 @@ export default function DetailsScreen() {
                           maxLength={2}
                           value={field.value}
                           onChangeText={(val) => {
-                            field.onChange(val);
-                            if (val.length === 2) monthRef.current?.focus();
+                            let cleaned = val.replace(/[^0-9]/g, '');
+                            if (cleaned.length === 1 && parseInt(cleaned, 10) > 3) {
+                              cleaned = `0${cleaned}`;
+                            }
+                            field.onChange(cleaned);
+                            if (cleaned.length === 2) monthRef.current?.focus();
                           }}
                           onFocus={() => setFocusedInput("day")}
                           onBlur={() => setFocusedInput(null)}
@@ -443,8 +445,12 @@ export default function DetailsScreen() {
                           maxLength={2}
                           value={field.value}
                           onChangeText={(val) => {
-                            field.onChange(val);
-                            if (val.length === 2) yearRef.current?.focus();
+                            let cleaned = val.replace(/[^0-9]/g, '');
+                            if (cleaned.length === 1 && parseInt(cleaned, 10) > 1) {
+                              cleaned = `0${cleaned}`;
+                            }
+                            field.onChange(cleaned);
+                            if (cleaned.length === 2) yearRef.current?.focus();
                           }}
                           onFocus={() => setFocusedInput("month")}
                           onBlur={() => setFocusedInput(null)}
@@ -471,7 +477,10 @@ export default function DetailsScreen() {
                           keyboardType="number-pad"
                           maxLength={4}
                           value={field.value}
-                          onChangeText={field.onChange}
+                          onChangeText={(val) => {
+                            let cleaned = val.replace(/[^0-9]/g, '');
+                            field.onChange(cleaned);
+                          }}
                           onFocus={() => setFocusedInput("year")}
                           onBlur={() => setFocusedInput(null)}
                           editable={!loading}

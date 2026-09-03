@@ -1,10 +1,11 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class MediaService {
+  private readonly logger = new Logger(MediaService.name);
   private s3Client: S3Client;
   private bucketName: string;
 
@@ -20,7 +21,7 @@ export class MediaService {
       });
       this.bucketName = process.env.AWS_S3_BUCKET_NAME || '';
     } else {
-      console.warn('AWS S3 environment variables are missing! S3 uploads will fail.');
+      this.logger.warn('AWS S3 environment variables are missing! S3 uploads will fail.');
     }
   }
 

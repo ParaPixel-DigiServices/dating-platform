@@ -22,6 +22,7 @@ export interface ChatInboxItem {
     id: string;
     name: string;
     avatar: string | null;
+    gender?: string;
   };
   latestMessage: ChatMessage | null;
   unreadCount: number;

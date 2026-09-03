@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   Switch,
   Platform,
-  SafeAreaView,
   StatusBar,
   Alert,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useOnboardingStore } from "@/hooks/useOnboardingStore";
@@ -45,6 +45,8 @@ export default function SettingsScreen() {
   const [showAge,        setShowAge]        = useState(true);
   const [incognitoMode,  setIncognitoMode]  = useState(false);
   const [readReceipts,   setReadReceipts]   = useState(true);
+
+  const insets = useSafeAreaInsets();
 
   const handleLogout = () => {
     Alert.alert(
@@ -181,20 +183,18 @@ export default function SettingsScreen() {
       <StatusBar barStyle="light-content" backgroundColor={t.background} />
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <SafeAreaView>
-        <View style={[styles.header, { borderBottomColor: t.secondary }]}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Feather name="arrow-left" size={22} color={t.textPrimary} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Settings</Text>
-          {/* spacer */}
-          <View style={styles.backBtn} />
-        </View>
-      </SafeAreaView>
+      <View style={[styles.header, { paddingTop: insets.top + 10, borderBottomColor: t.secondary }]}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Feather name="arrow-left" size={24} color={t.textPrimary} />
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: t.textPrimary }]}>Settings</Text>
+        {/* spacer */}
+        <View style={styles.backBtn} />
+      </View>
 
       {/* ── CONTENT ────────────────────────────────────────── */}
       <ScrollView
@@ -272,21 +272,34 @@ export default function SettingsScreen() {
         {/* ── ACTION BUTTONS ─────────────────────────────────── */}
         <View style={styles.logoutSection}>
           <TouchableOpacity
-            style={[styles.logoutBtn, { borderColor: "#E53E3E" }]}
-            onPress={handleDeleteAccount}
-            activeOpacity={0.8}
-          >
-            <Feather name="trash-2" size={18} color="#E53E3E" style={{ marginRight: 10 }} />
-            <Text style={styles.logoutText}>Delete Account</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.logoutBtn, { borderColor: t.secondary }]}
+            style={[styles.logoutBtn, { 
+              backgroundColor: t.secondary, 
+              borderWidth: 0,
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 8,
+              elevation: 2,
+            }]}
             onPress={handleLogout}
             activeOpacity={0.8}
           >
             <Feather name="log-out" size={18} color={t.textPrimary} style={{ marginRight: 10 }} />
             <Text style={[styles.logoutText, { color: t.textPrimary }]}>Log Out</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.logoutBtn, { 
+              backgroundColor: "rgba(229, 62, 62, 0.08)", 
+              borderColor: "rgba(229, 62, 62, 0.3)",
+              borderWidth: 1,
+              marginTop: 8 
+            }]}
+            onPress={handleDeleteAccount}
+            activeOpacity={0.8}
+          >
+            <Feather name="trash-2" size={18} color="#E53E3E" style={{ marginRight: 10 }} />
+            <Text style={styles.logoutText}>Delete Account</Text>
           </TouchableOpacity>
 
           <Text style={[styles.logoutHint, { color: t.textSecondary }]}>
@@ -307,101 +320,116 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? 16 : 8,
-    paddingBottom: 14,
+    paddingBottom: 16,
     borderBottomWidth: 1,
+    backgroundColor: 'transparent',
   },
   backBtn: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: 'rgba(255,255,255,0.03)',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontFamily: "Lato_700Bold",
-    letterSpacing: 0.2,
+    letterSpacing: 0.5,
   },
 
   /* SCROLL */
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 48,
-    gap: 24,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 60,
+    gap: 32,
   },
 
   /* SECTION */
-  sectionBlock: { gap: 8 },
+  sectionBlock: { gap: 12 },
   sectionLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Lato_700Bold",
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
     marginLeft: 4,
+    opacity: 0.8,
   },
   sectionCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
   },
 
   /* ROW */
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    gap: 16,
   },
   rowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: "center",
     alignItems: "center",
   },
   rowLabel: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: "Lato_400Regular",
   },
   rowRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 8,
   },
   rowValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: "Lato_400Regular",
+    opacity: 0.7,
     maxWidth: 120,
   },
   divider: {
     height: 1,
-    marginLeft: 62,
+    marginLeft: 70,
+    opacity: 0.5,
   },
 
   /* LOGOUT */
   logoutSection: {
     alignItems: "center",
-    gap: 10,
-    marginTop: 8,
+    gap: 14,
+    marginTop: 16,
   },
   logoutBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     width: "100%",
-    height: 54,
-    borderRadius: 16,
-    borderWidth: 1.5,
+    height: 56,
+    borderRadius: 18,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255,255,255,0.02)',
   },
   logoutText: {
     fontSize: 16,
     fontFamily: "Lato_700Bold",
-    color: "#E53E3E",
+    letterSpacing: 0.3,
   },
   logoutHint: {
-    fontSize: 12,
+    fontSize: 13,
     fontFamily: "Lato_400Regular",
     textAlign: "center",
+    opacity: 0.6,
+    marginTop: 4,
   },
 });

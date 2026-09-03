@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
@@ -39,12 +41,36 @@ export default function LandingScreen() {
 
   const [step, setStep] = useState<"landing" | "auth" | "verification">("landing");
   const otpFlowRef = useRef<OtpFlowRef>(null);
+  
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const keyboardDidShowListener = Keyboard.addListener(
+      Platform.OS === 'android' ? 'keyboardDidShow' : 'keyboardWillShow',
+      () => {
+        setKeyboardVisible(true);
+      }
+    );
+    const keyboardDidHideListener = Keyboard.addListener(
+      Platform.OS === 'android' ? 'keyboardDidHide' : 'keyboardWillHide',
+      () => {
+        setKeyboardVisible(false);
+      }
+    );
+
+    return () => {
+      keyboardDidShowListener.remove();
+      keyboardDidHideListener.remove();
+    };
+  }, []);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.root}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
+      {/* 1. Static Background */}
       <ImageBackground source={BG_IMG} style={styles.bg} resizeMode="cover">
         <LinearGradient
           colors={["rgba(13,10,7,0.15)", "rgba(13,10,7,0.65)", t.background]}
@@ -52,7 +78,13 @@ export default function LandingScreen() {
           style={StyleSheet.absoluteFillObject}
           pointerEvents="none"
         />
+      </ImageBackground>
 
+      {/* 2. Floating Content layer that responds to keyboard */}
+      <KeyboardAvoidingView 
+        style={StyleSheet.absoluteFillObject}
+        behavior={Platform.OS === "ios" ? "padding" : "padding"}
+      >
         {step === "verification" && (
           <View style={styles.topBarWrapper}>
             <OnboardingTopBar
@@ -69,14 +101,18 @@ export default function LandingScreen() {
         )}
 
         {/* ── Branding — always fixed, never moves ── */}
-        <View style={styles.brandingContainer}>
-          <View style={styles.logoMark}>
-            <Ionicons name="heart-outline" size={44} color={t.primary} />
-          </View>
-          <Text style={[styles.appName, { color: t.textPrimary }]}>AMORA</Text>
-          <Text style={[styles.tagline, { color: t.textSecondary }]}>
-            REAL PEOPLE. DEEP CONNECTIONS.{"\n"}ENDLESS POSSIBILITIES.
-          </Text>
+        <View style={[styles.brandingContainer, isKeyboardVisible && { flex: 0.25, paddingTop: 90 }]}>
+          {!isKeyboardVisible && (
+            <>
+              <View style={styles.logoMark}>
+                <Ionicons name="heart-outline" size={44} color={t.primary} />
+              </View>
+              <Text style={[styles.appName, { color: t.textPrimary }]}>AMORA</Text>
+              <Text style={[styles.tagline, { color: t.textSecondary }]}>
+                REAL PEOPLE. DEEP CONNECTIONS.{"\n"}ENDLESS POSSIBILITIES.
+              </Text>
+            </>
+          )}
         </View>
 
         {/* ── Bottom sliding area — only this section transitions ── */}
@@ -111,10 +147,6 @@ export default function LandingScreen() {
 
               <View style={styles.signInRow}>
                 <View style={[styles.line, { backgroundColor: t.border }]} />
-                {/* <TouchableOpacity activeOpacity={0.7} onPress={() => setStep("auth")}>
-                  <Text style={[styles.signInText, { color: t.textPrimary }]}>Sign In</Text>
-                </TouchableOpacity>
-                <View style={[styles.line, { backgroundColor: t.border }]} /> */}
               </View>
 
               <View style={styles.privacyRow}>
@@ -141,8 +173,7 @@ export default function LandingScreen() {
 
           )}
         </View>
-
-      </ImageBackground>
+      </KeyboardAvoidingView>
     </View>
   );
 }

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { CategoryType, Gender } from '@prisma/client';
 import { DatabaseService } from '../common/database/database.service';
@@ -241,7 +242,7 @@ export class OnboardingService {
       // Onboarding step is computed in auth service, no need to update user table.
       return { success: true, onboardingStep: 'COMPLETED', data: marriageProfile };
     } catch (error) {
-      console.error('FAILED TO SAVE MARRIAGE DETAILS:', error);
+      Logger.error('FAILED TO SAVE MARRIAGE DETAILS:', error, OnboardingService.name);
       throw error;
     }
   }

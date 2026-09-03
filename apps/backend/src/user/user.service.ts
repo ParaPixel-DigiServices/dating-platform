@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../common/database/database.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Prisma } from '@prisma/client';
@@ -43,7 +43,7 @@ export class UserService {
       this.prisma.profile.update({
         where: { id: user.profile.id },
         data: { completionPercentage: pct, isCompleted: pct === 100 },
-      }).catch(console.error);
+      }).catch((e) => Logger.error(e, UserService.name));
     }
 
     return user;

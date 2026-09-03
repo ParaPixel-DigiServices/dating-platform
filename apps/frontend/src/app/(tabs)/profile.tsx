@@ -161,7 +161,7 @@ export default function ProfileScreen() {
   const primaryPhoto = profile?.photos?.find((p: any) => p.isPrimary) ?? profile?.photos?.[0] ?? null;
   const avatarSource = primaryPhoto
     ? { uri: primaryPhoto.cdnUrl }
-    : profile?.gender === 'FEMALE' ? FEMALE_LOGO : MALE_LOGO;
+    : gender === 'female' ? FEMALE_LOGO : MALE_LOGO;
 
   // Extract photo ID robustly — backend double-wraps so shape can be
   // { data: { id } } or just { id }

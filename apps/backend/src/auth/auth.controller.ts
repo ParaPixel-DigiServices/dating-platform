@@ -29,22 +29,15 @@ export class AuthController {
   @Post('firebase-login')
   @HttpCode(HttpStatus.OK)
   async firebaseLogin(@Body() body: FirebaseLoginDto) {
-    console.log("body", body);
-    console.log("we got the request");
-    try {
-      return await this.authService.firebaseLogin(
-        body.googleIdToken,
-        body.phoneIdToken,
-        {
-          deviceId: body.deviceId,
-          platform: body.platform,
-          deviceName: body.deviceName,
-        },
-      );
-    } catch (error) {
-      console.error("FIREBASE LOGIN ERROR:", error);
-      throw error;
-    }
+    return await this.authService.firebaseLogin(
+      body.googleIdToken,
+      body.phoneIdToken,
+      {
+        deviceId: body.deviceId,
+        platform: body.platform,
+        deviceName: body.deviceName,
+      },
+    );
   }
 
   /**
