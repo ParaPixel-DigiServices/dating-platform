@@ -45,7 +45,7 @@ export class InteractionService {
       name: profile.user?.displayName || profile.firstName,
       age: profile.dateOfBirth ? new Date().getFullYear() - new Date(profile.dateOfBirth).getFullYear() : null,
       occupation: profile.occupation || null,
-      avatar: profile.photos && profile.photos.length > 0 ? profile.photos[0] : null,
+      avatar: profile.photos && profile.photos.length > 0 ? profile.photos[0].cdnUrl : null,
       timestamp: timestamp.getTime(),
       interactionId
     });
